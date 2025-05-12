@@ -1,43 +1,38 @@
 "use client";
 
-import { useBudgetRestockApprovals } from "@/hooks/useBudgetRestockApprovals";
-import { columns as budgetColumns } from "./columns";
+import { useEffect, useState } from "react";
+import axios from "@/lib/axios";
+import { columns } from "./columns";
+import { PendingRV } from "./columns";
 import DataTable from "@/components/Tables/DataTable";
-import TableLoader from "@/components/Loaders/TableLoader";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 
-export default function BudgetRestockPage() {
-  const { data, loading, error, refetch, handleAction } = useBudgetRestockApprovals();
+export default function RVApprovalPage() {
+  const [data, setData] = useState<PendingRV[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (loading) {
-    return (
-      <div className="p-4">
-        <TableLoader />
-      </div>
-    );
-  }
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get("/budget-analyst/rv/pending/"); // adjust as needed
+      setData(res.data);
+    } catch (err) {
+      console.error("Failed to load RVs", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (error) {
-    return (
-      <div className="p-4">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Failed to load data: {error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-6 space-y-4">
       <DataTable
-        title="Pending Restock Requests"
-        description="Approve or reject restocking requests from departments"
-        columns={budgetColumns(handleAction)}
+        title="Pending Requisition Vouchers"
+        columns={columns({ refreshData: fetchData })}
         data={data}
-        searchKey="reference_no"
-        refreshData={refetch}
+        isLoading={loading}
       />
     </div>
   );

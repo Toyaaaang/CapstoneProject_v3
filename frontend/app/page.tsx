@@ -9,8 +9,7 @@ const LandingPage = () => {
       <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm"></div>
 
       {/* Glass Card */}
-      <div className="relative z-10 w-full max-w-3xl px-8 py-12 bg-white bg-opacity-10 rounded-2xl border border-white/30 backdrop-blur-md text-white shadow-lg">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 text-center">  
+      <div className="m-20 p-8 h-full w-full bg-gray-400 rounded-md bg-clip-padding backdrop-filter backdrop-blur-sm bg-opacity-10 border border-gray-100">        <h1 className="text-4xl md:text-5xl font-bold mb-4 text-center">  
           WOMS
         </h1>
         <p className="text-center text-lg md:text-xl font-light mb-6">

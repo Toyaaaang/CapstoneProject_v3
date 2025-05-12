@@ -84,7 +84,7 @@ export default function useLogin(): UseLoginReturn {
         manager: "/pages/gen-manager",
         employee: "/pages/employee",
         finance: "/pages/finance",
-        sub_office: "/pages/sub-office",
+        sub_office: "/pages/sub-offices",
         audit: "/pages/audit",
 
 

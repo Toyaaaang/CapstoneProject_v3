@@ -3,20 +3,20 @@
 import { useEffect, useState } from "react";
 import axios from "@/lib/axios";
 import { columns } from "./columns";
-import { PendingRVForGM } from "./columns";
+import { GMApprovalRecord } from "./columns";
 import DataTable from "@/components/Tables/DataTable";
 
-export default function GMFinalRVApprovalPage() {
-  const [data, setData] = useState<PendingRVForGM[]>([]);
+export default function GMApprovalHistoryPage() {
+  const [data, setData] = useState<GMApprovalRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("/gm/rv/pending/"); // Adjust to your actual endpoint
+      const res = await axios.get("/gm/approval/history/"); // Make sure this endpoint returns all types
       setData(res.data);
     } catch (err) {
-      console.error("Failed to load RVs", err);
+      console.error("Failed to load GM approval history", err);
     } finally {
       setLoading(false);
     }
@@ -28,12 +28,7 @@ export default function GMFinalRVApprovalPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <DataTable
-        title="Requisition Vouchers – Final Approval"
-        columns={columns({ refreshData: fetchData })}
-        data={data}
-        isLoading={loading}
-      />
+      <DataTable title="Approval History" columns={columns} data={data} isLoading={loading} />
     </div>
   );
 }

@@ -1,85 +1,93 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { GMRequest } from "@/hooks/useGMApprovals";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import axios from "@/lib/axios";
+import { toast } from "sonner";
 
-export const columns = (
-  handleAction: (reference_no: string, action: "approve" | "reject") => void
-): ColumnDef<GMRequest>[] => [
+export type PendingRVForGM = {
+  id: number;
+  rv_no: string;
+  department: string;
+  requested_by: string;
+  created_at: string;
+  items: {
+    material_name: string;
+    unit: string;
+    quantity: number;
+  }[];
+};
+
+export const columns = ({
+  refreshData,
+}: {
+  refreshData: () => void;
+}): ColumnDef<PendingRVForGM>[] => [
   {
-    accessorKey: "reference_no",
-    header: "Reference No.",
-    cell: ({ row }) => <div className="font-medium">{row.original.reference_no}</div>,
+    header: "RV No.",
+    accessorKey: "rv_no",
+    cell: ({ row }) => <span className="font-mono">{row.original.rv_no}</span>,
   },
   {
-    accessorKey: "department",
     header: "Department",
-    cell: ({ row }) => (
-      <div className="capitalize">{row.original.department?.replace(/_/g, " ") || "—"}</div>
-    ),
-  },
-  {
-    accessorKey: "requested_by",
-    header: "Requested By",
-  },
-  {
-    accessorKey: "materials",
-    header: "Materials",
-    cell: ({ row }) => {
-      const materials = row.original.materials;
-      return (
-        <Popover>
-          <PopoverTrigger asChild>
-            <div className="text-sm cursor-pointer hover:bg-gray-100 p-2 rounded">
-              {materials.length > 1 ? (
-                <div>
-                  {materials[0].name} - {materials[0].quantity} {materials[0].unit}{" "}
-                  <span className="text-blue-500">...</span>
-                </div>
-              ) : (
-                <div>
-                  {materials[0].name} - {materials[0].quantity} {materials[0].unit}
-                </div>
-              )}
-            </div>
-          </PopoverTrigger>
-          <PopoverContent className="w-64">
-            <div className="space-y-2">
-              {materials.map((mat, i) => (
-                <div key={i}>
-                  {mat.name} - {mat.quantity} {mat.unit}
-                </div>
-              ))}
-            </div>
-          </PopoverContent>
-        </Popover>
-      );
-    },
-  },
-  {
-    accessorKey: "created_at",
-    header: "Requested At",
+    accessorKey: "department",
     cell: ({ row }) =>
-      new Date(row.original.created_at).toLocaleString("en-US", {
+      row.original.department.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+  },
+  {
+    header: "Requested By",
+    accessorKey: "requested_by",
+  },
+  {
+    header: "Date Created",
+    accessorKey: "created_at",
+    cell: ({ row }) => {
+      const date = new Date(row.original.created_at);
+      return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
         day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      });
+    },
   },
   {
-    id: "actions",
-    header: "Actions",
+    header: "Items",
     cell: ({ row }) => (
-      <div className="flex gap-2">
-        <Button variant="outline" size="sm" onClick={() => handleAction(row.original.reference_no, "approve")}>
-          Approve
-        </Button>
-        <Button variant="destructive" size="sm" onClick={() => handleAction(row.original.reference_no, "reject")}>
-          Reject
-        </Button>
-      </div>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button size="sm" variant="outline">View</Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72">
+          <ul className="text-sm space-y-1 py-2">
+            {row.original.items.map((item, i) => (
+              <li key={i}>
+                {item.material_name} – {item.quantity} {item.unit}
+              </li>
+            ))}
+          </ul>
+        </PopoverContent>
+      </Popover>
     ),
+  },
+  {
+    header: "Action",
+    cell: ({ row }) => {
+      const handleAction = async (status: "approved" | "rejected") => {
+        try {
+          await axios.post(`/gm/rv/${row.original.id}/${status}/`);
+          toast.success(`RV ${status}`);
+          refreshData();
+        } catch (err) {
+          console.error(err);
+          toast.error(`Failed to ${status} RV`);
+        }
+      };
+
+      return (
+        <div className="flex gap-2">
+          <Button size="sm" onClick={() => handleAction("approved")}>Approve</Button>
+          <Button size="sm" variant="destructive" onClick={() => handleAction("rejected")}>Reject</Button>
+        </div>
+      );
+    },
   },
 ];

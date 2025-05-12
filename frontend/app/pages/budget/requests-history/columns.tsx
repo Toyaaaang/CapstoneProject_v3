@@ -1,55 +1,76 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
-import { BudgetHistoryRequest } from "@/hooks/useBudgetHistory";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-export const columns: ColumnDef<BudgetHistoryRequest>[] = [
+export type RVApprovalRecord = {
+  id: number;
+  rv_no: string;
+  department: string;
+  requested_by: string;
+  decision: "approved" | "rejected";
+  decided_at: string;
+  items: {
+    material_name: string;
+    unit: string;
+    quantity: number;
+  }[];
+};
+
+export const columns: ColumnDef<RVApprovalRecord>[] = [
   {
-    accessorKey: "reference_no",
-    header: "Reference No.",
-    cell: ({ row }) => <div className="font-medium">{row.original.reference_no}</div>,
+    header: "RV No.",
+    accessorKey: "rv_no",
+    cell: ({ row }) => <span className="font-mono">{row.original.rv_no}</span>,
   },
   {
-    accessorKey: "department",
     header: "Department",
-    cell: ({ row }) => (
-      <div className="capitalize">{row.original.department?.replace(/_/g, " ") || "—"}</div>
-    ),
+    accessorKey: "department",
+    cell: ({ row }) =>
+      row.original.department.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
   },
   {
-    accessorKey: "status",
-    header: "Status",
+    header: "Requested By",
+    accessorKey: "requested_by",
+  },
+  {
+    header: "Decision",
+    accessorKey: "decision",
     cell: ({ row }) => {
-      const status = row.original.status;
-      const variant = 
-        status === "approved" ? "success" :
-        status === "rejected" ? "destructive" :
-        "default";
-
-      return <Badge variant={variant}>{status}</Badge>;
+      const decision = row.original.decision;
+      const variant = decision === "approved" ? "success" : "destructive";
+      return <Badge variant={variant}>{decision.charAt(0).toUpperCase() + decision.slice(1)}</Badge>;
     },
   },
   {
-    accessorKey: "requested_by",
-    header: "Requested By",
-  },
-  {
-    accessorKey: "created_at",
-    header: "Requested At",
-    cell: ({ row }) =>
-      new Date(row.original.created_at).toLocaleDateString("en-US", {
+    header: "Date Decided",
+    accessorKey: "decided_at",
+    cell: ({ row }) => {
+      const date = new Date(row.original.decided_at);
+      return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
         day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      });
+    },
   },
   {
-    accessorKey: "approved_by",
-    header: "Reviewed By",
-    cell: ({ row }) =>
-      row.original.status === "approved"
-        ? row.original.approved_by
-        : row.original.rejected_by,
+    header: "Items",
+    cell: ({ row }) => (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button size="sm" variant="outline">View</Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72">
+          <ul className="text-sm space-y-1 py-2">
+            {row.original.items.map((item, i) => (
+              <li key={i}>
+                {item.material_name} – {item.quantity} {item.unit}
+              </li>
+            ))}
+          </ul>
+        </PopoverContent>
+      </Popover>
+    ),
   },
 ];

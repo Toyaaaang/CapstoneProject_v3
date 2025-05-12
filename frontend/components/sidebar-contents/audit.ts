@@ -1,20 +1,20 @@
 export const Menu = [
     {
       title: "Dashboard",
-      items: [{ title: "Overview", url: "/pages/budget" }],
+      items: [{ title: "Overview", url: "/pages/audit" }],
     },
     {
-      title: "Requests Management",
+      title: "Quality Check Management",
       items: [
-        { title: "Charge Tickets", url: "/pages/budget/restocking-requests" },
+        { title: "Certifications", url: "/pages/audit/certificates" },
       ],
     },
     {
       title: "Purchase Management",
       items: [
-        { title: "Purchase Orders", url: "/pages/budget/create-po" },
-        { title: "Purchase Returns", url: "/pages/budget/create-po" },
-        { title: "PO History", url: "/pages/budget/po-history" },
+        { title: "Purchase Orders", url: "/pages/audit/purchase-orders" },
+        { title: "Purchase Returns", url: "/pages/audit/purchase-returns" },
+        { title: "PO History", url: "/pages/audit/history" },
       ],
     },
   ];

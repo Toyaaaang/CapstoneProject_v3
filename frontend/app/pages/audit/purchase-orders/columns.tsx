@@ -1,10 +1,10 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import axios from "@/lib/axios";
 import { toast } from "sonner";
+import axios from "@/lib/axios";
 
-export type PendingPOForGM = {
+export type PendingPOForAudit = {
   id: number;
   po_no: string;
   rv_no: string;
@@ -21,12 +21,11 @@ export type PendingPOForGM = {
   }[];
 };
 
-
 export const columns = ({
   refreshData,
 }: {
   refreshData: () => void;
-}): ColumnDef<PendingPOForGM>[] => [
+}): ColumnDef<PendingPOForAudit>[] => [
   {
     header: "PO No.",
     accessorKey: "po_no",
@@ -63,7 +62,7 @@ export const columns = ({
     header: "Grand Total",
     accessorKey: "grand_total",
     cell: ({ row }) => (
-      <span className="font-semibold text-green-700">
+      <span className="text-green-700 font-semibold">
         ₱{row.original.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
       </span>
     ),
@@ -73,14 +72,14 @@ export const columns = ({
     cell: ({ row }) => (
       <Popover>
         <PopoverTrigger asChild>
-          <Button size="sm" variant="outline">View</Button>
+          <Button variant="outline" size="sm">View</Button>
         </PopoverTrigger>
         <PopoverContent className="w-[400px]">
           <ul className="text-sm space-y-2 py-2">
             {row.original.items.map((item, i) => (
               <li key={i}>
-                <div>
-                  <span className="font-medium">{item.material_name}</span> – {item.quantity} {item.unit}
+                <div className="font-medium">
+                  {item.material_name} – {item.quantity} {item.unit}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   Unit Price: ₱{item.unit_price.toFixed(2)}<br />
@@ -98,7 +97,7 @@ export const columns = ({
     cell: ({ row }) => {
       const handleAction = async (status: "approved" | "rejected") => {
         try {
-          await axios.post(`/gm/po/${row.original.id}/${status}/`);
+          await axios.post(`/auditor/po/${row.original.id}/${status}/`);
           toast.success(`PO ${status}`);
           refreshData();
         } catch (err) {

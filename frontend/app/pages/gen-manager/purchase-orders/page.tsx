@@ -1,42 +1,38 @@
 "use client";
-import { useGMPOApprovals } from "@/hooks/useGMPOApprovals";
+
+import { useEffect, useState } from "react";
+import axios from "@/lib/axios";
 import { columns } from "./columns";
+import { PendingPOForGM } from "./columns";
 import DataTable from "@/components/Tables/DataTable";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import TableLoader from "@/components/Loaders/TableLoader";
 
-export default function GMPurchaseOrderPage() {
-  const { data, loading, error, handleAction, refetch } = useGMPOApprovals();
+export default function GMPOApprovalPage() {
+  const [data, setData] = useState<PendingPOForGM[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (loading) {
-    return (
-      <div className="p-4">
-        <TableLoader />
-      </div>
-    );
-  }
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get("/gm/po/pending/"); // Adjust to match your backend route
+      setData(res.data);
+    } catch (err) {
+      console.error("Failed to load purchase orders", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  if (error) {
-    return (
-      <div className="p-4">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-6 space-y-4">
       <DataTable
-        title="Pending Purchase Orders"
-        description="Approve or reject submitted POs"
-        columns={columns(handleAction)}
+        title="Purchase Orders - Final Approval"
+        columns={columns({ refreshData: fetchData })}
         data={data}
-        searchKey="reference_no"
-        refreshData={refetch}
+        isLoading={loading}
       />
     </div>
   );

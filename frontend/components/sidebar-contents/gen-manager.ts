@@ -4,13 +4,6 @@ export const Menu = [
       items: [{ title: "Overview", url: "/pages/gen-manager" }],
     },
     {
-      title: "Role Management",
-      items: [
-        { title: "Role Requests", url: "/pages/gen-manager/role-requests" },
-        { title: "Approval History", url: "/pages/gen-manager/role-history" },
-      ],
-    },
-    {
       title: "Inventory",
       items: [
         { title: "Stock Management", url: "/pages/gen-manager/stock" },
@@ -21,15 +14,16 @@ export const Menu = [
       items: [
         { title: "Requisition Vouchers", url: "/pages/gen-manager/requisition-vouchers" },
         { title: "Purchase Orders", url: "/pages/gen-manager/purchase-orders" },
-        { title: "Material Certifications", url: "/pages/gen-manager/certifications" },
-        { title: "Material Requests", url: "/pages/gen-manager/requests" },
+        { title: "Charge Tickets", url: "/pages/gen-manager/charge-tickets" },
+        { title: "Approval History", url: "/pages/gen-manager/approval-history" },
+
 
       ],
     },
     {
       title: "Accountability Management",
       items: [
-        { title: "Accountabilities", url: "/pages/gen-manager/accountabilities" },
+        { title: "Accountabilities", url: "/pages/gen-manager/accountability-management" },
       ],
     },
   ];

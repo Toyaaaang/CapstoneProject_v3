@@ -1,31 +1,36 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import CreatePODialog from "@/components/dialogs/CreatePODialog";
+import CreateReturnDialog from "@/components/dialogs/CreateReturnDialog";
 
-export type RVForPOCreation = {
-  id: number;
-  rv_no: string;
-  department: string;
-  requested_by: string;
-  created_at: string;
-  items: {
+export type POWithFailedQC = {
     id: number;
-    material_name: string;
-    quantity: number;
-    unit: string;
-  }[];
-};
-
+    po_no: string;
+    supplier: string;
+    department: string;
+    delivery_date: string;
+    failed_items: {
+      material_id: number;
+      material_name: string;
+      quantity: number;
+      unit: string;
+      qc_remarks?: string;
+    }[];
+  };
+  
 export const columns = ({
   refreshData,
 }: {
   refreshData: () => void;
-}): ColumnDef<RVForPOCreation>[] => [
+}): ColumnDef<POWithFailedQC>[] => [
   {
-    header: "RV No.",
-    accessorKey: "rv_no",
-    cell: ({ row }) => <span className="font-mono">{row.original.rv_no}</span>,
+    header: "PO No.",
+    accessorKey: "po_no",
+    cell: ({ row }) => <span className="font-mono">{row.original.po_no}</span>,
+  },
+  {
+    header: "Supplier",
+    accessorKey: "supplier",
   },
   {
     header: "Department",
@@ -34,14 +39,10 @@ export const columns = ({
       row.original.department.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
   },
   {
-    header: "Requested By",
-    accessorKey: "requested_by",
-  },
-  {
-    header: "Date",
-    accessorKey: "created_at",
+    header: "Delivery Date",
+    accessorKey: "delivery_date",
     cell: ({ row }) => {
-      const date = new Date(row.original.created_at);
+      const date = new Date(row.original.delivery_date);
       return date.toLocaleDateString("en-US", {
         year: "numeric",
         month: "short",
@@ -50,17 +51,22 @@ export const columns = ({
     },
   },
   {
-    header: "Items",
+    header: "Failed Items",
     cell: ({ row }) => (
       <Popover>
         <PopoverTrigger asChild>
           <Button size="sm" variant="outline">View</Button>
         </PopoverTrigger>
-        <PopoverContent className="w-72">
+        <PopoverContent className="w-80">
           <ul className="text-sm space-y-1 py-2">
-            {row.original.items.map((item, i) => (
+            {row.original.failed_items.map((item, i) => (
               <li key={i}>
                 {item.material_name} – {item.quantity} {item.unit}
+                {item.qc_remarks && (
+                  <div className="text-xs text-muted-foreground italic">
+                    {item.qc_remarks}
+                  </div>
+                )}
               </li>
             ))}
           </ul>
@@ -71,7 +77,7 @@ export const columns = ({
   {
     header: "Action",
     cell: ({ row }) => (
-      <CreatePODialog rv={row.original} refreshData={refreshData} />
+      <CreateReturnDialog po={row.original} refreshData={refreshData} />
     ),
   },
 ];
