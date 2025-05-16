@@ -5,9 +5,10 @@ from rest_framework.permissions import IsAuthenticated
 
 from inventory.models import Inventory
 from ..models import ChargeTicket
-from requests.serializers.charge import ChargeTicketSerializer
+from material_requests.serializers.charge import ChargeTicketSerializer
 from notification.utils import send_notification
 from authentication.models import User
+from accountability.models import Accountability, AccountabilityItem
 
 class ChargeTicketViewSet(viewsets.ModelViewSet):
     queryset = ChargeTicket.objects.all().prefetch_related("items")
@@ -163,36 +164,55 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
         try:
             ticket = self.get_object()
         except ChargeTicket.DoesNotExist:
-            return Response({"error": "Ticket not found."}, status=404)
+            return Response({"error": "Ticket not found."}, status=status.HTTP_404_NOT_FOUND)
 
         if ticket.status != "approved" or ticket.approval_count != 3:
-            return Response({"error": "Ticket not ready for release."}, status=400)
-        
+            return Response({"error": "Ticket not ready for release."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Deduct inventory and build accountability
         for item in ticket.items.all():
             try:
                 inv = Inventory.objects.get(
                     material=item.material,
                     department=ticket.department
                 )
+
                 if inv.quantity < item.quantity:
                     return Response({
                         "error": f"Not enough stock for {item.material.name}."
-                    }, status=400)
+                    }, status=status.HTTP_400_BAD_REQUEST)
 
                 inv.quantity -= item.quantity
                 inv.save()
+
             except Inventory.DoesNotExist:
                 return Response({
                     "error": f"Inventory not found for {item.material.name} in {ticket.department}."
-                }, status=400)
+                }, status=status.HTTP_400_BAD_REQUEST)
 
-        # You could also log who released, date released, etc.
+        # Create or get accountability log for the requester
+        accountability, _ = Accountability.objects.get_or_create(
+            user=ticket.requester,
+            department=ticket.department,
+        )
+
+        for item in ticket.items.all():
+            AccountabilityItem.objects.create(
+                accountability=accountability,
+                material=item.material,
+                quantity=item.quantity,
+                unit=item.unit,
+                charge_ticket=ticket
+            )
+
+        # Mark ticket as released
         ticket.status = "released"
         ticket.save()
 
+        # Notify requester
         send_notification(
             user=ticket.requester,
-            message=f"Your charge ticket has been released by the warehouse staff."
+            message="Your charge ticket has been released by the warehouse staff."
         )
 
-        return Response({"message": "Ticket marked as released."})
+        return Response({"message": "Ticket marked as released and accountability recorded."})

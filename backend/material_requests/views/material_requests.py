@@ -4,12 +4,12 @@ from rest_framework.decorators import action
 from authentication.models import User
 from notification.utils import send_notification
 from django_filters.rest_framework import DjangoFilterBackend
-from requests.filters.material_requests import MaterialRequestFilter
+from material_requests.filters.material_requests import MaterialRequestFilter
 from rest_framework.pagination import PageNumberPagination
 
 
 from ..models import MaterialRequest, ChargeTicket, ChargeTicketItem, RequisitionVoucher, RequisitionItem
-from requests.serializers.material_requests import MaterialRequestSerializer
+from material_requests.serializers.material_requests import MaterialRequestSerializer
 
 class EightPerPagePagination(PageNumberPagination):
     page_size = 8

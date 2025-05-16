@@ -50,7 +50,7 @@ INSTALLED_APPS = [
     
     'authentication',
     'notification',
-    'requests',
+    'material_requests',
     'inventory',
     'accountability',
 ]

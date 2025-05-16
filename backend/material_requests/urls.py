@@ -1,8 +1,8 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from requests.views.material_requests import MaterialRequestViewSet
-from requests.views.charge import ChargeTicketViewSet
+from material_requests.views.material_requests import MaterialRequestViewSet
+from material_requests.views.charge import ChargeTicketViewSet
 
 router = DefaultRouter()
 router.register("material-requests", MaterialRequestViewSet, basename="material-requests")
