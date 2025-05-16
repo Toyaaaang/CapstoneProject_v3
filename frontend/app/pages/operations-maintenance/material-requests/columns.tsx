@@ -9,7 +9,11 @@ export type MaterialRequest = {
   department: string;
   purpose: string;
   status: string;
-  requester:string;
+  requester: {
+    id: number;
+    first_name: string;
+    last_name: string;
+  };
   items: {
     id: number;
     material: { id: number; name: string };
@@ -27,8 +31,13 @@ export const columns: ColumnDef<MaterialRequest>[] = [
   {
     header: "Requested By",
     accessorKey: "requester",
-    cell: ({ row }) => <span>{row.original.requester}</span>,
+    cell: ({ row }) => {
+      const { first_name, last_name } = row.original.requester || {};
+      return <span>{first_name} {last_name}</span>;
+
+    },
   },
+
   
   {
     header: "Department",
@@ -43,9 +52,8 @@ export const columns: ColumnDef<MaterialRequest>[] = [
     cell: ({ row }) => (
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="truncate max-w-[200px] text-left">
-            {row.original.purpose}
-          </Button>
+          <Button>{row.original.purpose || "No purpose provided"}</Button>
+
         </PopoverTrigger>
         <PopoverContent className="w-72">
           <p className="text-sm">{row.original.purpose}</p>
@@ -64,11 +72,12 @@ export const columns: ColumnDef<MaterialRequest>[] = [
         </PopoverTrigger>
         <PopoverContent className="w-72">
           <ul className="text-sm space-y-1 py-2">
-            {row.original.items.map((item) => (
-              <li key={item.id} className="list-disc list-inside">
+            {row.original.items?.map((item) => (
+              <li key={item.id}>
                 {item.material.name} – {item.quantity} {item.unit}
               </li>
             ))}
+
           </ul>
         </PopoverContent>
       </Popover>

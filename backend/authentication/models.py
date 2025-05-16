@@ -9,7 +9,7 @@ class User(AbstractUser):
         ('manager', 'Manager'),
         ('employee', 'Employee'),
         ('engineering', 'Engineering'),
-        ('operations_maintenance', 'Operations Maintenance'),
+        ('operations_maintenance', 'Operations & Maintenance'),
         ('budget_analyst', 'Budget Analyst'),
         ('sub_office', 'Sub Office'),
         ('finance', 'Finance'),      

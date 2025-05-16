@@ -1,23 +1,28 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { RejectDialog } from "@/components/dialogs/RejectDialog";
 import axios from "@/lib/axios";
 import { toast } from "sonner";
 
 export type PendingChargeRequestForGM = {
-    id: number;
-    request_no: string;
-    department: string;
-    requested_by: string;
-    purpose: string;
-    created_at: string;
-    items: {
-      material_name: string;
-      quantity: number;
-      unit: string;
-    }[];
-  };
-  
+  id: number;
+  request_no: string;
+  department: string;
+  requester: {
+      id: number;
+      first_name: string;
+      last_name: string;
+    };
+  purpose: string;
+  created_at: string;
+  items: {
+    material_name: string;
+    quantity: number;
+    unit: string;
+  }[];
+};
+
 export const columns = ({
   refreshData,
 }: {
@@ -25,8 +30,12 @@ export const columns = ({
 }): ColumnDef<PendingChargeRequestForGM>[] => [
   {
     header: "Request No.",
-    accessorKey: "request_no",
-    cell: ({ row }) => <span className="font-mono">{row.original.request_no}</span>,
+    accessorKey: "id", // needed for fallback
+    cell: ({ row }) => {
+      const { ic_no, mc_no, id } = row.original;
+      const no = ic_no || mc_no || `CT-${id}`;
+      return <span className="font-mono">{no}</span>;
+    },
   },
   {
     header: "Department",
@@ -36,8 +45,14 @@ export const columns = ({
   },
   {
     header: "Requested By",
-    accessorKey: "requested_by",
+    accessorKey: "requester",
+    cell: ({ row }) => {
+      const { first_name, last_name } = row.original.requester || {};
+      return <span>{first_name} {last_name}</span>;
+
+    },
   },
+
   {
     header: "Purpose",
     accessorKey: "purpose",
@@ -77,25 +92,33 @@ export const columns = ({
     ),
   },
   {
-    header: "Action",
-    cell: ({ row }) => {
-      const handleAction = async (status: "approved" | "rejected") => {
-        try {
-          await axios.post(`/gm/charge-request/${row.original.id}/${status}/`);
-          toast.success(`Request ${status}`);
-          refreshData();
-        } catch (err) {
-          console.error(err);
-          toast.error(`Failed to ${status} request`);
-        }
-      };
+  header: "Action",
+  cell: ({ row, table }) => {
+    const ticketId = row.original.id;
 
-      return (
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => handleAction("approved")}>Approve</Button>
-          <Button size="sm" variant="destructive" onClick={() => handleAction("rejected")}>Reject</Button>
-        </div>
-      );
-    },
+    const handleApprove = async () => {
+      try {
+        await axios.post(`/requests/charge-tickets/${ticketId}/approve/`);
+        toast.success("Charge ticket approved.");
+        table.options.meta?.refreshData?.();
+      } catch (err) {
+        console.error(err);
+        toast.error("Approval failed.");
+      }
+    };
+
+    return (
+      <div className="flex gap-2">
+        <Button size="sm" onClick={handleApprove}>
+          Approve
+        </Button>
+        <RejectDialog
+          ticketId={ticketId}
+          refreshData={() => table.options.meta?.refreshData?.()}
+        />
+      </div>
+    );
   },
+}
+  
 ];

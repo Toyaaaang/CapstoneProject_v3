@@ -1,22 +1,26 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Bell, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Bell, Trash2, CheckCircle2 } from "lucide-react";
 import useNotifications from "@/hooks/useNotifications";
-import { formatDistanceToNow } from "date-fns"; // Import for time formatting
+import { formatDistanceToNow } from "date-fns";
 
 export default function SidebarNotifications() {
   const {
-    notifications = [], // Default to an empty array if notifications is undefined
+    notifications = [],
     loading,
     error,
     markAsRead,
     deleteNotification,
     clearAllNotifications,
+    markAllAsRead,
   } = useNotifications();
-
-  // console.log("Notifications in SidebarNotifications:", notifications); // Debugging log
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -50,13 +54,14 @@ export default function SidebarNotifications() {
             {notifications.map((notification) => (
               <DropdownMenuItem
                 key={notification.id}
+                onSelect={(e) => e.preventDefault()}
                 className={`flex items-center justify-between space-x-2 p-2 rounded-md ${
                   notification.is_read ? "text-gray-500" : "font-bold"
                 }`}
               >
                 <div
                   className="flex items-center space-x-2 flex-grow cursor-pointer"
-                  onClick={() => markAsRead(notification.id)} // Mark as read on click
+                  onClick={() => markAsRead(notification.id)}
                 >
                   {!notification.is_read && (
                     <span className="h-2 w-2 bg-red-500 rounded-full flex-shrink-0"></span>
@@ -64,25 +69,39 @@ export default function SidebarNotifications() {
                   <span>{notification.message}</span>
                 </div>
                 <div className="text-xs text-gray-400">
-                  {/* Display the time passed since creation */}
                   {formatDistanceToNow(new Date(notification.created_at))} ago
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="hover:bg-red-100 p-1"
-                  onClick={() => deleteNotification(notification.id)} // Delete notification
+                  onClick={() => deleteNotification(notification.id)}
                 >
                   <Trash2 className="h-4 w-4 text-red-500" />
                 </Button>
               </DropdownMenuItem>
             ))}
-            <DropdownMenuItem className="flex justify-center mt-2">
+
+            {/* Mark All as Read */}
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex justify-center mt-2">
               <Button
                 variant="ghost"
-                className="text-red-500 hover:bg-red-100"
-                onClick={clearAllNotifications} // Clear all notifications
+                className="text-green-600 w-full"
+                onClick={markAllAsRead}
               >
+                <CheckCircle2 className="w-full h-4 mr-1" />
+                Mark All as Read
+              </Button>
+            </DropdownMenuItem>
+
+            {/* Clear All */}
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex justify-center">
+              <Button
+                variant="ghost"
+                className="text-red-500 w-full"
+                onClick={clearAllNotifications}
+              >
+                <Trash2 className="w-full h-4 mr-1" />
                 Clear All
               </Button>
             </DropdownMenuItem>

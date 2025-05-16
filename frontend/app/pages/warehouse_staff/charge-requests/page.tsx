@@ -1,35 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
+import { useState } from "react";
 import { columns } from "./columns";
-import { ApprovedChargeRequest } from "./columns";
 import DataTable from "@/components/Tables/DataTable";
+import TableLoader from "@/components/Loaders/TableLoader";
+import { usePendingChargeReleasesStaff } from "@/hooks/staff/usePendingChargeReleasesStaff";
 
-export default function ApprovedChargesPage() {
-  const [data, setData] = useState<ApprovedChargeRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get("/warehouse/approved-charges/"); // Adjust endpoint
-      setData(res.data);
-    } catch (err) {
-      console.error("Failed to load approved charge requests", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+export default function ReleaseChargeTicketsPage() {
+  const [page, setPage] = useState(1);
+  const {
+    data,
+    totalCount,
+    isLoading,
+    refetch,
+  } = usePendingChargeReleasesStaff(page);
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-bold"></h1>
-      <DataTable title="Approved Material Charge Requests" columns={columns({ refreshData: fetchData })} data={data} isLoading={loading} />
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Charge Tickets – Ready for Release"
+          columns={columns({ refreshData: refetch })}
+          data={data}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          refreshData={refetch}
+          meta={{ refreshData: refetch }}
+        />
+      )}
     </div>
   );
 }

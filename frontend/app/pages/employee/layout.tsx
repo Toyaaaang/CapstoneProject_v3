@@ -18,7 +18,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 
-export default function OperationsMaintainanceLayout({ children }: { children: React.ReactNode }) {
+export default function EmployeeLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [pageName, setPageName] = useState("Overview");
 

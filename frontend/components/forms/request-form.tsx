@@ -127,7 +127,7 @@ export default function RequestForm() {
     }
 
     try {
-      await axios.post("/requests/material-requests/create/", payload);
+      await axios.post("requests/material-requests/", payload);
       toast.success("Request submitted successfully!");
 
       // Reset form
@@ -162,7 +162,7 @@ export default function RequestForm() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="engineering">Engineering</SelectItem>
-              <SelectItem value="operations_maintainance">
+              <SelectItem value="operations_maintenance">
                 Operations & Maintenance
               </SelectItem>
               <SelectItem value="finance">Finance</SelectItem>

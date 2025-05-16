@@ -3,20 +3,26 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
+// ✅ Type definition
 export type EvaluatedRequest = {
+  id: number;
+  requester: {
     id: number;
-    requester: string;
-    department: string;
-    purpose: string;
-    status: string;
-    created_at: string;
-    items: {
-      material: { name: string };
-      quantity: number;
-      unit: string;
-    }[];
+    first_name: string;
+    last_name: string;
   };
-  
+  department: string;
+  purpose: string;
+  status: string;
+  created_at: string;
+  items: {
+    material: { name: string };
+    quantity: number;
+    unit: string;
+  }[];
+};
+
+// ✅ Column definitions
 export const columns: ColumnDef<EvaluatedRequest>[] = [
   {
     header: "Request ID",
@@ -26,13 +32,19 @@ export const columns: ColumnDef<EvaluatedRequest>[] = [
   {
     header: "Requested By",
     accessorKey: "requester",
-    cell: ({ row }) => <span>{row.original.requester}</span>,
+    cell: ({ row }) => {
+      const { first_name, last_name } = row.original.requester || {};
+      return <span>{first_name} {last_name}</span>;
+
+    },
   },
   {
     header: "Department",
     accessorKey: "department",
     cell: ({ row }) => (
-      <Badge variant="secondary">{row.original.department.replace(/_/g, " ")}</Badge>
+      <Badge variant="secondary">
+        {row.original.department.replace(/_/g, " ").toUpperCase()}
+      </Badge>
     ),
   },
   {
@@ -40,14 +52,14 @@ export const columns: ColumnDef<EvaluatedRequest>[] = [
     accessorKey: "status",
     cell: ({ row }) => {
       const status = row.original.status;
-      const map: Record<string, string> = {
+      const labelMap: Record<string, string> = {
         charged: "Charge Ticket Created",
         requisitioned: "Requisition Voucher Created",
         partially_fulfilled: "Partially Fulfilled",
         rejected: "Rejected",
         invalid: "Invalid",
       };
-      const variantMap: Record<string, string> = {
+      const variantMap: Record<string, "info" | "warning" | "destructive" | "secondary"> = {
         charged: "info",
         requisitioned: "info",
         partially_fulfilled: "warning",
@@ -56,7 +68,7 @@ export const columns: ColumnDef<EvaluatedRequest>[] = [
       };
       return (
         <Badge variant={variantMap[status] || "secondary"}>
-          {map[status] || status}
+          {labelMap[status] || status}
         </Badge>
       );
     },
@@ -70,8 +82,8 @@ export const columns: ColumnDef<EvaluatedRequest>[] = [
         </PopoverTrigger>
         <PopoverContent className="w-72">
           <ul className="text-sm space-y-1 py-2">
-            {row.original.items.map((item, i) => (
-              <li key={i} className="list-disc list-inside">
+            {row.original.items.map((item, index) => (
+              <li key={index} className="list-disc list-inside">
                 {item.material.name} – {item.quantity} {item.unit}
               </li>
             ))}

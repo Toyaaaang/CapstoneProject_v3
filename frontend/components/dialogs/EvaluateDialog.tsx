@@ -24,9 +24,10 @@ type Props = {
   requestId: number;
   items: Item[];
   triggerLabel?: string;
+  refreshData: () => void;
 };
 
-export default function EvaluateDialog({ requestId, items, triggerLabel = "Evaluate" }: Props) {
+export default function EvaluateDialog({ requestId, items,refreshData, triggerLabel = "Evaluate",  }: Props) {
   const [open, setOpen] = useState(false);
   const [decisions, setDecisions] = useState<Record<number, "charge" | "requisition">>(() => {
     const defaults: Record<number, "charge" | "requisition"> = {};
@@ -58,6 +59,7 @@ export default function EvaluateDialog({ requestId, items, triggerLabel = "Evalu
         requisition_items,
       });
       toast.success("Request evaluated.");
+      refreshData();
       setOpen(false);
     } catch {
       toast.error("Failed to evaluate.");

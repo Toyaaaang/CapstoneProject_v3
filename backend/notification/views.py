@@ -1,43 +1,54 @@
-from rest_framework import generics, status
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Notification
 from .serializers import NotificationSerializer
 
-class NotificationListView(generics.ListAPIView):
-    serializer_class = NotificationSerializer
+class NotificationViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        return Notification.objects.filter(recipient=self.request.user)
+    def list(self, request):
+        queryset = Notification.objects.filter(recipient=request.user).order_by("-created_at")
+        serializer = NotificationSerializer(queryset, many=True)
+        return Response(serializer.data)
 
-class MarkNotificationAsReadView(generics.UpdateAPIView):
-    serializer_class = NotificationSerializer
-    permission_classes = [IsAuthenticated]
+    def retrieve(self, request, pk=None):
+        try:
+            # Ensure pk is an integer
+            if not pk or not pk.isdigit():
+                return Response({"error": "Invalid notification ID"}, status=400)
 
-    def patch(self, request, pk):
+            notification = Notification.objects.get(id=pk, recipient=request.user)
+            serializer = NotificationSerializer(notification)
+            return Response(serializer.data)
+        except Notification.DoesNotExist:
+            return Response({"error": "Notification not found"}, status=404)
+        
+    def destroy(self, request, pk=None):
+        try:
+            notification = Notification.objects.get(id=pk, recipient=request.user)
+            notification.delete()
+            return Response({"message": "Notification deleted"})
+        except Notification.DoesNotExist:
+            return Response({"error": "Notification not found"}, status=404)
+
+    @action(detail=True, methods=["patch"])
+    def mark_as_read(self, request, pk=None):
         try:
             notification = Notification.objects.get(id=pk, recipient=request.user)
             notification.is_read = True
             notification.save()
-            return Response({"message": "Notification marked as read"}, status=status.HTTP_200_OK)
+            return Response({"message": "Marked as read"})
         except Notification.DoesNotExist:
-            return Response({"error": "Notification not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Notification not found"}, status=404)
 
-class DeleteNotificationView(generics.DestroyAPIView):
-    permission_classes = [IsAuthenticated]
-
-    def delete(self, request, pk):
-        try:
-            notification = Notification.objects.get(id=pk, recipient=request.user)
-            notification.delete()
-            return Response({"message": "Notification deleted"}, status=status.HTTP_200_OK)
-        except Notification.DoesNotExist:
-            return Response({"error": "Notification not found"}, status=status.HTTP_404_NOT_FOUND)
-
-class ClearAllNotificationsView(generics.DestroyAPIView):
-    permission_classes = [IsAuthenticated]
-
-    def delete(self, request):
+    @action(detail=False, methods=["delete"])
+    def clear_all(self, request):
         Notification.objects.filter(recipient=request.user).delete()
-        return Response({"message": "All notifications cleared"}, status=status.HTTP_200_OK)
+        return Response({"message": "All notifications cleared"})
+
+    @action(detail=False, methods=["get"])
+    def unread_count(self, request):
+        count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        return Response({"unread_count": count})

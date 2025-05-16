@@ -1,31 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
+import { useState } from "react";
 import { columns } from "./columns";
-import { EvaluatedRequest } from "./columns";
-import  DataTable  from "@/components/Tables/DataTable"; // Adjust to your table path
+import DataTable from "@/components/Tables/DataTable";
+import TableLoader from "@/components/Loaders/TableLoader";
+import { useHandledRequests } from "@/hooks/shared/useHandledRequests";
 
-export default function EvaluationHistoryPage() {
-  const [data, setData] = useState<EvaluatedRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    axios
-      .get("/requests/evaluated/") // Adjust to your actual endpoint
-      .then((res) => {
-        const filtered = res.data.filter((r: EvaluatedRequest) =>
-          ["charged", "requisitioned", "partially_fulfilled", "rejected", "invalid"].includes(r.status)
-        );
-        setData(filtered);
-      })
-      .catch((err) => console.error("Failed to load evaluation history", err))
-      .finally(() => setLoading(false));
-  }, []);
+export default function HandledRequestsPage() {
+  const [page, setPage] = useState(1);
+  const { data, totalCount, isLoading, refetch } = useHandledRequests(page);
 
   return (
-    <div className="p-6 space-y-4">
-      <DataTable title='Evaluated Material Requests' columns={columns} data={data} isLoading={loading} />
+    <div className="p-4 space-y-4">
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Handled Material Requests"
+          columns={columns}
+          data={data}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          refreshData={refetch}
+          meta={{ refreshData: refetch }}
+        />
+      )}
+    
     </div>
   );
 }

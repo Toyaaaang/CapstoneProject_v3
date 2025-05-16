@@ -4,7 +4,6 @@ import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
-  getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
@@ -18,26 +17,55 @@ import {
   TableRow,
 } from "@/components/ui/Table";
 
+// 👇 Define meta type for optional refreshData
+type TableMeta = {
+  refreshData?: () => void;
+};
+
 interface DataTableProps<TData> {
   columns: ColumnDef<TData, any>[];
   data: TData[];
   title: string;
-  refreshData?: () => void; // ✅ Add refresh function prop
+  refreshData?: () => void;
+  page: number;
+  setPage: (page: number) => void;
+  totalCount: number;
+  pageSize?: number;
 }
 
 export default function DataTable<TData>({
-  columns,
-  data,
+  columns = [],
+  data = [],
   title,
   refreshData,
+  page,
+  setPage,
+  totalCount,
+  pageSize = 10,
 }: DataTableProps<TData>) {
-  const table = useReactTable({
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+
+  const table = useReactTable<TData>({
     data,
     columns,
+    manualPagination: true,
+    pageCount: totalPages,
+    state: {
+      pagination: {
+        pageIndex: page - 1,
+        pageSize,
+      },
+    },
+    onPaginationChange: (updater) => {
+      const nextPageIndex =
+        typeof updater === "function"
+          ? updater({ pageIndex: page - 1, pageSize }).pageIndex
+          : updater.pageIndex;
+      setPage(nextPageIndex + 1);
+    },
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     meta: {
-      refreshData, // ✅ Pass to table context
+      refreshData,
     },
   });
 
@@ -73,7 +101,7 @@ export default function DataTable<TData>({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={columns.length} className="text-center">
+              <TableCell colSpan={columns?.length || 1} className="text-center">
                 No data available.
               </TableCell>
             </TableRow>
@@ -88,7 +116,7 @@ export default function DataTable<TData>({
             variant="outline"
             size="sm"
             onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
+            disabled={page <= 1}
           >
             <ArrowLeft className="mr-2" />
             Previous
@@ -97,15 +125,14 @@ export default function DataTable<TData>({
             variant="outline"
             size="sm"
             onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
+            disabled={page >= totalPages}
           >
             Next
-            <ArrowRight className="ml-5" />
+            <ArrowRight className="ml-2" />
           </Button>
         </div>
-        <span className="text-sm text-gray-500">
-          Page {table.getState().pagination.pageIndex + 1} of{" "}
-          {table.getPageCount()}
+        <span className="text-sm text-muted-foreground">
+          Page {page} of {totalPages}
         </span>
       </div>
     </div>

@@ -9,11 +9,19 @@ import TableLoader from "@/components/Loaders/TableLoader";
 
 export default function MaterialRequestHistoryPage() {
   const router = useRouter();
-  const { data, isLoading, refetch } = useMaterialRequests();
+
+  // Updated destructure from hook
+  const {
+    data,
+    isLoading,
+    refetch,
+    page,
+    setPage,
+    totalCount,
+  } = useMaterialRequests();
 
   return (
     <div className="p-4 space-y-4">
-
       {isLoading ? (
         <TableLoader />
       ) : (
@@ -22,6 +30,10 @@ export default function MaterialRequestHistoryPage() {
           columns={columns}
           data={data}
           refreshData={refetch}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          pageSize={8}
         />
       )}
 

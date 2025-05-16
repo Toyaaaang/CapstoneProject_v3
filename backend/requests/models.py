@@ -9,7 +9,7 @@ class MaterialRequest(models.Model):
         max_length=50,
         choices=[
             ('engineering', 'Engineering'),
-            ('operations_maintainance', 'Operations & Maintenance'),
+            ('operations_maintenance', 'Operations & Maintenance'),
             ('finance', 'Finance'),
         ]
     )
@@ -82,6 +82,7 @@ class ChargeTicket(BaseRequest):
     material_request = models.ForeignKey(
     MaterialRequest, on_delete=models.CASCADE, related_name='charge_ticket', null=True, blank=True)
 
+    rejection_reason = models.TextField(blank=True, null=True)
     approval_count = models.IntegerField(default=1)  # Evaluator auto-approves on creation
     status = models.CharField(
         max_length=20,
@@ -89,6 +90,7 @@ class ChargeTicket(BaseRequest):
             ("pending", "Pending"),
             ("approved", "Fully Approved"),
             ("rejected", "Rejected"),
+            ("released", "Released"),
         ],
         default="pending"
     )

@@ -16,7 +16,7 @@ class Inventory(models.Model):
         max_length=50,
         choices=[
             ('engineering', 'Engineering'),
-            ('operations', 'Operations & Maintenance'),
+            ('operations_maintenance', 'Operations & Maintenance'),
             ('finance', 'Finance'),
         ]
     )

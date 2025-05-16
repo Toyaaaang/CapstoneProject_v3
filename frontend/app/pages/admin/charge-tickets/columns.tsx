@@ -3,21 +3,25 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import axios from "@/lib/axios";
 import { toast } from "sonner";
+import { RejectDialog } from "@/components/Dialogs/RejectDialog"; // ✅ Use your shared dialog
 
 export type ChargeRequestPendingApproval = {
-    id: number;
-    request_no: string;
-    department: string;
-    requester: string;
-    purpose: string;
-    created_at: string;
-    items: {
-      material_name: string;
-      unit: string;
-      quantity: number;
-    }[];
+  id: number;
+  ic_no?: string;
+  mc_no?: string;
+  department: string;
+  requester: {
+    first_name: string;
+    last_name: string;
   };
-  
+  purpose: string;
+  created_at: string;
+  items: {
+    material_name: string;
+    unit: string;
+    quantity: number;
+  }[];
+};
 
 export const columns = ({
   refreshData,
@@ -26,8 +30,12 @@ export const columns = ({
 }): ColumnDef<ChargeRequestPendingApproval>[] => [
   {
     header: "Request No.",
-    accessorKey: "request_no",
-    cell: ({ row }) => <span className="font-mono">{row.original.request_no}</span>,
+    accessorKey: "id",
+    cell: ({ row }) => {
+      const ticket = row.original;
+      const ref = ticket.ic_no || ticket.mc_no || `CT-${ticket.id}`;
+      return <span className="font-mono">{ref}</span>;
+    },
   },
   {
     header: "Department",
@@ -38,6 +46,10 @@ export const columns = ({
   {
     header: "Requested By",
     accessorKey: "requester",
+    cell: ({ row }) => {
+      const r = row.original.requester;
+      return `${r.first_name} ${r.last_name}`;
+    },
   },
   {
     header: "Purpose",
@@ -77,22 +89,27 @@ export const columns = ({
   },
   {
     header: "Action",
-    cell: ({ row }) => {
-      const handleAction = async (status: "approved" | "rejected") => {
+    cell: ({ row, table }) => {
+      const ticketId = row.original.id;
+
+      const handleApprove = async () => {
         try {
-          await axios.post(`/warehouse-admin/charge-request/${row.original.id}/${status}/`);
-          toast.success(`Request ${status}`);
-          refreshData();
+          await axios.post(`/requests/charge-tickets/${ticketId}/approve/`);
+          toast.success("Charge ticket approved.");
+          table.options.meta?.refreshData?.();
         } catch (err) {
           console.error(err);
-          toast.error(`Failed to ${status} request`);
+          toast.error("Approval failed.");
         }
       };
 
       return (
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => handleAction("approved")}>Approve</Button>
-          <Button size="sm" variant="destructive" onClick={() => handleAction("rejected")}>Reject</Button>
+          <Button size="sm" onClick={handleApprove}>Approve</Button>
+          <RejectDialog
+            ticketId={ticketId}
+            refreshData={() => table.options.meta?.refreshData?.()}
+          />
         </div>
       );
     },

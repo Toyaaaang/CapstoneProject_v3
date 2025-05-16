@@ -1,14 +1,11 @@
 from django.urls import path
-from .views import (CreateMaterialRequestView, MyMaterialRequestsView, EvaluateMaterialRequestView,
-    ApproveChargeTicketView, MaterialRequestDetailView, MaterialRequestListView)
+from rest_framework.routers import DefaultRouter
 
-urlpatterns = [
-    path('material-requests/', MaterialRequestListView.as_view(), name='list_material_requests'),
-    path('material-requests/create/', CreateMaterialRequestView.as_view(), name='create_material_request'),
-    path('my-material-requests/', MyMaterialRequestsView.as_view(), name='my_material_requests'),
-    
-    path("material-requests/view/<int:pk>/", MaterialRequestDetailView.as_view(), name="material_request_detail"),
-    path("material-requests/<int:pk>/evaluate/", EvaluateMaterialRequestView.as_view(), name="evaluate_request"),
-    
-    path("charge-tickets/<int:pk>/approve/", ApproveChargeTicketView.as_view(), name="approve_charge_ticket"),
-]
+from requests.views.material_requests import MaterialRequestViewSet
+from requests.views.charge import ChargeTicketViewSet
+
+router = DefaultRouter()
+router.register("material-requests", MaterialRequestViewSet, basename="material-requests")
+router.register("charge-tickets", ChargeTicketViewSet, basename="charge-ticket")
+
+urlpatterns = router.urls
