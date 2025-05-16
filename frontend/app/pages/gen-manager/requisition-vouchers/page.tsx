@@ -1,39 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
+import { useState } from "react";
+import useGMRequisitionVouchers from "@/hooks/manager/useGMRequisitionVouchers";
 import { columns } from "./columns";
-import { PendingRVForGM } from "./columns";
 import DataTable from "@/components/Tables/DataTable";
+import TableLoader from "@/components/Loaders/TableLoader";
 
-export default function GMFinalRVApprovalPage() {
-  const [data, setData] = useState<PendingRVForGM[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get("/gm/rv/pending/"); // Adjust to your actual endpoint
-      setData(res.data);
-    } catch (err) {
-      console.error("Failed to load RVs", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+export default function GMRequisitionApprovalPage() {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const { data, isLoading, totalCount, refetch } = useGMRequisitionVouchers(page, pageSize);
 
   return (
     <div className="p-6 space-y-4">
-      <DataTable
-        title="Requisition Vouchers – Final Approval"
-        columns={columns({ refreshData: fetchData })}
-        data={data}
-        isLoading={loading}
-      />
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Requisition Vouchers - For Final Approval"
+          columns={columns}
+          data={data}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          refreshData={refetch}
+          meta={{ refreshData: refetch }}
+        />
+      )}
     </div>
   );
 }

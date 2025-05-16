@@ -120,6 +120,13 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                     quantity=item["quantity"],
                     unit=item["unit"]
                 )
+            # 🔔 Notify all Budget Analysts
+            budget_analysts = User.objects.filter(role="budget_analyst", is_role_confirmed=True)
+            for analyst in budget_analysts:
+                send_notification(
+                    user=analyst,
+                    message=f"A new Requisition Voucher ({rv.rv_number}) requires recommendation."
+                )
 
         if charge_items and requisition_items:
             req.status = "partially_fulfilled"

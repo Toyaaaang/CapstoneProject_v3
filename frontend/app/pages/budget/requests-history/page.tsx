@@ -1,34 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
+import { useState } from "react";
+import useBudgetRVHistory from "@/hooks/budget/useBudgetRVHistory";
 import { columns } from "./columns";
-import { RVApprovalRecord } from "./columns";
 import DataTable from "@/components/Tables/DataTable";
+import TableLoader from "@/components/Loaders/TableLoader";
 
-export default function RVApprovalHistoryPage() {
-  const [data, setData] = useState<RVApprovalRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get("/budget-analyst/rv/history/"); // Adjust endpoint as needed
-      setData(res.data);
-    } catch (err) {
-      console.error("Failed to load RV approval history", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+export default function BudgetRVHistoryPage() {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+  const { data, isLoading, totalCount, refetch } = useBudgetRVHistory(page, pageSize);
 
   return (
     <div className="p-6 space-y-4">
-      <DataTable title="Requisition Voucher Approval History" columns={columns} data={data} isLoading={loading} />
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Requisition Voucher History"
+          columns={columns}
+          data={data}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          refreshData={refetch}
+          meta={{ refreshData: refetch }}
+        />
+      )}
     </div>
   );
 }

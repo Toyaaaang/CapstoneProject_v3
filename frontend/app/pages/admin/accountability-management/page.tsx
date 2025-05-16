@@ -1,35 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
+import { useState } from "react";
+import useAllAccountabilities from "@/hooks/shared/useAllAccountabilities";
 import { columns } from "./columns";
 import { AccountabilityRecord } from "./columns";
 import DataTable from "@/components/Tables/DataTable";
 
 export default function AccountabilityPage() {
-  const [data, setData] = useState<AccountabilityRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get("/warehouse/accountabilities/all/"); // Adjust endpoint
-      setData(res.data);
-    } catch (err) {
-      console.error("Failed to load accountabilities", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data, isLoading } = useAllAccountabilities();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const paginatedData = data.slice((page - 1) * pageSize, page * pageSize);
+
+  const formattedData: AccountabilityRecord[] = paginatedData.map((acc) => ({
+    id: acc.id,
+    user: acc.user,
+    created_at: acc.created_at,
+    items: acc.items.map((item) => ({
+      material: {
+        name: item.material.name,
+        unit: item.material.unit,
+      },
+      quantity: item.quantity,
+      unit: item.unit,
+    })),
+  }));
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-bold"></h1>
-      <DataTable title="Accountability Management" columns={columns} data={data} isLoading={loading} />
+      <DataTable
+        title="All Assigned Accountabilities"
+        columns={columns}
+        data={formattedData}
+        isLoading={isLoading}
+        page={page}
+        setPage={setPage}
+        totalCount={data.length}
+        pageSize={pageSize}
+      />
     </div>
   );
 }

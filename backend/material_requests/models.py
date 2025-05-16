@@ -111,12 +111,21 @@ class ChargeTicketItem(models.Model):
 
 class RequisitionVoucher(BaseRequest):
     rv_number = models.CharField(max_length=50, unique=True)
-    evaluated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='rv_evaluator')
-    recommended_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='rv_recommender')  # Budget Analyst
-    final_approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='rv_gm_approver')
+    evaluated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True , related_name='rv_evaluator')
+    recommended_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True , related_name='rv_recommender')  # Budget Analyst
+    final_approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True , related_name='rv_gm_approver')
     material_request = models.ForeignKey(
     MaterialRequest, on_delete=models.CASCADE, related_name='requisition_voucher', null=True, blank=True)
 
+    rejection_reason = models.TextField(blank=True, null=True)
+    rejected_by = models.ForeignKey(
+    'authentication.User',
+    on_delete=models.SET_NULL,
+    null=True,
+    blank=True,
+    related_name='rejected_rvs'
+)
+    approval_count = models.IntegerField(default=1)  # Evaluator auto-approves
     status = models.CharField(
         max_length=20,
         choices=[
@@ -138,3 +147,43 @@ class RequisitionItem(models.Model):
     material = models.ForeignKey(Material, on_delete=models.CASCADE)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=20)
+
+
+class PurchaseOrder(models.Model):
+    po_number = models.CharField(max_length=50, unique=True, blank=True)
+    requisition_voucher = models.ForeignKey(RequisitionVoucher, on_delete=models.CASCADE, related_name='purchase_order')
+    
+    supplier = models.CharField(max_length=255)
+    supplier_address = models.TextField()
+
+    received_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='received_pos')
+    delivery_date = models.DateField(null=True, blank=True)
+
+    grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        if not self.po_number:
+            self.po_number = f"PO-{uuid4().hex[:6].upper()}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.po_number} - {self.supplier}"
+    
+class PurchaseOrderItem(models.Model):
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='items')
+    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    unit = models.CharField(max_length=50)
+
+    unit_price = models.DecimalField(max_digits=12, decimal_places=2)
+    total = models.DecimalField(max_digits=12, decimal_places=2)
+
+    def save(self, *args, **kwargs):
+        self.total = self.quantity * self.unit_price
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.material.name} x {self.quantity} @ {self.unit_price}"

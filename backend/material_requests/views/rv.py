@@ -1,0 +1,91 @@
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from ..models import RequisitionVoucher
+from ..serializers import RequisitionVoucherSerializer, RequisitionVoucherApprovalSerializer
+from django.db.models import Q
+
+
+class RequisitionVoucherViewSet(viewsets.ModelViewSet):
+    serializer_class = RequisitionVoucherSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = RequisitionVoucher.objects.all().order_by("-created_at")
+        status_filter = self.request.query_params.get("status")
+        handled_by_me = self.request.query_params.get("handled_by_me")
+        final_handled_by_me = self.request.query_params.get("final_handled_by_me")
+        exclude_with_po = self.request.query_params.get("exclude_with_po")  # ✅ optional flag
+
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+
+        if exclude_with_po == "true":
+            queryset = queryset.filter(purchase_order__isnull=True)  # ✅ filter out RVs with existing PO
+
+        if handled_by_me == "true":
+            user = self.request.user
+            queryset = queryset.filter(
+                Q(recommended_by=user) |
+                Q(rejected_by=user)
+            )
+
+        if final_handled_by_me == "true":
+            user = self.request.user
+            queryset = queryset.filter(
+                Q(final_approved_by=user) |
+                Q(status="rejected", rejected_by=user)
+            )
+
+        return queryset
+
+
+    @action(detail=True, methods=['patch'], url_path='recommend')
+    def recommend(self, request, pk=None):
+        rv = self.get_object()
+        if rv.status != "pending":
+            return Response({"detail": "Only pending RVs can be recommended."}, status=400)
+
+        serializer = RequisitionVoucherApprovalSerializer(
+            rv,
+            data={"status": "recommended"},
+            partial=True,
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "RV recommended."}, status=200)
+
+    @action(detail=True, methods=['patch'], url_path='approve')
+    def approve(self, request, pk=None):
+        rv = self.get_object()
+        if rv.status != "recommended":
+            return Response({"detail": "Only recommended RVs can be approved."}, status=400)
+
+        serializer = RequisitionVoucherApprovalSerializer(
+            rv,
+            data={"status": "approved"},
+            partial=True,
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "RV approved."}, status=200)
+
+    @action(detail=True, methods=['patch'], url_path='reject')
+    def reject(self, request, pk=None):
+        rv = self.get_object()
+        reason = request.data.get("rejection_reason")
+        if not reason:
+            return Response({"detail": "Rejection reason is required."}, status=400)
+
+        serializer = RequisitionVoucherApprovalSerializer(
+            rv,
+            data={"status": "rejected", "rejection_reason": reason},
+            partial=True,
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "RV rejected."}, status=200)

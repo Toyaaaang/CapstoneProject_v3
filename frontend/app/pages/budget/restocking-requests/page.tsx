@@ -1,39 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
-import { columns } from "./columns";
-import { PendingRV } from "./columns";
+import { useState } from "react";
+import useBudgetRequisitionVouchers from "@/hooks/budget/useBudgetRequisitionVouchers";
 import DataTable from "@/components/Tables/DataTable";
+import { columns } from "./columns";
+import TableLoader from "@/components/Loaders/TableLoader";
 
-export default function RVApprovalPage() {
-  const [data, setData] = useState<PendingRV[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function RVRecommendationPage() {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get("/budget-analyst/rv/pending/"); // adjust as needed
-      setData(res.data);
-    } catch (err) {
-      console.error("Failed to load RVs", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const { data, isLoading, totalCount, refetch } = useBudgetRequisitionVouchers(page, pageSize);
 
   return (
     <div className="p-6 space-y-4">
-      <DataTable
-        title="Pending Requisition Vouchers"
-        columns={columns({ refreshData: fetchData })}
-        data={data}
-        isLoading={loading}
-      />
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Pending Requisition Vouchers"
+          columns={columns}
+          data={data}
+          refreshData={refetch}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+        />
+      )}
     </div>
   );
 }
