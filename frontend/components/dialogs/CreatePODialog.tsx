@@ -91,8 +91,6 @@ export default function CreatePODialog({ rv, refreshData }: CreatePODialogProps)
         supplier: supplierName,
         supplier_address: supplierAddress,
         vat_rate: vatRate,
-        vat_amount: vatAmount,
-        grand_total: grandTotal,
         items: items.map((i) => ({
           material_id: i.material_id,
           quantity: i.quantity,

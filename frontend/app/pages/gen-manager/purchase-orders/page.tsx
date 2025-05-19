@@ -1,38 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
-import { columns } from "./columns";
-import { PendingPOForGM } from "./columns";
+import { useState } from "react";
 import DataTable from "@/components/Tables/DataTable";
+import TableLoader from "@/components/Loaders/TableLoader";
+import { columns } from "./columns";
+import useGMPOApprovals from "@/hooks/manager/useGMPOApprovals";
 
 export default function GMPOApprovalPage() {
-  const [data, setData] = useState<PendingPOForGM[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get("/gm/po/pending/"); // Adjust to match your backend route
-      setData(res.data);
-    } catch (err) {
-      console.error("Failed to load purchase orders", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data,
+    isLoading,
+    totalCount,
+    refetch,
+  } = useGMPOApprovals(page, pageSize);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  if (isLoading) return <TableLoader />;
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-4 space-y-4">
       <DataTable
         title="Purchase Orders - Final Approval"
-        columns={columns({ refreshData: fetchData })}
+        columns={columns}
         data={data}
-        isLoading={loading}
+        page={page}
+        setPage={setPage}
+        totalCount={totalCount}
+        refreshData={refetch}
+        meta={{
+          refreshData: refetch,}}
       />
     </div>
   );

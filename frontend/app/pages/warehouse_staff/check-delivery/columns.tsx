@@ -1,54 +1,28 @@
 import { ColumnDef } from "@tanstack/react-table";
-import ValidatePODialog from "@/components/dialogs/ValidatePODialog";
+import { Button } from "@/components/ui/button";
+import ValidateDeliveryDialog from "@/components/dialogs/DeliveryDialog";
 
-export type DeliveryPO = {
-  id: number;
-  po_no: string;
-  supplier: string;
-  delivery_date: string;
-  department: string;
-  items: {
-    id: number;
-    material_name: string;
-    unit: string;
-    ordered_quantity: number;
-  }[];
-};
-
-export const columns = ({
-  refreshData,
-}: {
-  refreshData: () => void;
-}): ColumnDef<DeliveryPO>[] => [
+export const columns: ColumnDef<any>[] = [
   {
     header: "PO No.",
-    accessorKey: "po_no",
-    cell: ({ row }) => <span className="font-mono">{row.original.po_no}</span>,
+    accessorKey: "po_number",
   },
   {
     header: "Supplier",
     accessorKey: "supplier",
   },
   {
-    header: "Department",
-    accessorKey: "department",
-    cell: ({ row }) =>
-      row.original.department.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-  },
-  {
-    header: "Delivery Date",
-    accessorKey: "delivery_date",
-    cell: ({ row }) => {
-      const date = new Date(row.original.delivery_date);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    },
+    header: "Total",
+    accessorKey: "grand_total",
+    cell: ({ row }) => `₱${parseFloat(row.original.grand_total).toFixed(2)}`
   },
   {
     header: "Action",
-    cell: ({ row }) => <ValidatePODialog po={row.original} refreshData={refreshData} />,
+    cell: ({ row, table }) => (
+      <ValidateDeliveryDialog
+        po={row.original}
+        refreshData={() => table.options.meta?.refreshData?.()}
+      />
+    ),
   },
 ];

@@ -1,31 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
+import { useState } from "react";
 import { columns } from "./columns";
-import { DeliveryItem } from "./columns";
-import DataTable from "@/components/Tables/DataTable"; // Adjust to your table path
+import DataTable from "@/components/Tables/DataTable";
+import useQualityCheckPOs from "@/hooks/shared/useQualityCheckPOs";
+import TableLoader from "@/components/Loaders/TableLoader";
 
-export default function QualityCompliancePage() {
-  const [data, setData] = useState<DeliveryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function QualityCheckPage() {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  useEffect(() => {
-    axios.get("/quality-compliance/pending/") // Adjust to your endpoint
-      .then((res) => setData(res.data))
-      .catch((err) => console.error("Failed to load delivery items", err))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, isLoading, totalCount, refetch } = useQualityCheckPOs(page, pageSize);
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-bold"></h1>
-      <DataTable 
-        title="Quality Compliance" 
-        columns={columns}
-        data={data}
-        isLoading={loading}
-       />
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Pending Quality Checks"
+          columns={columns}
+          data={data}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          refreshData={refetch}
+        />
+      )}
     </div>
   );
 }

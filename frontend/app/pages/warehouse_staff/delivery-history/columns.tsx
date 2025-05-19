@@ -1,78 +1,59 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-export type ValidatedDelivery = {
-    id: number;
-    po_no: string;
-    delivery_date: string;
-    supplier: string;
-    department: string;
-    items: {
-      material_name: string;
-      unit: string;
-      ordered_quantity: number;
-      delivered_quantity: number;
-      status: "complete" | "partial" | "shortage";
-      remarks?: string;
-    }[];
-  };
-  
-export const columns: ColumnDef<ValidatedDelivery>[] = [
+export const columns: ColumnDef<any>[] = [
   {
     header: "PO No.",
-    accessorKey: "po_no",
-    cell: ({ row }) => <span className="font-mono">{row.original.po_no}</span>,
+    accessorKey: "po_number",
   },
   {
     header: "Supplier",
     accessorKey: "supplier",
   },
   {
-    header: "Department",
-    accessorKey: "department",
-    cell: ({ row }) =>
-      row.original.department.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-  },
-  {
-    header: "Delivery Date",
-    accessorKey: "delivery_date",
-    cell: ({ row }) => {
-      const date = new Date(row.original.delivery_date);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
+    header: "Delivered At",
+    accessorFn: (row) => {
+      const firstDelivery = row.deliveries?.[0];
+      return firstDelivery ? new Date(firstDelivery.delivery_date).toLocaleDateString() : "N/A";
     },
   },
   {
-    header: "Materials",
-    cell: ({ row }) => (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm">
-            View
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80">
-          <ul className="text-sm space-y-2 py-2">
-            {row.original.items.map((item, i) => (
-              <li key={i} className="border-b pb-2">
-                <div>
-                  <strong>{item.material_name}</strong> – {item.delivered_quantity} / {item.ordered_quantity} {item.unit}
+    header: "Status",
+    accessorKey: "status",
+    cell: ({ row }) => <Badge>{row.original.status}</Badge>,
+  },
+  {
+    header: "Details",
+    cell: ({ row }) => {
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="outline">View Delivery</Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[30rem]">
+            <div className="text-sm font-semibold mb-2">Delivered Items:</div>
+            <div className="space-y-2 max-h-64 overflow-auto pr-1">
+              {row.original.deliveries?.map((d: any, i: number) => (
+                <div key={i} className="border rounded-md p-2 text-sm space-y-1">
+                  <div className="font-medium">{d.material}</div>
+                  <div className="text-muted-foreground">
+                    {d.delivered_quantity} × {d.delivery_status}
+                  </div>
+                  {d.remarks && (
+                    <div className="text-xs italic">Remarks: {d.remarks}</div>
+                  )}
                 </div>
-                <div className="text-xs text-muted-foreground">Status: <Badge variant={
-                  item.status === "complete" ? "success" :
-                  item.status === "partial" ? "warning" : "destructive"
-                }>{item.status}</Badge></div>
-                {item.remarks && <div className="text-xs italic text-muted-foreground">Remarks: {item.remarks}</div>}
-              </li>
-            ))}
-          </ul>
-        </PopoverContent>
-      </Popover>
-    ),
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      );
+    },
   },
 ];

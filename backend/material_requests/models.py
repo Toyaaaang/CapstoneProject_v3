@@ -152,20 +152,33 @@ class RequisitionItem(models.Model):
 class PurchaseOrder(models.Model):
     po_number = models.CharField(max_length=50, unique=True, blank=True)
     requisition_voucher = models.ForeignKey(RequisitionVoucher, on_delete=models.CASCADE, related_name='purchase_order')
-    
     supplier = models.CharField(max_length=255)
     supplier_address = models.TextField()
-
-    received_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='received_pos')
+    received_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,blank=True, related_name='received_pos')
     delivery_date = models.DateField(null=True, blank=True)
-
+    vat_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)      
+    vat_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     grand_total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-
     created_at = models.DateTimeField(auto_now_add=True)
 
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending'),
+            ('recommended', 'Recommended'),
+            ('approved', 'Approved'),
+            ('rejected', 'Rejected'),
+        ],
+        default='pending'
+    )
+    recommended_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='recommended_pos')
+    final_approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_pos')
+    rejection_reason = models.TextField(blank=True, null=True)
+    
     def save(self, *args, **kwargs):
         if not self.po_number:
             self.po_number = f"PO-{uuid4().hex[:6].upper()}"
+            
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -187,3 +200,40 @@ class PurchaseOrderItem(models.Model):
 
     def __str__(self):
         return f"{self.material.name} x {self.quantity} @ {self.unit_price}"
+    
+
+class DeliveryRecord(models.Model):
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name="deliveries")
+    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    delivered_quantity = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    delivery_status = models.CharField(
+        max_length=20,
+        choices=[("complete", "Complete"), ("partial", "Partial"), ("shortage", "Shortage")]
+    )
+    delivery_date = models.DateField(blank=True, null=True)
+    remarks = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.material.name} delivered for {self.purchase_order.po_number}"
+    
+    
+class QualityCheck(models.Model):
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='quality_checks')
+    checked_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    department = models.CharField(max_length=50)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"QC by {self.department} for {self.purchase_order.po_number}"
+
+
+class QualityCheckItem(models.Model):
+    quality_check = models.ForeignKey(QualityCheck, on_delete=models.CASCADE, related_name='items')
+    po_item = models.ForeignKey(PurchaseOrderItem, on_delete=models.CASCADE)
+    
+    requires_certification = models.BooleanField(default=False)
+    remarks = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"QC for {self.po_item.material.name} — Cert Needed: {self.requires_certification}"

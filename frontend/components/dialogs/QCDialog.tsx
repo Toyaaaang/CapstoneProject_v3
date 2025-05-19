@@ -1,96 +1,115 @@
-// components/Dialog/QCDialog.tsx
 "use client";
 
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Select, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useQCDialog } from "@/hooks/useQCDialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+import axios from "@/lib/axios";
 
-interface QCDialogProps {
-  dialog: ReturnType<typeof useQCDialog>;
-  onSuccess: () => void;
-}
+export default function QualityCheckDialog({
+  po,
+  refreshData,
+}: {
+  po: any;
+  refreshData: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [items, setItems] = useState(
+    po.items.map((item: any) => ({
+      po_item_id: item.id,
+      requires_certification: false,
+      remarks: "",
+      material_name: item.material.name,
+    }))
+  );
 
-export default function QCDialog({ dialog, onSuccess }: QCDialogProps) {
-  const {
-    isOpen,
-    record,
-    items,
-    overallStatus,
-    remarks,
-    setOverallStatus,
-    setRemarks,
-    closeDialog,
-    updateItemStatus,
-    updateItemNotes,
-    submit,
-  } = dialog;
+  const handleCheckboxChange = (index: number, value: boolean) => {
+    const updated = [...items];
+    updated[index].requires_certification = value;
+    setItems(updated);
+  };
+
+  const handleRemarksChange = (index: number, value: string) => {
+    const updated = [...items];
+    updated[index].remarks = value;
+    setItems(updated);
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      await axios.post("/requests/quality-checks/", {
+        purchase_order_id: po.id,
+        items: items.map((i) => ({
+          po_item_id: i.po_item_id,
+          requires_certification: i.requires_certification,
+          remarks: i.remarks,
+        })),
+      });
+      toast.success("Quality Check submitted");
+      setOpen(false);
+      refreshData();
+    } catch (err) {
+      toast.error("Failed to submit QC");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={closeDialog}>
-      <DialogContent className="max-w-lg">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm">Submit QC</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>
-            Quality Check – {record?.purchase_order.reference_no}
-          </DialogTitle>
+          <DialogTitle>Quality Check for {po.po_number}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {items.map((it, i) => (
-            <div key={i} className="grid grid-cols-3 gap-2 items-end">
-              <div>
-                <p>{it.material_name}</p>
+        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
+          {items.map((item, i) => (
+            <div
+              key={i}
+              className="border rounded-md p-4 text-sm space-y-2 bg-muted/30"
+            >
+              <div className="font-medium">{item.material_name}</div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  checked={item.requires_certification}
+                  onCheckedChange={(checked) =>
+                    handleCheckboxChange(i, !!checked)
+                  }
+                />
+                <Label>Requires Certification</Label>
               </div>
-              <Select
-                value={it.status}
-                onValueChange={(v) => updateItemStatus(i, v as typeof it.status)}
-              >
-                <SelectItem value="pass">Pass</SelectItem>
-                <SelectItem value="fail">Fail</SelectItem>
-                <SelectItem value="needs_cert">Needs Cert</SelectItem>
-              </Select>
-              <Input
-                placeholder="Notes"
-                value={it.notes}
-                onChange={(e) => updateItemNotes(i, e.target.value)}
-              />
+              <div>
+                <Label className="text-xs">Remarks</Label>
+                <Textarea
+                  placeholder="Optional remarks..."
+                  value={item.remarks}
+                  onChange={(e) => handleRemarksChange(i, e.target.value)}
+                />
+              </div>
             </div>
           ))}
-
-          <div>
-            <p className="font-medium">Overall Status</p>
-            <Select
-              value={overallStatus}
-              onValueChange={(v) => setOverallStatus(v as typeof overallStatus)}
-            >
-              <SelectItem value="pass">Pass</SelectItem>
-              <SelectItem value="fail">Fail</SelectItem>
-              <SelectItem value="needs_cert">Needs Cert</SelectItem>
-            </Select>
-          </div>
-
-          <div>
-            <p className="font-medium">Remarks</p>
-            <Input
-              placeholder="Optional remarks"
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-            />
-          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="secondary" onClick={closeDialog}>
-            Cancel
+        <DialogFooter className="pt-4">
+          <Button onClick={handleSubmit} disabled={loading}>
+            {loading ? "Submitting..." : "Submit QC"}
           </Button>
-          <Button onClick={() => submit(onSuccess)}>Submit QC</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

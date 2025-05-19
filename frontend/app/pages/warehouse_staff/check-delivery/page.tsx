@@ -1,34 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
+import { useState } from "react";
+import useFinalApprovedPOs from "@/hooks/staff/useFinalApprovedPOs";
 import { columns } from "./columns";
-import { DeliveryPO } from "./columns";
 import DataTable from "@/components/Tables/DataTable";
+import TableLoader from "@/components/Loaders/TableLoader";
 
-export default function ValidateDeliveryPage() {
-  const [data, setData] = useState<DeliveryPO[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function DeliveryValidationPage() {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get("/warehouse/pending-pos/");
-      setData(res.data);
-    } catch (err) {
-      console.error("Failed to load POs", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const { data, isLoading, totalCount, refetch } = useFinalApprovedPOs(page, pageSize);
 
   return (
-    <div className="p-6 space-y-4">
-      <DataTable title="Validate Pending Deliveries" columns={columns({ refreshData: fetchData })} data={data} isLoading={loading} />
+    <div className="p-4 space-y-4">
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Pending Deliveries"
+          columns={columns}
+          data={data}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          refreshData={refetch}
+          meta={{
+            refreshData: refetch,}}
+        />
+      )}
     </div>
   );
 }

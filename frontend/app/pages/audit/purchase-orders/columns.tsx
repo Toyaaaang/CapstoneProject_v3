@@ -1,116 +1,111 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 import axios from "@/lib/axios";
+import { toast } from "sonner";
+import { RejectPODialog } from "@/components/dialogs/RejectPODialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
-export type PendingPOForAudit = {
-  id: number;
-  po_no: string;
-  rv_no: string;
-  department: string;
-  created_by: string;
-  created_at: string;
-  grand_total: number;
-  items: {
-    material_name: string;
-    unit: string;
-    quantity: number;
-    unit_price: number;
-    total_price: number;
-  }[];
-};
+// Extend TableMeta to include refreshData
+declare module '@tanstack/react-table' {
+  interface TableMeta<TData extends unknown> {
+    refreshData?: () => void;
+  }
+}
 
-export const columns = ({
-  refreshData,
-}: {
-  refreshData: () => void;
-}): ColumnDef<PendingPOForAudit>[] => [
+export const columns: ColumnDef<any>[] = [
   {
     header: "PO No.",
-    accessorKey: "po_no",
-    cell: ({ row }) => <span className="font-mono">{row.original.po_no}</span>,
+    accessorKey: "po_number",
   },
   {
-    header: "RV No.",
-    accessorKey: "rv_no",
-    cell: ({ row }) => <span className="font-mono">{row.original.rv_no}</span>,
+    header: "Supplier",
+    accessorKey: "supplier",
   },
   {
-    header: "Department",
-    accessorKey: "department",
-    cell: ({ row }) =>
-      row.original.department.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-  },
-  {
-    header: "Created By",
-    accessorKey: "created_by",
-  },
-  {
-    header: "Date",
+    header: "Created At",
     accessorKey: "created_at",
-    cell: ({ row }) => {
-      const date = new Date(row.original.created_at);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    },
+    cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
   },
   {
-    header: "Grand Total",
+    header: "Status",
+    accessorKey: "status",
+    cell: ({ row }) => <Badge>{row.original.status}</Badge>,
+  },
+  {
+    header: "Total",
     accessorKey: "grand_total",
-    cell: ({ row }) => (
-      <span className="text-green-700 font-semibold">
-        ₱{row.original.grand_total.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-      </span>
-    ),
+    cell: ({ row }) => `₱${parseFloat(row.original.grand_total).toFixed(2)}`,
   },
   {
-    header: "Items",
-    cell: ({ row }) => (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm">View</Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[400px]">
-          <ul className="text-sm space-y-2 py-2">
-            {row.original.items.map((item, i) => (
-              <li key={i}>
-                <div className="font-medium">
-                  {item.material_name} – {item.quantity} {item.unit}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Unit Price: ₱{item.unit_price.toFixed(2)}<br />
-                  Total: ₱{item.total_price.toFixed(2)}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </PopoverContent>
-      </Popover>
-    ),
-  },
-  {
-    header: "Action",
-    cell: ({ row }) => {
-      const handleAction = async (status: "approved" | "rejected") => {
-        try {
-          await axios.post(`/auditor/po/${row.original.id}/${status}/`);
-          toast.success(`PO ${status}`);
-          refreshData();
-        } catch (err) {
-          console.error(err);
-          toast.error(`Failed to ${status} PO`);
-        }
-      };
+    header: "Review",
+    cell: ({ row, table }) => {
+      const items = row.original.items || [];
+      const vatRate = parseFloat(row.original.vat_rate) || 0;
+      const vatAmount = parseFloat(row.original.vat_amount) || 0;
+      const grandTotal = parseFloat(row.original.grand_total) || 0;
+      const subtotal = grandTotal - vatAmount;
 
       return (
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => handleAction("approved")}>Approve</Button>
-          <Button size="sm" variant="destructive" onClick={() => handleAction("rejected")}>Reject</Button>
-        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="outline">View Details</Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[32rem]">
+            <div className="mb-2 font-semibold text-sm">PO Items:</div>
+            <div className="text-xs max-h-56 overflow-auto space-y-2 pr-1">
+              {items.map((item: any, i: number) => (
+                <div
+                  key={i}
+                  className="border rounded-md p-2 text-sm space-y-1"
+                >
+                  <div className="font-medium">
+                    {item.material?.name || "Unknown Material"}
+                  </div>
+                  <div className="text-muted-foreground">
+                    {item.quantity} {item.unit} × ₱{parseFloat(item.unit_price).toFixed(2)}
+                  </div>
+                  <div className="font-semibold">
+                    Total: ₱{parseFloat(item.total).toFixed(2)}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-right mt-4 space-y-1 text-sm">
+              <div>Subtotal: ₱{subtotal.toFixed(2)}</div>
+              <div>VAT ({vatRate}%): ₱{vatAmount.toFixed(2)}</div>
+              <div className="font-bold">Grand Total: ₱{grandTotal.toFixed(2)}</div>
+            </div>
+
+            <div className="flex gap-2 justify-end mt-4">
+              <Button
+                size="sm"
+                onClick={async () => {
+                  try {
+                    await axios.patch(`/requests/purchase-orders/${row.original.id}/recommend/`);
+                    toast.success("PO recommended.");
+                    setTimeout(() => {
+                      table.options.meta?.refreshData?.();
+                    }, 200);
+                  } catch {
+                    toast.error("Failed to recommend PO.");
+                  }
+                }}
+              >
+                Recommend
+              </Button>
+              <RejectPODialog
+                poId={row.original.id}
+                refreshData={() => table.options.meta?.refreshData?.()}
+              />
+            </div>
+          </PopoverContent>
+        </Popover>
       );
     },
   },

@@ -6,6 +6,9 @@ from .models import (
     RequisitionItem,
     MaterialRequest,
     MaterialRequestItem,
+    PurchaseOrder,
+    PurchaseOrderItem,
+    DeliveryRecord,
 )
 
 # Inline for MaterialRequestItem
@@ -46,3 +49,28 @@ class RequisitionVoucherAdmin(admin.ModelAdmin):
     list_filter = ('status', 'created_at')
     search_fields = ('rv_number', 'requester__username')
     inlines = [RequisitionItemInline]
+    
+# Inline for PurchaseOrderItem
+class PurchaseOrderItemInline(admin.TabularInline):
+    model = PurchaseOrderItem
+    extra = 1
+
+# Admin for PurchaseOrder
+@admin.register(PurchaseOrder)
+class PurchaseOrderAdmin(admin.ModelAdmin):
+    list_display = ('po_number', 'supplier', 'requisition_voucher', 'status', 'created_at')
+    list_filter = ('status', 'created_at', 'supplier')
+    search_fields = ('po_number', 'supplier')
+    inlines = [PurchaseOrderItemInline]
+    
+# Inline for DeliveryRecord
+class DeliveryRecordInline(admin.TabularInline):
+    model = DeliveryRecord
+    extra = 1
+    
+# Register DeliveryRecord separately as well (optional)
+@admin.register(DeliveryRecord)
+class DeliveryRecordAdmin(admin.ModelAdmin):
+    list_display = ('purchase_order', 'material', 'delivered_quantity', 'delivery_status', 'delivery_date', 'created_at')
+    list_filter = ('delivery_status', 'delivery_date', 'created_at')
+    search_fields = ('purchase_order__po_number', 'material__name')
