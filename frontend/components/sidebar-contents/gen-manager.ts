@@ -15,6 +15,8 @@ export const Menu = [
         { title: "Requisition Vouchers", url: "/pages/gen-manager/requisition-vouchers" },
         { title: "Purchase Orders", url: "/pages/gen-manager/purchase-orders" },
         { title: "Charge Tickets", url: "/pages/gen-manager/charge-tickets" },
+        { title: "Certifications", url: "/pages/gen-manager/certificates" },
+
         { title: "Approval History", url: "/pages/gen-manager/approval-history" },
 
 

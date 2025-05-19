@@ -1,25 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
 import { columns } from "./columns";
-import { QualityCheckRecord } from "./columns";
-import DataTable from "@/components/Tables/DataTable"; // Adjust to your table path
+import DataTable from "@/components/Tables/DataTable";
+import useQCHistory from "@/hooks/shared/useQCHistory";
+import { useState } from "react";
+import TableLoader from "@/components/Loaders/TableLoader";
 
 export default function QualityCheckHistoryPage() {
-  const [data, setData] = useState<QualityCheckRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  useEffect(() => {
-    axios.get("/quality-compliance/history/") // Adjust to your endpoint
-      .then((res) => setData(res.data))
-      .catch((err) => console.error("Failed to load quality check history", err))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, isLoading, totalCount, refetch } = useQCHistory(page, pageSize);
 
   return (
     <div className="p-6 space-y-4">
-      <DataTable title="Quality Check History" columns={columns} data={data} isLoading={loading} />
+      <h1 className="text-xl font-bold">Quality Check History</h1>
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="QC Records"
+          columns={columns}
+          data={data}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          refreshData={refetch}
+        />
+      )}
     </div>
   );
 }

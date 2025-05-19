@@ -1,91 +1,87 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { CertificationRecord } from "@/hooks/admin/useCertificationsForAdmin";
 import axios from "@/lib/axios";
+import { useState } from "react";
 import { toast } from "sonner";
 
-export type PendingCertification = {
-    id: number;
-    po_no: string;
-    department: string;
-    certified_by: string;
-    certified_at: string;
-    items: {
-      material_name: string;
-      unit: string;
-      quantity: number;
-    }[];
-  };
-  
-export const columns = ({
-  refreshData,
-}: {
-  refreshData: () => void;
-}): ColumnDef<PendingCertification>[] => [
+export const columns: ColumnDef<CertificationRecord>[] = [
   {
-    header: "PO No.",
-    accessorKey: "po_no",
-    cell: ({ row }) => <span className="font-mono">{row.original.po_no}</span>,
+    header: "PO Number",
+    accessorFn: (row) => row.purchase_order.po_number,
   },
   {
-    header: "Department",
-    accessorKey: "department",
-    cell: ({ row }) =>
-      row.original.department.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    header: "Delivery Date",
+    accessorFn: (row) => row.delivery_record.delivery_date,
   },
   {
-    header: "Certified By",
-    accessorKey: "certified_by",
+    header: "Created At",
+    accessorFn: (row) => new Date(row.created_at).toLocaleString(),
   },
   {
-    header: "Certified At",
-    accessorKey: "certified_at",
-    cell: ({ row }) => {
-      const date = new Date(row.original.certified_at);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-    },
-  },
-  {
-    header: "Items",
-    cell: ({ row }) => (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button size="sm" variant="outline">View</Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80">
-          <ul className="text-sm space-y-2 py-2">
-            {row.original.items.map((item, i) => (
-              <li key={i}>
-                {item.material_name} – {item.quantity} {item.unit}
-              </li>
-            ))}
-          </ul>
-        </PopoverContent>
-      </Popover>
-    ),
-  },
-  {
-    header: "Action",
-    cell: ({ row }) => {
-      const handleAction = async (status: "approved" | "rejected") => {
+    header: "Actions",
+    cell: ({ row, table }) => {
+      const cert = row.original;
+      const [open, setOpen] = useState(false);
+      const [reason, setReason] = useState("");
+
+      const handleApprove = async () => {
         try {
-          await axios.post(`/warehouse-admin/certification/${row.original.id}/${status}/`);
-          toast.success(`Certification ${status}`);
-          refreshData();
+          await axios.post(`/requests/certifications/${cert.id}/approve/`);
+          toast.success("Certification approved.");
+          table.options.meta?.refreshData?.();
         } catch (err) {
-          console.error(err);
-          toast.error(`Failed to ${status} certification`);
+          toast.error("Approval failed.");
+        }
+      };
+
+      const handleReject = async () => {
+        try {
+          await axios.post(`/requests/certifications/${cert.id}/reject/`, { reason });
+          toast.success("Certification rejected.");
+          setOpen(false);
+          table.options.meta?.refreshData?.();
+        } catch (err) {
+          toast.error("Rejection failed.");
         }
       };
 
       return (
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => handleAction("approved")}>Approve</Button>
-          <Button size="sm" variant="destructive" onClick={() => handleAction("rejected")}>Reject</Button>
+          <Button size="sm" onClick={handleApprove}>
+            Approve
+          </Button>
+          <Button size="sm" variant="destructive" onClick={() => setOpen(true)}>
+            Reject
+          </Button>
+
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Select Rejection Reason</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Label>Reason</Label>
+                <Select value={reason} onValueChange={setReason}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a reason..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Incomplete documents">Incomplete documents</SelectItem>
+                    <SelectItem value="Incorrect delivery">Incorrect delivery</SelectItem>
+                    <SelectItem value="Quality mismatch">Quality mismatch</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button disabled={!reason} onClick={handleReject}>
+                  Submit Rejection
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       );
     },

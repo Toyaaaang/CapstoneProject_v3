@@ -1,39 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
+import useCertificationsForAdmin from "@/hooks/admin/useCertificationsForAdmin";
 import { columns } from "./columns";
-import { PendingCertification } from "./columns";
 import DataTable from "@/components/Tables/DataTable";
+import TableLoader from "@/components/Loaders/TableLoader";
 
-export default function CertificationApprovalPage() {
-  const [data, setData] = useState<PendingCertification[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get("/warehouse-admin/certifications/pending/"); // Adjust your endpoint
-      setData(res.data);
-    } catch (err) {
-      console.error("Failed to load pending certifications", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+export default function AdminCertificationApprovalPage() {
+  const {
+    data,
+    isLoading,
+    refetch,
+    page,
+    setPage,
+    totalCount,
+  } = useCertificationsForAdmin();
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-bold">Pending Certification Approvals</h1>
-      <DataTable
-        columns={columns({ refreshData: fetchData })}
-        data={data}
-        isLoading={loading}
-      />
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Pending Certifications"
+          columns={columns}
+          data={data}
+          refreshData={refetch}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+        />
+      )}
     </div>
   );
 }

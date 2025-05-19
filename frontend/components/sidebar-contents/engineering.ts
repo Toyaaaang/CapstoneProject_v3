@@ -14,6 +14,8 @@ export const Menu = [
       title: "Certification Management",
       items: [
         { title: "Certifications", url: "/pages/engineering/certificates" },
+        { title: "Track Certifications", url: "/pages/engineering/track-certificates" },
+
       ],
     },
     {

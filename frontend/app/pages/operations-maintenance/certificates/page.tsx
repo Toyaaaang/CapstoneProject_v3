@@ -1,26 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
+import { useState } from "react";
+import useCertificationsToCreate from "@/hooks/shared/useCertificationsToCreate";
 import { columns } from "./columns";
-import { CertificationRecord } from "./columns";
-import DataTable from "@/components/Tables/DataTable"; // Adjust to your table path
+import DataTable from "@/components/Tables/DataTable";
+import TableLoader from "@/components/Loaders/TableLoader";
 
-export default function CertificationHistoryPage() {
-  const [data, setData] = useState<CertificationRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function CertificationCreatePage() {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  useEffect(() => {
-    axios
-      .get("/quality-compliance/certified/") // Adjust to your actual endpoint
-      .then((res) => setData(res.data))
-      .catch((err) => console.error("Failed to load certifications", err))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, isLoading, refetch, totalCount } = useCertificationsToCreate({
+    page,
+    pageSize,
+  });
 
   return (
     <div className="p-6 space-y-4">
-      <DataTable title="Certifications" columns={columns} data={data} isLoading={loading} />
+      <h1 className="text-xl font-bold">Certification Creation</h1>
+
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Pending Certifications"
+          columns={columns}
+          data={data}
+          refreshData={refetch}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+          meta={{
+            refreshData: refetch,
+          }}
+        />
+      )}
     </div>
   );
 }

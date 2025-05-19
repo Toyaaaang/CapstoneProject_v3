@@ -237,3 +237,73 @@ class QualityCheckItem(models.Model):
 
     def __str__(self):
         return f"QC for {self.po_item.material.name} — Cert Needed: {self.requires_certification}"
+
+
+class Certification(models.Model):
+    delivery_record = models.OneToOneField(DeliveryRecord, on_delete=models.CASCADE, related_name="certification", blank=True, null=True)
+    purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name="certifications")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    inspected_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="certifications_inspected")
+    gm_approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="certifications_gm_approved")
+    audit_approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="certifications_audit_approved")
+    admin_approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="certifications_admin_approved")
+
+    STATUS_CHOICES = [
+        ("started", "Started"),
+        ("in_progress", "In Progress"),
+        ("complete", "Complete"),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="started")
+    rejection_reason = models.CharField(max_length=100, blank=True, null=True)
+    rejected_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="rejected_certifications"
+    )
+    is_finalized = models.BooleanField(default=False)  # Mark when all approvals are done
+    remarks = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Certification for {self.purchase_order.po_number}"
+
+class CertifiedItem(models.Model):
+    quality_check_item = models.OneToOneField(QualityCheckItem, on_delete=models.CASCADE, related_name="certifieditem")
+    certification = models.ForeignKey(Certification, on_delete=models.CASCADE, related_name="items")
+    po_item = models.ForeignKey(PurchaseOrderItem, on_delete=models.CASCADE)
+    remarks = models.CharField(max_length=255, blank=True)
+    inspection_type = models.CharField(max_length=255, default="Brand Authenticity Specification Compliance")
+
+    def __str__(self):
+        return f"{self.po_item.material.name} - Cert ID {self.certification.id}"
+    
+
+from django.db import models
+from authentication.models import User
+from inventory.models import Material
+from material_requests.models import PurchaseOrder, PurchaseOrderItem
+
+class ReceivingReport(models.Model):
+    purchase_order = models.OneToOneField(PurchaseOrder, on_delete=models.CASCADE, related_name="receiving_report")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="receiving_reports_created")
+    approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="receiving_reports_approved")
+    created_at = models.DateTimeField(auto_now_add=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    is_approved = models.BooleanField(default=False)
+    remarks = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"RR-{self.purchase_order.po_number}"
+
+class ReceivingReportItem(models.Model):
+    receiving_report = models.ForeignKey(ReceivingReport, on_delete=models.CASCADE, related_name="items")
+    po_item = models.ForeignKey(PurchaseOrderItem, on_delete=models.CASCADE)
+    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    unit = models.CharField(max_length=50)
+    remarks = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.material.name} in RR-{self.receiving_report.purchase_order.po_number}"

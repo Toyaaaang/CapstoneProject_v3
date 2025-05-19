@@ -9,13 +9,21 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import axios from "@/lib/axios";
+
+const QC_REMARKS = [
+  "Satisfactory",
+  "Damaged Packaging",
+  "Incorrect Item",
+  "Requires Certification",
+  "No Issues Found",
+  "Pending Further Inspection",
+];
 
 export default function QualityCheckDialog({
   po,
@@ -94,13 +102,23 @@ export default function QualityCheckDialog({
                 />
                 <Label>Requires Certification</Label>
               </div>
-              <div>
+              <div className="space-y-1">
                 <Label className="text-xs">Remarks</Label>
-                <Textarea
-                  placeholder="Optional remarks..."
+                <Select
                   value={item.remarks}
-                  onChange={(e) => handleRemarksChange(i, e.target.value)}
-                />
+                  onValueChange={(value) => handleRemarksChange(i, value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a remark" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {QC_REMARKS.map((r) => (
+                      <SelectItem key={r} value={r}>
+                        {r}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           ))}

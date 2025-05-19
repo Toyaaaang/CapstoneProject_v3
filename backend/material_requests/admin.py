@@ -9,6 +9,10 @@ from .models import (
     PurchaseOrder,
     PurchaseOrderItem,
     DeliveryRecord,
+    QualityCheck,
+    QualityCheckItem,
+    Certification,
+    CertifiedItem,
 )
 
 # Inline for MaterialRequestItem
@@ -74,3 +78,44 @@ class DeliveryRecordAdmin(admin.ModelAdmin):
     list_display = ('purchase_order', 'material', 'delivered_quantity', 'delivery_status', 'delivery_date', 'created_at')
     list_filter = ('delivery_status', 'delivery_date', 'created_at')
     search_fields = ('purchase_order__po_number', 'material__name')
+
+# Inline for QualityCheckItem
+class QualityCheckItemInline(admin.TabularInline):
+    model = QualityCheckItem
+    extra = 1
+
+# Admin for QualityCheck
+@admin.register(QualityCheck)
+class QualityCheckAdmin(admin.ModelAdmin):
+    list_display = ('purchase_order', 'department', 'checked_by', 'created_at')
+    list_filter = ('department', 'created_at')
+    search_fields = ('purchase_order__po_number', 'department', 'checked_by__username')
+    inlines = [QualityCheckItemInline]
+
+# Optionally, register QualityCheckItem separately
+@admin.register(QualityCheckItem)
+class QualityCheckItemAdmin(admin.ModelAdmin):
+    list_display = ('quality_check', 'po_item', 'requires_certification')
+    list_filter = ('requires_certification',)
+    search_fields = ('quality_check__purchase_order__po_number', 'po_item__material__name')
+
+# Inline for CertifiedItem
+class CertifiedItemInline(admin.TabularInline):
+    model = CertifiedItem
+    extra = 1
+
+# Admin for Certification
+@admin.register(Certification)
+class CertificationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'purchase_order', 'status', 'is_finalized', 'created_at')
+    list_filter = ('status', 'is_finalized', 'created_at')
+    search_fields = ('purchase_order__po_number',)
+    inlines = [CertifiedItemInline]
+
+# Optionally, register CertifiedItem separately
+@admin.register(CertifiedItem)
+class CertifiedItemAdmin(admin.ModelAdmin):
+    list_display = ('certification', 'po_item', 'inspection_type')
+    list_filter = ('inspection_type',)
+    search_fields = ('certification__purchase_order__po_number', 'po_item__material__name')
+
