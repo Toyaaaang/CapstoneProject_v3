@@ -1,7 +1,10 @@
 export const Menu = [
     {
       title: "Dashboard",
-      items: [{ title: "Overview", url: "/pages/admin" }],
+      items: [{ title: "Overview", url: "/pages/engineering" },
+        { title: "Stocks", url: "/pages/engineering/stock" },
+      ],
+
     },
     {
       title: "Material Quality Management",

@@ -33,6 +33,14 @@ class InventoryByDepartmentView(APIView):
         return Response(serializer.data)
     
 class InventorySummaryViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Inventory.objects.select_related('material').all().order_by("material__name", "department")
     serializer_class = InventorySummarySerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        base_qs = Inventory.objects.select_related("material").order_by("material__name", "department")
+
+        if user.role in ["engineering", "operations_maintenance", "finance"]:
+            return base_qs.filter(department=user.role)
+
+        return base_qs

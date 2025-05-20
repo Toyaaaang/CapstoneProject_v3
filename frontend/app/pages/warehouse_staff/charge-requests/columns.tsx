@@ -1,5 +1,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import axios from "@/lib/axios";
 
@@ -37,8 +39,11 @@ export const columns = ({
   {
     header: "Department",
     accessorKey: "department",
-    cell: ({ row }) =>
-      row.original.department.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    cell: ({ row }) => (
+      <Badge variant="secondary">
+        {row.original.department.replace(/_/g, " ").toUpperCase()}
+      </Badge>
+    ),
   },
   {
     header: "Requested By",
@@ -51,7 +56,17 @@ export const columns = ({
   {
     header: "Purpose",
     accessorKey: "purpose",
-    cell: ({ row }) => <span className="text-sm line-clamp-2">{row.original.purpose}</span>,
+    cell: ({ row }) => (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button>{row.original.purpose || "No purpose provided"}</Button>
+
+        </PopoverTrigger>
+        <PopoverContent className="w-72">
+          <p className="text-sm">{row.original.purpose}</p>
+        </PopoverContent>
+      </Popover>
+    ),
   },
   {
     header: "Date Created",
@@ -66,15 +81,25 @@ export const columns = ({
     },
   },
   {
-    header: "Items",
+    header: "Materials",
     cell: ({ row }) => (
-      <ul className="text-sm space-y-1">
-        {row.original.items.map((item, i) => (
-          <li key={i}>
-            {item.material_name} – {item.quantity} {item.unit}
-          </li>
-        ))}
-      </ul>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm">
+            View Items
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72">
+          <ul className="text-sm space-y-1 py-2">
+            {row.original.items?.map((item) => (
+              <li key={item.id}>
+                {item.material.name} – {item.quantity} {item.unit}
+              </li>
+            ))}
+
+          </ul>
+        </PopoverContent>
+      </Popover>
     ),
   },
   {

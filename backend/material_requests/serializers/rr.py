@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from ..models import ReceivingReport, ReceivingReportItem
-from material_requests.models import PurchaseOrder, PurchaseOrderItem
+from material_requests.models import PurchaseOrder, PurchaseOrderItem, DeliveryRecord
 from inventory.models import Material
 
 
@@ -32,12 +32,21 @@ class ReceivingReportSerializer(serializers.ModelSerializer):
         queryset=PurchaseOrder.objects.all(),
         source="purchase_order"
     )
+    delivery_record = serializers.PrimaryKeyRelatedField(
+        queryset=DeliveryRecord.objects.all()
+    )
+    po_number = serializers.CharField(source="purchase_order.po_number", read_only=True)
+    created_by = serializers.StringRelatedField(read_only=True)  # optional pretty username
+    approved_by = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = ReceivingReport
         fields = [
             "id",
+            "po_number",  
+                   
             "purchase_order_id",
+            "delivery_record",            # ✅ Include in fields
             "created_by",
             "approved_by",
             "created_at",
@@ -50,8 +59,9 @@ class ReceivingReportSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items_data = validated_data.pop("items")
-        user = self.context["request"].user
-        rr = ReceivingReport.objects.create(created_by=user, **validated_data)
+        validated_data["created_by"] = self.context["request"].user
+
+        rr = ReceivingReport.objects.create(**validated_data)  # ✅ now includes delivery_record
 
         for item_data in items_data:
             po_item = item_data["po_item"]
@@ -65,4 +75,3 @@ class ReceivingReportSerializer(serializers.ModelSerializer):
             )
 
         return rr
-

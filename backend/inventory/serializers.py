@@ -14,9 +14,10 @@ class InventorySerializer(serializers.ModelSerializer):
         fields = '__all__'
         
 class InventorySummarySerializer(serializers.ModelSerializer):
-    material_name = serializers.CharField(source='material.name')
+    name = serializers.CharField(source='material.name')  # 🔄 was material_name
     unit = serializers.CharField(source='material.unit')
 
     class Meta:
         model = Inventory
-        fields = ['material_name', 'unit', 'quantity', 'department']
+        fields = ['name', 'unit', 'quantity', 'department']
+

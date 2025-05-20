@@ -279,12 +279,6 @@ class CertifiedItem(models.Model):
     def __str__(self):
         return f"{self.po_item.material.name} - Cert ID {self.certification.id}"
     
-
-from django.db import models
-from authentication.models import User
-from inventory.models import Material
-from material_requests.models import PurchaseOrder, PurchaseOrderItem
-
 class ReceivingReport(models.Model):
     purchase_order = models.OneToOneField(PurchaseOrder, on_delete=models.CASCADE, related_name="receiving_report")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="receiving_reports_created")

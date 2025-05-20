@@ -43,7 +43,9 @@ export const columns: ColumnDef<MaterialRequest>[] = [
     header: "Department",
     accessorKey: "department",
     cell: ({ row }) => (
-      <Badge variant="secondary">{row.original.department.replace(/_/g, " ")}</Badge>
+      <Badge variant="secondary">
+        {row.original.department.replace(/_/g, " ").toUpperCase()}
+      </Badge>
     ),
   },
   {
@@ -74,7 +76,9 @@ export const columns: ColumnDef<MaterialRequest>[] = [
           <ul className="text-sm space-y-1 py-2">
             {row.original.items?.map((item) => (
               <li key={item.id}>
-                {item.material.name} – {item.quantity} {item.unit}
+                {item.material && item.material.name
+                  ? `${item.material.name.charAt(0).toUpperCase() + item.material.name.slice(1)}`
+                  : "N/A"} – {item.quantity} {item.unit}
               </li>
             ))}
 

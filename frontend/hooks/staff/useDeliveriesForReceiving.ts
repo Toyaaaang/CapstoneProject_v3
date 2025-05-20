@@ -1,17 +1,25 @@
 import axios from "@/lib/axios";
 import { useState, useEffect } from "react";
 
+// ✅ Match the expected data structure from backend
 export interface DeliveryForReceiving {
   id: number;
-  purchase_order: {
-    po_number: string;
-  };
-  material: {
-    name: string;
-  };
   delivered_quantity: number;
   delivery_status: string;
   delivery_date: string;
+
+  purchase_order: {
+    id: number;
+    po_number: string;
+  };
+
+  material: {
+    id: number;
+    name: string;
+    unit: string;
+  };
+
+  po_item: number;
 }
 
 interface Props {
@@ -32,6 +40,8 @@ export default function useDeliveriesForReceiving({ page, pageSize }: Props) {
       });
       setData(res.data.results);
       setTotalCount(res.data.count);
+    } catch (error) {
+      console.error("Failed to fetch deliveries:", error);
     } finally {
       setIsLoading(false);
     }
@@ -41,5 +51,10 @@ export default function useDeliveriesForReceiving({ page, pageSize }: Props) {
     fetchData();
   }, [page, pageSize]);
 
-  return { data, isLoading, totalCount, refetch: fetchData };
+  return {
+    data,
+    isLoading,
+    totalCount,
+    refetch: fetchData,
+  };
 }

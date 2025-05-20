@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import axios from "@/lib/axios";
 import { toast } from "sonner";
-import { RejectDialog } from "@/components/Dialogs/RejectDialog"; // ✅ Use your shared dialog
+import { RejectDialog } from "@/components/dialogs/RejectDialog"; 
+import { Badge } from "@/components/ui/badge";
 
 export type ChargeRequestPendingApproval = {
   id: number;
@@ -40,8 +41,11 @@ export const columns = ({
   {
     header: "Department",
     accessorKey: "department",
-    cell: ({ row }) =>
-      row.original.department.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    cell: ({ row }) => (
+      <Badge variant="secondary">
+        {row.original.department.replace(/_/g, " ").toUpperCase()}
+      </Badge>
+    ),
   },
   {
     header: "Requested By",
@@ -54,7 +58,17 @@ export const columns = ({
   {
     header: "Purpose",
     accessorKey: "purpose",
-    cell: ({ row }) => <span className="line-clamp-2 text-sm">{row.original.purpose}</span>,
+    cell: ({ row }) => (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button>{row.original.purpose || "No purpose provided"}</Button>
+
+        </PopoverTrigger>
+        <PopoverContent className="w-72">
+          <p className="text-sm">{row.original.purpose}</p>
+        </PopoverContent>
+      </Popover>
+    ),
   },
   {
     header: "Date Created",

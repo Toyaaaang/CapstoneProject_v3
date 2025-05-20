@@ -1,8 +1,9 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { RejectDialog } from "@/components/dialogs/RejectDialog";
+import { RejectDialog } from "@/components/Dialogs/RejectDialog";
 import axios from "@/lib/axios";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 export type PendingChargeRequestForGM = {
@@ -38,11 +39,14 @@ export const columns = ({
     },
   },
   {
-    header: "Department",
-    accessorKey: "department",
-    cell: ({ row }) =>
-      row.original.department.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-  },
+      header: "Department",
+      accessorKey: "department",
+      cell: ({ row }) => (
+        <Badge variant="secondary">
+          {row.original.department.replace(/_/g, " ").toUpperCase()}
+        </Badge>
+      ),
+    },
   {
     header: "Requested By",
     accessorKey: "requester",
@@ -57,7 +61,15 @@ export const columns = ({
     header: "Purpose",
     accessorKey: "purpose",
     cell: ({ row }) => (
-      <span className="text-sm line-clamp-2">{row.original.purpose}</span>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button>{row.original.purpose || "No purpose provided"}</Button>
+
+        </PopoverTrigger>
+        <PopoverContent className="w-60">
+          <p className="text-sm">{row.original.purpose}</p>
+        </PopoverContent>
+      </Popover>
     ),
   },
   {

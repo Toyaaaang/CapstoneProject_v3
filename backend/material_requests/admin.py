@@ -13,6 +13,8 @@ from .models import (
     QualityCheckItem,
     Certification,
     CertifiedItem,
+    ReceivingReport,
+    ReceivingReportItem,
 )
 
 # Inline for MaterialRequestItem
@@ -118,4 +120,23 @@ class CertifiedItemAdmin(admin.ModelAdmin):
     list_display = ('certification', 'po_item', 'inspection_type')
     list_filter = ('inspection_type',)
     search_fields = ('certification__purchase_order__po_number', 'po_item__material__name')
+
+# Inline for ReceivingReportItem
+class ReceivingReportItemInline(admin.TabularInline):
+    model = ReceivingReportItem
+    extra = 1
+
+# Admin for ReceivingReport
+@admin.register(ReceivingReport)
+class ReceivingReportAdmin(admin.ModelAdmin):
+    list_display = ('purchase_order', 'created_by', 'approved_by', 'is_approved', 'created_at', 'approved_at')
+    list_filter = ('is_approved', 'created_at', 'approved_at')
+    search_fields = ('purchase_order__po_number', 'created_by__username', 'approved_by__username')
+    inlines = [ReceivingReportItemInline]
+
+# Optionally, register ReceivingReportItem separately
+@admin.register(ReceivingReportItem)
+class ReceivingReportItemAdmin(admin.ModelAdmin):
+    list_display = ('receiving_report', 'material', 'quantity', 'unit')
+    search_fields = ('receiving_report__purchase_order__po_number', 'material__name')
 
