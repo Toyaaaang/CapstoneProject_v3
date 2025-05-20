@@ -1,39 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
+import { useState } from "react";
 import { columns } from "./columns";
-import { ReadyForRR } from "./columns";
+import useDeliveriesForReceiving from "@/hooks/staff/useDeliveriesForReceiving";
 import DataTable from "@/components/Tables/DataTable";
+import TableLoader from "@/components/Loaders/TableLoader";
 
-export default function RRGenerationPage() {
-  const [data, setData] = useState<ReadyForRR[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function ReceivingReportPage() {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get("/warehouse/receiving-report/eligible/"); // adjust endpoint
-      setData(res.data);
-    } catch (err) {
-      console.error("Failed to load POs for RR", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const { data, isLoading, totalCount, refetch } = useDeliveriesForReceiving({
+    page,
+    pageSize,
+  });
 
   return (
     <div className="p-6 space-y-4">
-      <DataTable
-        title="Create Receiving Report"
-        columns={columns({ refreshData: fetchData })}
-        data={data}
-        isLoading={loading}
-      />
+      <h1 className="text-xl font-bold">Create Receiving Report</h1>
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Validated Deliveries"
+          columns={columns}
+          data={data}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          refreshData={refetch}
+        />
+      )}
     </div>
   );
 }

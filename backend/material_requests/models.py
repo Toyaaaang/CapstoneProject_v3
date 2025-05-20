@@ -293,6 +293,13 @@ class ReceivingReport(models.Model):
     approved_at = models.DateTimeField(null=True, blank=True)
     is_approved = models.BooleanField(default=False)
     remarks = models.TextField(blank=True, null=True)
+    delivery_record = models.OneToOneField(
+        DeliveryRecord,
+        on_delete=models.CASCADE,
+        related_name="receiving_report",
+        null=True,
+        blank=True,
+    )
 
     def __str__(self):
         return f"RR-{self.purchase_order.po_number}"

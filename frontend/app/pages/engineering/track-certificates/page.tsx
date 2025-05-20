@@ -10,7 +10,6 @@ export default function CertificationMonitoringPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-bold">Certification Monitoring</h1>
       {isLoading ? (
         <TableLoader />
       ) : (

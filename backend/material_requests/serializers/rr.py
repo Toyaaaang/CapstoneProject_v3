@@ -54,13 +54,15 @@ class ReceivingReportSerializer(serializers.ModelSerializer):
         rr = ReceivingReport.objects.create(created_by=user, **validated_data)
 
         for item_data in items_data:
+            po_item = item_data["po_item"]
             ReceivingReportItem.objects.create(
                 receiving_report=rr,
-                material=item_data["material"],
-                po_item=item_data["po_item"],
+                material=item_data.get("material") or po_item.material,
+                po_item=po_item,
                 quantity=item_data["quantity"],
-                unit=item_data["po_item"].unit,  # pulled from related PO item
+                unit=po_item.unit,
                 remarks=item_data.get("remarks", "")
             )
 
         return rr
+

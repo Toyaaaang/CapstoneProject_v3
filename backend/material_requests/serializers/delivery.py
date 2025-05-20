@@ -2,13 +2,31 @@ from rest_framework import serializers
 from material_requests.models import DeliveryRecord, Material
 
 class DeliveryRecordSerializer(serializers.ModelSerializer):
-    material_id = serializers.PrimaryKeyRelatedField(
-        queryset=Material.objects.all(),
-        source="material",
-        write_only=True
-    )
-    material = serializers.StringRelatedField(read_only=True)  # or use a nested serializer
+    id = serializers.IntegerField(read_only=True)
+
+    # ✅ Replace StringRelatedField with full material object
+    material = serializers.SerializerMethodField()
+    purchase_order = serializers.SerializerMethodField()
 
     class Meta:
         model = DeliveryRecord
-        fields = ['material', 'material_id', 'delivered_quantity', 'delivery_status', 'delivery_date', 'remarks']
+        fields = [
+            'id',
+            'material',           # now returns { name, unit }
+            'delivered_quantity',
+            'delivery_status',
+            'delivery_date',
+            'remarks',
+            'purchase_order'
+        ]
+
+    def get_material(self, obj):
+        return {
+            "name": obj.material.name,
+            "unit": obj.material.unit
+        }
+
+    def get_purchase_order(self, obj):
+        return {
+            "po_number": obj.purchase_order.po_number
+        }

@@ -7,6 +7,7 @@ from material_requests.views.rv import RequisitionVoucherViewSet
 from material_requests.views.po import PurchaseOrderViewSet
 from material_requests.views.qc import QualityCheckViewSet
 from material_requests.views.cert import CertificationViewSet
+from material_requests.views.rr import ReceivingReportViewSet
 
 router = DefaultRouter()
 router.register(r"material-requests", MaterialRequestViewSet, basename="material-requests")
@@ -14,7 +15,7 @@ router.register(r"charge-tickets", ChargeTicketViewSet, basename="charge-ticket"
 router.register(r'requisition-vouchers', RequisitionVoucherViewSet, basename='requisition-voucher')
 router.register(r'purchase-orders', PurchaseOrderViewSet, basename='purchase-order')
 router.register(r'quality-checks', QualityCheckViewSet, basename='quality-check')
-router.register("certifications", CertificationViewSet, basename="certification")
-
+router.register(r"certifications", CertificationViewSet, basename="certification")
+router.register(r"receiving-reports", ReceivingReportViewSet, basename="receiving-report")
 
 urlpatterns = router.urls

@@ -1,11 +1,15 @@
 from django.shortcuts import render
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from .models import Material, Inventory
 
 # inventory/views.py
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Material, Inventory
-from .serializers import MaterialSerializer, InventorySerializer
+from .serializers import MaterialSerializer, InventorySerializer, InventorySummarySerializer
+
 
 class MaterialListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -27,3 +31,8 @@ class InventoryByDepartmentView(APIView):
         inventory = Inventory.objects.select_related("material").filter(department=department)
         serializer = InventorySerializer(inventory, many=True)
         return Response(serializer.data)
+    
+class InventorySummaryViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Inventory.objects.select_related('material').all().order_by("material__name", "department")
+    serializer_class = InventorySummarySerializer
+    permission_classes = [IsAuthenticated]
