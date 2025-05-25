@@ -51,6 +51,9 @@ class QualityCheckViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=["get"], url_path="certifiable-items")
     def certifiable_items(self, request):
+        user = request.user
+        user_department = user.role.lower() if user.role else None
+
         certified_delivery_ids = Certification.objects.values_list("delivery_record_id", flat=True)
 
         items = QualityCheckItem.objects.filter(
@@ -58,7 +61,13 @@ class QualityCheckViewSet(viewsets.ModelViewSet):
             certifieditem__isnull=True,
         ).exclude(
             quality_check__purchase_order__deliveries__id__in=certified_delivery_ids
-        ).select_related(
+        )
+
+        # ✅ Restrict to department only if they're ops or eng
+        if user_department in ["engineering", "operations_maintenance"]:
+            items = items.filter(quality_check__department__iexact=user_department)
+
+        items = items.select_related(
             "po_item__material",
             "po_item",
             "quality_check__purchase_order",
@@ -72,4 +81,3 @@ class QualityCheckViewSet(viewsets.ModelViewSet):
 
         serializer = QualityCheckItemSerializer(items, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
