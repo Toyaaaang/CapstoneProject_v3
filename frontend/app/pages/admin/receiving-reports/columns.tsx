@@ -9,10 +9,25 @@ export const columns: ColumnDef<ReceivingReport>[] = [
   {
     header: "PO Number",
     accessorKey: "po_number",
+    cell: ({ row }) => (
+      <span className="font-mono text-sm">{row.original.po_number || "N/A"}</span>
+    ),
   },
   {
     header: "Created At",
     accessorKey: "created_at",
+    cell: ({ row }) => {
+      const date = row.original.created_at
+        ? new Date(row.original.created_at).toLocaleString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : "—";
+      return <span className="text-sm">{date}</span>;
+    },
   },
   {
     header: "Action",
@@ -24,7 +39,8 @@ export const columns: ColumnDef<ReceivingReport>[] = [
           await axios.post(`/requests/receiving-reports/${report.id}/approve/`);
           toast.success("Approved successfully.");
           table.options.meta?.refreshData?.();
-        } catch {
+        } catch (err) {
+          console.error(err);
           toast.error("Approval failed.");
         }
       };
@@ -32,9 +48,11 @@ export const columns: ColumnDef<ReceivingReport>[] = [
       return (
         <div className="flex gap-2">
           <ReportPreviewDialog report={report} />
-          <Button size="sm" onClick={approve}>Approve</Button>
+          <Button size="sm" onClick={approve}>
+            Approve
+          </Button>
         </div>
       );
     },
-  }
+  },
 ];

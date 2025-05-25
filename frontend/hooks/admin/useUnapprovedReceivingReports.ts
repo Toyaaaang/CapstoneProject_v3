@@ -14,6 +14,12 @@ export interface ReceivingReport {
   remarks: string;
   created_at: string;
   is_approved: boolean;
+  items: {
+    id: number;
+    material_name: string;
+    quantity: number;
+    unit: string;
+  }[];
 }
 
 export default function useUnapprovedReceivingReports() {

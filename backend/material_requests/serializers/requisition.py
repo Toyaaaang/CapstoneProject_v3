@@ -11,11 +11,24 @@ class RequisitionItemSerializer(serializers.ModelSerializer):
         queryset=Material.objects.all(), source='material', write_only=True
     )
     material_name = serializers.CharField(source="material.name", read_only=True)
+    custom_name = serializers.CharField(required=False, allow_blank=True)
+    custom_unit = serializers.CharField(required=False, allow_blank=True)
     
     class Meta:
         model = RequisitionItem
-        fields = ['id', 'material', 'material_id', 'quantity', 'unit', 'material_name']
+        fields = ['id', 'material', 'material_id', 'quantity', 'unit', 'material_name'
+                  , 'custom_name', 'custom_unit']
 
+    def get_material_name(self, obj):
+        if obj.material:
+            return obj.material.name
+        return obj.custom_name or "Custom Item"
+
+    def validate(self, data):
+        if not data.get('material') and not data.get('custom_name'):
+            raise serializers.ValidationError("Either a material or custom name must be provided.")
+        return data
+    
 class RequisitionVoucherSerializer(serializers.ModelSerializer):
     items = RequisitionItemSerializer(many=True)
     material_request = serializers.PrimaryKeyRelatedField(

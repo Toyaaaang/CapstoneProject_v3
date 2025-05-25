@@ -19,19 +19,40 @@ from authentication.models import User
 
 
 def get_certified_deliveries_ready_for_rr():
-    return DeliveryRecord.objects.filter(
+    deliveries = DeliveryRecord.objects.filter(
         receiving_report__isnull=True,
-        purchase_order__quality_checks__isnull=False,
-    ).annotate(
-        num_cert_required=Count(
-            "purchase_order__quality_checks__items",
-            filter=Q(purchase_order__quality_checks__items__requires_certification=True),
-            distinct=True
-        ),
-        num_certified=Count("purchase_order__certifications__items", distinct=True)
-    ).filter(
-        Q(num_cert_required=0) | Q(num_cert_required=F("num_certified"))
-    )
+        purchase_order__quality_checks__isnull=False
+    ).select_related(
+        "purchase_order"
+    ).prefetch_related(
+        "purchase_order__quality_checks__items",
+        "certification"
+    ).distinct()
+
+    eligible_ids = []
+
+    for delivery in deliveries:
+        po = delivery.purchase_order
+        qcs = po.quality_checks.all()
+        qc_items = [item for qc in qcs for item in qc.items.all()]
+
+        if not qc_items:
+            continue  # No QC items? Skip
+
+        requires_cert = any(item.requires_certification for item in qc_items)
+
+        if requires_cert:
+            if hasattr(delivery, "certification") and delivery.certification.is_finalized:
+                eligible_ids.append(delivery.id)
+        else:
+            # Does not require cert = eligible
+            eligible_ids.append(delivery.id)
+
+    # ✅ Return a proper queryset again
+    return DeliveryRecord.objects.filter(id__in=eligible_ids)
+
+
+
 
 
 class ReceivingReportViewSet(viewsets.ModelViewSet):
@@ -63,6 +84,15 @@ class ReceivingReportViewSet(viewsets.ModelViewSet):
             for item in report.items.all():
                 material = item.material
 
+                # 🔧 Auto-create material if it's a custom item
+                if material is None:
+                    name = item.material_name or item.custom_name or "Custom Item"
+                    unit = item.unit or item.custom_unit or "unit"
+                    material = Material.objects.create(name=name, unit=unit)
+                    item.material = material
+                    item.save()
+
+                # ✅ Inventory update
                 inventory, created = Inventory.objects.get_or_create(
                     material=material,
                     department=department,
@@ -72,7 +102,7 @@ class ReceivingReportViewSet(viewsets.ModelViewSet):
                     inventory.quantity += item.quantity
                 inventory.save()
 
-        # ✅ Notify Finance and Managers
+        # 🔔 Notifications
         finance_users = User.objects.filter(role="finance")
         manager_users = User.objects.filter(role="manager")
         recipients = finance_users.union(manager_users)
@@ -89,7 +119,7 @@ class ReceivingReportViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="deliveries")
     def deliveries_for_receiving(self, request):
         deliveries = get_certified_deliveries_ready_for_rr().filter(
-            receiving_report__isnull=True  # ✅ Exclude those already reported
+            receiving_report__isnull=True
         ).select_related("purchase_order", "material")
 
         page = self.paginate_queryset(deliveries)
@@ -99,7 +129,6 @@ class ReceivingReportViewSet(viewsets.ModelViewSet):
 
         serializer = DeliveryRecordSerializer(deliveries, many=True)
         return Response(serializer.data)
-
 
     @action(detail=True, methods=["get"], url_path="download")
     def download_pdf(self, request, pk=None):
@@ -134,8 +163,7 @@ class ReceivingReportViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-    
-    
+
     @action(detail=False, methods=["get"], url_path="unapproved")
     def unapproved_reports(self, request):
         queryset = ReceivingReport.objects.filter(is_approved=False).select_related(
@@ -149,4 +177,3 @@ class ReceivingReportViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-

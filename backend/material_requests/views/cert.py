@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -10,15 +10,15 @@ from xhtml2pdf import pisa
 from ..models import Certification, DeliveryRecord, CertifiedItem
 from ..serializers.cert import CertificationSerializer
 
-
 class CertificationViewSet(viewsets.ModelViewSet):
     queryset = Certification.objects.all().order_by("-created_at")
     serializer_class = CertificationSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ["created_at", "id", "status"]
+    ordering = ["-created_at"]
 
     def get_queryset(self):
-        user = self.request.user
-        # Filter if needed by role, department, or user
         return Certification.objects.all().order_by("-created_at")
 
     def perform_create(self, serializer):
@@ -26,6 +26,9 @@ class CertificationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="start")
     def start_certification(self, request):
+        if request.user.role not in ["warehouse_admin", "audit","engineering", "operations_maintenance"]:
+            return Response({"detail": "Not authorized."}, status=403)
+
         delivery_id = request.data.get("delivery_record_id")
         if not delivery_id:
             return Response({"detail": "delivery_record_id is required."}, status=400)
@@ -39,7 +42,10 @@ class CertificationViewSet(viewsets.ModelViewSet):
         if existing:
             return Response({"id": existing.id}, status=200)
 
-        # Create certification record
+        qc = delivery.purchase_order.quality_checks.first()
+        if not qc:
+            return Response({"detail": "No quality check found for this PO."}, status=400)
+
         cert = Certification.objects.create(
             delivery_record=delivery,
             purchase_order=delivery.purchase_order,
@@ -47,23 +53,18 @@ class CertificationViewSet(viewsets.ModelViewSet):
             status="started"
         )
 
-        # Auto-add items from QC that need certification
-        qc = delivery.purchase_order.quality_checks.first()
-        if qc:
-            items_to_certify = qc.items.filter(
-                requires_certification=True,
-                certifieditem__isnull=True
+        items_to_certify = qc.items.filter(
+            requires_certification=True,
+            certifieditem__isnull=True
+        )
+        for item in items_to_certify:
+            CertifiedItem.objects.create(
+                certification=cert,
+                po_item=item.po_item,
+                quality_check_item=item
             )
-            for item in items_to_certify:
-                CertifiedItem.objects.create(
-                    certification=cert,
-                    po_item=item.po_item,
-                    quality_check_item=item
-                )
 
         return Response({"id": cert.id}, status=201)
-
-
 
     @action(detail=True, methods=["get"], url_path="certification-status")
     def certification_status(self, request, pk=None):
@@ -90,19 +91,16 @@ class CertificationViewSet(viewsets.ModelViewSet):
         delivery = cert.delivery_record
         po = delivery.purchase_order
 
-        # Get the related QualityCheck
         qc = po.quality_checks.filter(department=cert.inspected_by.role).first()
         if not qc:
             return Response({"detail": "No quality check found for this delivery."}, status=400)
 
-        # Count required vs certified items
         required = qc.items.filter(requires_certification=True).count()
         certified = cert.items.count()
 
         if certified < required:
             return Response({"detail": "Certification not yet complete."}, status=400)
 
-        # Generate PDF
         template = get_template("certification/certificate.html")
         html = template.render({"cert": cert})
         result = BytesIO()
@@ -118,12 +116,10 @@ class CertificationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="monitoring")
     def monitoring(self, request):
-        user = request.user
-        role = user.role
+        role = request.user.role
 
         queryset = Certification.objects.all().order_by("-created_at")
 
-        # Optional: Role-based filtering
         if role == "audit":
             queryset = queryset.filter(audit_approved_by__isnull=True, rejected_by__isnull=True, is_finalized=False)
         elif role == "warehouse_admin":
@@ -138,25 +134,23 @@ class CertificationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    
     @action(detail=True, methods=["post"], url_path="reject")
     def reject(self, request, pk=None):
+        if request.user.role not in ["audit", "warehouse_admin", "manager"]:
+            return Response({"detail": "Not authorized."}, status=403)
+
         cert = self.get_object()
         reason = request.data.get("reason")
 
         if not reason:
             return Response({"detail": "Rejection reason is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Mark rejection fields
         cert.rejection_reason = reason
         cert.rejected_by = request.user
         cert.is_finalized = False
-
-        # Optional: clear previous approvals if rejections override them
         cert.audit_approved_by = None
         cert.admin_approved_by = None
         cert.gm_approved_by = None
-
         cert.save()
 
         return Response({"detail": "Certification rejected successfully."}, status=status.HTTP_200_OK)
@@ -167,7 +161,6 @@ class CertificationViewSet(viewsets.ModelViewSet):
         user = request.user
         role = user.role
 
-        # ✅ Approve based on role
         if role == "audit":
             cert.audit_approved_by = user
         elif role == "warehouse_admin":
@@ -177,11 +170,9 @@ class CertificationViewSet(viewsets.ModelViewSet):
         else:
             return Response({"detail": "Not authorized to approve."}, status=403)
 
-        # 🔁 Reset rejection if re-approving
         cert.rejection_reason = None
         cert.rejected_by = None
 
-        # ✅ Finalize if all approvals are in
         if (
             cert.audit_approved_by is not None and
             cert.admin_approved_by is not None and

@@ -28,10 +28,11 @@ export default function ValidateDeliveryDialog({ po, refreshData }: ValidateDeli
 
   const [items, setItems] = useState(
     po.items.map((item: any) => ({
-      material_id: item.material.id,
-      name: item.material.name,
+      material_id: item.material?.id ?? null,
+      custom_name: item.material?.id ? undefined : item.custom_name || item.name,
+      name: item.material?.name || item.custom_name || "Custom Item",
       quantity: item.quantity,
-      unit: item.unit,
+      unit: item.unit || "pcs",
       delivered_quantity: item.quantity,
       delivery_status: "complete",
       remarks: "",
@@ -50,7 +51,12 @@ export default function ValidateDeliveryDialog({ po, refreshData }: ValidateDeli
       await axios.post(`/requests/purchase-orders/${po.id}/record-delivery/`, {
         delivery_date: deliveryDate,
         items: items.map((item) => ({
-          material_id: item.material_id,
+          ...(item.material_id
+            ? { material: item.material_id }
+            : {
+                custom_name: item.custom_name,
+                custom_unit: item.unit,
+              }),
           delivered_quantity: item.delivered_quantity,
           delivery_status: item.delivery_status,
           remarks: item.remarks,
@@ -62,6 +68,7 @@ export default function ValidateDeliveryDialog({ po, refreshData }: ValidateDeli
       refreshData();
     } catch (err) {
       toast.error("Failed to submit delivery.");
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -91,9 +98,11 @@ export default function ValidateDeliveryDialog({ po, refreshData }: ValidateDeli
           {items.map((item, index) => (
             <div key={index} className="border rounded-md p-3 text-sm space-y-1">
               <div className="font-medium">{item.name}</div>
-              <div className="text-muted-foreground">Ordered: {item.quantity} {item.unit}</div>
+              <div className="text-muted-foreground">
+                Ordered: {item.quantity} {item.unit}
+              </div>
 
-              <div className="flex gap-2 mt-2 flex-wrap">
+              <div className="flex gap-2 mt-2 flex-wrap items-end">
                 <div className="flex flex-col">
                   <Label className="text-xs pl-1">Delivered Qty</Label>
                   <Input
@@ -103,19 +112,29 @@ export default function ValidateDeliveryDialog({ po, refreshData }: ValidateDeli
                     className="w-32"
                     value={item.delivered_quantity}
                     onChange={(e) =>
-                      updateItem(index, "delivered_quantity", parseFloat(e.target.value) || 0)
+                      updateItem(index, "delivered_quantity", Math.max(0, parseFloat(e.target.value) || 0))
                     }
                   />
                 </div>
+
+                {!item.material_id && (
+                  <div className="flex flex-col">
+                    <Label className="text-xs pl-1">Unit</Label>
+                    <Input
+                      type="text"
+                      className="w-24"
+                      value={item.unit}
+                      onChange={(e) => updateItem(index, "unit", e.target.value)}
+                    />
+                  </div>
+                )}
 
                 <div className="flex flex-col">
                   <Label className="text-xs pl-1">Status</Label>
                   <select
                     className="border rounded px-2 py-1 text-sm"
                     value={item.delivery_status}
-                    onChange={(e) =>
-                      updateItem(index, "delivery_status", e.target.value)
-                    }
+                    onChange={(e) => updateItem(index, "delivery_status", e.target.value)}
                   >
                     <option value="complete">Complete</option>
                     <option value="partial">Partial</option>

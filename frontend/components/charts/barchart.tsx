@@ -30,7 +30,7 @@ interface Props {
 
 export default function StockBarChart({ data }: Props) {
   const departmentColors: Record<string, string> = {
-    engineering: "oklch(39.3% 0.095 152.535) ",
+    engineering: "oklch(39.3% 0.095 152.535)",
     finance: "oklch(52.7% 0.154 150.069)",
     operations_maintenance: "oklch(72.3% 0.219 149.579)",
   }
@@ -44,7 +44,7 @@ export default function StockBarChart({ data }: Props) {
   const chartConfig = {
     quantity: {
       label: "Quantity",
-      color: "hsl(var(--chart-1))", // fallback
+      color: "hsl(var(--chart-1))",
     },
   }
 
@@ -54,16 +54,16 @@ export default function StockBarChart({ data }: Props) {
     fill: departmentColors[item.department],
     department: item.department,
   }))
-  const role = typeof window !== "undefined" ? localStorage.getItem("role") : null;
 
+  const role = typeof window !== "undefined" ? localStorage.getItem("role") : null
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Current Stock Levels</CardTitle>
 
-        {/* 🔵 Department Legend - only for non-dept users */}
-        { role !== "engineering" &&
+        {/* Department legend for admin-like roles */}
+        {role !== "engineering" &&
           role !== "operations_maintenance" &&
           role !== "finance" && (
             <div className="flex flex-wrap gap-4 mt-6">
@@ -95,7 +95,7 @@ export default function StockBarChart({ data }: Props) {
             />
             <ChartTooltip
               cursor={false}
-              content={<ChartTooltipContent hideLabel />}
+              content={<ChartTooltipContent />}
             />
             <Bar dataKey="quantity" radius={8}>
               {chartData.map((entry, index) => (
@@ -111,8 +111,6 @@ export default function StockBarChart({ data }: Props) {
             </Bar>
           </BarChart>
         </ChartContainer>
-
- 
       </CardContent>
     </Card>
   )

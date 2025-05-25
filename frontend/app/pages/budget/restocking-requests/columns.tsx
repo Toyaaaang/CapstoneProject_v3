@@ -22,16 +22,38 @@ export const columns: ColumnDef<any>[] = [
   {
     header: "Department",
     accessorKey: "department",
+    cell: ({ row }) => (
+      <Badge>
+        {row.original.department
+          ? row.original.department.replace(/_/g, " ").toUpperCase()
+          : ""}
+      </Badge>
+    ),
   },
   {
     header: "Created At",
     accessorKey: "created_at",
-    cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
+    cell: ({ row }) => {
+      const date = row.original.created_at ? new Date(row.original.created_at) : null;
+      return date
+        ? date.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "";
+    },
   },
   {
     header: "Status",
     accessorKey: "status",
-    cell: ({ row }) => <Badge>{row.original.status}</Badge>,
+    cell: ({ row }) => (
+      <Badge>
+        {row.original.status
+          ? row.original.status.charAt(0).toUpperCase() + row.original.status.slice(1)
+          : ""}
+      </Badge>
+    ),
   },
   {
     header: "Items",
@@ -46,20 +68,38 @@ export const columns: ColumnDef<any>[] = [
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-80 max-h-64 overflow-y-auto">
-            <div className="space-y-2 text-sm">
-              {items.length > 0 ? (
-                items.map((item: any, index: number) => (
-                  <div key={index} className="border-b pb-1">
-                    <div className="font-medium">{item.material_name}</div>
-                    <div className="text-muted-foreground text-xs">
-                      {item.quantity} {item.unit}
+            {items.length > 0 ? (
+              <div>
+                <div className="grid grid-cols-3 gap-2 font-semibold text-xs mb-2 px-1">
+                  <span>Material</span>
+                  <span className="text-center">Quantity</span>
+                  <span className="text-right">Unit</span>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {items.map((item: any, index: number) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30"
+                    >
+                      <div className="flex items-center gap-2 font-medium">
+                        {item.material?.name || item.custom_name || "Custom Item"}
+                        {!item.material?.name && (
+                          <Badge variant="outline" className="text-xs ml-1">Custom</Badge>
+                        )}
+                      </div>
+                      <div className="text-center text-muted-foreground text-xs">
+                        {item.quantity}
+                      </div>
+                      <div className="text-right text-muted-foreground text-xs">
+                        {item.unit}
+                      </div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-muted-foreground text-xs">No items</div>
-              )}
-            </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-muted-foreground text-xs">No items</div>
+            )}
           </PopoverContent>
         </Popover>
       );

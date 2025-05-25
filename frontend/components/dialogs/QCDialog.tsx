@@ -39,7 +39,9 @@ export default function QualityCheckDialog({
       po_item_id: item.id,
       requires_certification: false,
       remarks: "",
-      material_name: item.material.name,
+      material_name: item.material?.name || item.custom_name || "Custom Item",
+      quantity: item.quantity,
+      unit: item.unit,
     }))
   );
 
@@ -83,27 +85,35 @@ export default function QualityCheckDialog({
       </DialogTrigger>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Quality Check for {po.po_number}</DialogTitle>
+          <DialogTitle>
+            Quality Check for <span className="text-primary">{po.po_number}</span>
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
           {items.map((item, i) => (
             <div
               key={i}
-              className="border rounded-md p-4 text-sm space-y-2 bg-muted/30"
+              className="border rounded-md p-4 bg-muted/30 space-y-3"
             >
-              <div className="font-medium">{item.material_name}</div>
+              <div className="flex items-center justify-between">
+                <div className="font-semibold truncate">{item.material_name}</div>
+                <div className="text-xs text-muted-foreground">
+                  Qty: <span className="font-medium">{item.quantity}</span> {item.unit}
+                </div>
+              </div>
               <div className="flex items-center space-x-2">
                 <Checkbox
                   checked={item.requires_certification}
                   onCheckedChange={(checked) =>
                     handleCheckboxChange(i, !!checked)
                   }
+                  id={`cert-${i}`}
                 />
-                <Label>Requires Certification</Label>
+                <Label htmlFor={`cert-${i}`}>Requires Certification</Label>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Remarks</Label>
+              <div>
+                <Label className="text-xs mb-1 block">Remarks</Label>
                 <Select
                   value={item.remarks}
                   onValueChange={(value) => handleRemarksChange(i, value)}
@@ -125,7 +135,7 @@ export default function QualityCheckDialog({
         </div>
 
         <DialogFooter className="pt-4">
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button onClick={handleSubmit} disabled={loading} className="w-full">
             {loading ? "Submitting..." : "Submit QC"}
           </Button>
         </DialogFooter>

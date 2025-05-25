@@ -16,6 +16,8 @@ export default function DeliveryValidationPage() {
     <div className="p-4 space-y-4">
       {isLoading ? (
         <TableLoader />
+      ) : data.length === 0 ? (
+        <p className="text-muted-foreground text-center py-10">No pending deliveries found.</p>
       ) : (
         <DataTable
           title="Pending Deliveries"
@@ -26,7 +28,8 @@ export default function DeliveryValidationPage() {
           totalCount={totalCount}
           refreshData={refetch}
           meta={{
-            refreshData: refetch,}}
+            refreshData: refetch,
+          }}
         />
       )}
     </div>

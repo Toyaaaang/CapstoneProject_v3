@@ -18,20 +18,91 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { CertificationRecord } from "@/hooks/certifications/useCertificationsForGM";
+import { CertificationRecord } from "@/hooks/manager/useCertificationsForGM";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export const columns: ColumnDef<CertificationRecord>[] = [
   {
     header: "PO Number",
     accessorKey: "purchase_order.po_number",
+    cell: ({ row }) => (
+      <span className="font-mono text-xs bg-muted/60 px-2 py-1 rounded">
+        {row.original.purchase_order.po_number}
+      </span>
+    ),
   },
   {
     header: "Delivery Date",
     accessorKey: "delivery_record.delivery_date",
+    cell: ({ row }) =>
+      row.original.delivery_record?.delivery_date
+        ? new Date(row.original.delivery_record.delivery_date).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : <span className="italic text-muted-foreground">N/A</span>,
   },
   {
     header: "Created At",
     accessorKey: "created_at",
+    cell: ({ row }) =>
+      row.original.created_at
+        ? new Date(row.original.created_at).toLocaleString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          })
+        : <span className="italic text-muted-foreground">N/A</span>,
+  },
+  {
+    header: "Items",
+    cell: ({ row }) => {
+      const items = row.original.items || [];
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm">
+              View Items
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 max-h-72 overflow-auto">
+            {items.length > 0 ? (
+              <div>
+                <div className="grid grid-cols-3 gap-2 font-semibold text-xs mb-2 px-1">
+                  <span>Material</span>
+                  <span className="text-center">Qty</span>
+                  <span className="text-right">Unit</span>
+                </div>
+                <div className="space-y-2">
+                  {items.map((item: any, i: number) => (
+                    <div
+                      key={i}
+                      className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
+                    >
+                      <div className="font-medium truncate">
+                        {item.material_name}
+                      </div>
+                      <div className="text-center text-muted-foreground">
+                        {item.quantity}
+                      </div>
+                      <div className="text-right text-muted-foreground">
+                        {item.unit}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-muted-foreground text-xs">No items</div>
+            )}
+          </PopoverContent>
+        </Popover>
+      );
+    },
   },
   {
     header: "Actions",
@@ -62,14 +133,13 @@ export const columns: ColumnDef<CertificationRecord>[] = [
       };
 
       return (
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button size="sm" onClick={handleApprove}>
             Approve
           </Button>
           <Button size="sm" variant="destructive" onClick={() => setOpen(true)}>
             Reject
           </Button>
-
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent>
               <DialogHeader>

@@ -8,14 +8,23 @@ class CertifiedItemSerializer(serializers.ModelSerializer):
         source="po_item",
         write_only=True
     )
-    material_name = serializers.CharField(source="po_item.material.name", read_only=True)
+    material_name = serializers.SerializerMethodField()
     quantity = serializers.DecimalField(source="po_item.quantity", max_digits=10, decimal_places=2, read_only=True)
-    unit = serializers.CharField(source="po_item.unit", read_only=True)
+    unit = serializers.SerializerMethodField()
 
     class Meta:
         model = CertifiedItem
         fields = ["po_item_id", "material_name", "quantity", "unit", "remarks", "inspection_type"]
 
+    def get_material_name(self, obj):
+        if obj.po_item.material:
+            return obj.po_item.material.name
+        return obj.po_item.custom_name or "Custom Item"
+
+    def get_unit(self, obj):
+        if obj.po_item.material:
+            return obj.po_item.unit
+        return obj.po_item.custom_unit or "-"
 
 class CertificationSerializer(serializers.ModelSerializer):
     items = CertifiedItemSerializer(many=True, read_only=True)

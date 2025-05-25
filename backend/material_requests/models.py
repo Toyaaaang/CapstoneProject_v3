@@ -144,10 +144,18 @@ class RequisitionVoucher(BaseRequest):
 
 class RequisitionItem(models.Model):
     requisition = models.ForeignKey(RequisitionVoucher, on_delete=models.CASCADE, related_name='items')
-    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, null=True, blank=True)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=20)
+    custom_name = models.CharField(max_length=255, blank=True, null=True)
+    custom_unit = models.CharField(max_length=50, blank=True, null=True)
 
+    def __str__(self):
+        return (
+            f"{self.material.name} (x{self.quantity})"
+            if self.material else
+            f"{self.custom_name} (custom) (x{self.quantity})"
+        )
 
 class PurchaseOrder(models.Model):
     po_number = models.CharField(max_length=50, unique=True, blank=True)
@@ -186,25 +194,34 @@ class PurchaseOrder(models.Model):
     
 class PurchaseOrderItem(models.Model):
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='items')
-    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, blank=True, null=True)
 
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=50)
 
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total = models.DecimalField(max_digits=12, decimal_places=2)
+    custom_name = models.CharField(max_length=255, blank=True, null=True)
+    custom_unit = models.CharField(max_length=50, blank=True, null=True)
 
+    def __str__(self):
+        return (
+            f"{self.material.name} (x{self.quantity})"
+            if self.material else
+            f"{self.custom_name} (custom) (x{self.quantity})"
+        )
+        
     def save(self, *args, **kwargs):
         self.total = self.quantity * self.unit_price
         super().save(*args, **kwargs)
 
-    def __str__(self):
-        return f"{self.material.name} x {self.quantity} @ {self.unit_price}"
-    
 
 class DeliveryRecord(models.Model):
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name="deliveries")
-    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    material = models.ForeignKey(Material, on_delete=models.SET_NULL, null=True, blank=True)
+    custom_name = models.CharField(max_length=255, blank=True, null=True)
+    custom_unit = models.CharField(max_length=50, blank=True, null=True)
+
     delivered_quantity = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     delivery_status = models.CharField(
         max_length=20,
@@ -215,9 +232,10 @@ class DeliveryRecord(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.material.name} delivered for {self.purchase_order.po_number}"
-    
-    
+        if self.material:
+            return f"{self.material.name} delivered for {self.purchase_order.po_number}"
+        return f"{self.custom_name or 'Custom Item'} delivered for {self.purchase_order.po_number}"
+
 class QualityCheck(models.Model):
     purchase_order = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name='quality_checks')
     checked_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
@@ -233,10 +251,11 @@ class QualityCheckItem(models.Model):
     po_item = models.ForeignKey(PurchaseOrderItem, on_delete=models.CASCADE)
     
     requires_certification = models.BooleanField(default=False)
-    remarks = models.TextField(blank=True)
+    remarks = models.CharField(blank=True)
 
     def __str__(self):
-        return f"QC for {self.po_item.material.name} — Cert Needed: {self.requires_certification}"
+        material = self.po_item.material.name if self.po_item.material else self.po_item.custom_name or "Custom Item"
+        return f"QC for {material} — Cert Needed: {self.requires_certification}"
 
 
 class Certification(models.Model):
@@ -267,7 +286,7 @@ class Certification(models.Model):
     remarks = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"Certification for {self.purchase_order.po_number}"
+        return f"Certification for {self.purchase_order.po_number if self.purchase_order else 'Unknown PO'}"
 
 class CertifiedItem(models.Model):
     quality_check_item = models.OneToOneField(QualityCheckItem, on_delete=models.CASCADE, related_name="certifieditem")
@@ -277,8 +296,9 @@ class CertifiedItem(models.Model):
     inspection_type = models.CharField(max_length=255, default="Brand Authenticity Specification Compliance")
 
     def __str__(self):
-        return f"{self.po_item.material.name} - Cert ID {self.certification.id}"
-    
+        name = self.po_item.material.name if self.po_item.material else self.po_item.custom_name or "Unnamed Item"
+        return f"{name} - Cert ID {self.certification.id}"
+
 class ReceivingReport(models.Model):
     purchase_order = models.OneToOneField(PurchaseOrder, on_delete=models.CASCADE, related_name="receiving_report")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="receiving_reports_created")
@@ -296,15 +316,17 @@ class ReceivingReport(models.Model):
     )
 
     def __str__(self):
-        return f"RR-{self.purchase_order.po_number}"
+        return f"RR-{self.purchase_order.po_number}" if self.purchase_order else "Receiving Report"
+
 
 class ReceivingReportItem(models.Model):
     receiving_report = models.ForeignKey(ReceivingReport, on_delete=models.CASCADE, related_name="items")
     po_item = models.ForeignKey(PurchaseOrderItem, on_delete=models.CASCADE)
-    material = models.ForeignKey(Material, on_delete=models.CASCADE)
+    material = models.ForeignKey(Material, on_delete=models.CASCADE, blank=True, null=True)
     quantity = models.DecimalField(max_digits=10, decimal_places=2)
     unit = models.CharField(max_length=50)
     remarks = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.material.name} in RR-{self.receiving_report.purchase_order.po_number}"
+        name = self.material.name if self.material else self.po_item.custom_name or "Custom Item"
+        return f"{name} in RR-{self.receiving_report.purchase_order.po_number}"

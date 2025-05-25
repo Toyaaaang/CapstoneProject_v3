@@ -1,34 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
-import { columns } from "./columns";
-import { AuditorApprovalRecord } from "./columns";
+import { useState } from "react";
+import usePurchaseHistory from "@/hooks/budget/usePurchaseHistory";
 import DataTable from "@/components/Tables/DataTable";
+import { purchaseHistoryColumns as columns } from "./columns";
+import TableLoader from "@/components/Loaders/TableLoader";
 
-export default function AuditorApprovalHistoryPage() {
-  const [data, setData] = useState<AuditorApprovalRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function PurchaseHistoryPage() {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get("/auditor/approval/history/"); // Adjust this endpoint as needed
-      setData(res.data);
-    } catch (err) {
-      console.error("Failed to load auditor approval history", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const { data, isLoading, totalCount, refetch } = usePurchaseHistory(page, pageSize);
 
   return (
     <div className="p-6 space-y-4">
-      <DataTable title="Auditor Approval History" columns={columns} data={data} isLoading={loading} />
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Purchase History"
+          columns={columns}
+          data={data}
+          refreshData={refetch}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+        />
+      )}
     </div>
   );
 }

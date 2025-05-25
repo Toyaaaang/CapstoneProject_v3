@@ -5,50 +5,77 @@ import { Button } from "@/components/ui/button";
 
 interface DeliveryRecord {
   id: number;
-  delivered_quantity: string; 
+  material: number | null;
+  custom_name: string | null;
+  custom_unit: string | null;
+  delivered_quantity: string;
+  delivery_status: string;
   delivery_date: string;
+  remarks: string;
+  po_item: number;
 
-  purchase_order: {
+  purchase_order: number;
+  purchase_order_details: {
     id: number;
     po_number: string;
   };
 
-  material: {
-    id?: number; 
+  material_details: {
+    id?: number;
     name: string;
     unit: string;
   };
 
-  po_item: number;
+  material_name: string;
 }
 
 export const columns: ColumnDef<DeliveryRecord>[] = [
   {
     header: "PO Number",
-    accessorKey: "purchase_order.po_number",
+    accessorKey: "purchase_order_details.po_number",
   },
   {
     header: "Material",
-    accessorKey: "material.name",
-    cell: ({ row }) =>
-      row.original.material?.name
-        ? row.original.material.name.charAt(0).toUpperCase() + row.original.material.name.slice(1)
-        : "N/A",
+    accessorKey: "material_name",
+    cell: ({ row }) => row.original.material_name || "Custom Item",
   },
   {
-    header: "Delivered Quantity",
+    header: "Delivered Qty",
     accessorKey: "delivered_quantity",
     cell: ({ row }) => {
-      // Show as integer, no decimals
       const qty = Number(row.original.delivered_quantity);
-      return isNaN(qty) ? "N/A" : qty.toLocaleString(undefined, { maximumFractionDigits: 0 });
+      return isNaN(qty)
+        ? "N/A"
+        : qty.toLocaleString(undefined, { maximumFractionDigits: 2 });
     },
+  },
+  {
+    header: "Unit",
+    cell: ({ row }) => {
+      const unit = row.original.custom_unit || row.original.material_details.unit;
+      return unit || "—";
+    },
+  },
+  {
+    header: "Status",
+    accessorKey: "delivery_status",
+    cell: ({ row }) =>
+      row.original.delivery_status.charAt(0).toUpperCase() +
+      row.original.delivery_status.slice(1),
+  },
+  {
+    header: "Remarks",
+    accessorKey: "remarks",
+    cell: ({ row }) =>
+      row.original.remarks ? row.original.remarks : <span className="italic text-muted-foreground">None</span>,
   },
   {
     header: "Delivery Date",
     accessorKey: "delivery_date",
     cell: ({ row }) => {
-      const date = row.original.delivery_date ? new Date(row.original.delivery_date) : null;
+      const date = row.original.delivery_date
+        ? new Date(row.original.delivery_date)
+        : null;
       return date
         ? date.toLocaleDateString("en-US", {
             year: "numeric",
@@ -58,45 +85,43 @@ export const columns: ColumnDef<DeliveryRecord>[] = [
         : "N/A";
     },
   },
-{
-  header: "Action",
-  cell: ({ row, table }) => {
-    const delivery = row.original;
+  {
+    header: "Action",
+    cell: ({ row, table }) => {
+      const delivery = row.original;
 
-    const handleCreateReport = async () => {
-      try {
+      const handleCreateReport = async () => {
         const payload = {
-          purchase_order_id: delivery.purchase_order.id,
+          purchase_order_id: delivery.purchase_order_details.id,
           delivery_record: delivery.id,
           items: [
             {
               po_item_id: delivery.po_item,
-              material: delivery.material.id,
+              material: delivery.material || null,
               quantity: parseFloat(delivery.delivered_quantity),
-              unit: delivery.material.unit,
-              remarks: "",
+              unit: delivery.custom_unit || delivery.material_details.unit || "-",
+              remarks: delivery.remarks || "",
+              custom_name: delivery.custom_name || "",
+              custom_unit: delivery.custom_unit || "",
             },
           ],
-        
         };
-        console.log("Payload being sent:", payload);
-        await axios.post("/requests/receiving-reports/", payload);
-         // ✅ corrected endpoint
 
-        toast.success("Receiving Report created!");
-        table.options.meta?.refreshData?.();
-      } catch (err) {
-        toast.error("Failed to create report.");
-        console.error(err);
-      }
-    };
+        try {
+          await axios.post("/requests/receiving-reports/", payload);
+          toast.success("Receiving Report created!");
+          table.options.meta?.refreshData?.();
+        } catch (err) {
+          toast.error("Failed to create report.");
+          console.error(err);
+        }
+      };
 
-    return (
-      <Button size="sm" onClick={handleCreateReport}>
-        Create Report
-      </Button>
-    );
+      return (
+        <Button size="sm" onClick={handleCreateReport}>
+          Create Report
+        </Button>
+      );
+    },
   },
-}
-
 ];

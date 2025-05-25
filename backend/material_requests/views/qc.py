@@ -51,7 +51,6 @@ class QualityCheckViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=["get"], url_path="certifiable-items")
     def certifiable_items(self, request):
-        # Get all deliveries already associated with a certification
         certified_delivery_ids = Certification.objects.values_list("delivery_record_id", flat=True)
 
         items = QualityCheckItem.objects.filter(
@@ -64,12 +63,13 @@ class QualityCheckViewSet(viewsets.ModelViewSet):
             "po_item",
             "quality_check__purchase_order",
             "quality_check__purchase_order__requisition_voucher"
-        )
+        ).distinct()
 
         page = self.paginate_queryset(items)
         if page is not None:
             serializer = QualityCheckItemSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-        
+
         serializer = QualityCheckItemSerializer(items, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+

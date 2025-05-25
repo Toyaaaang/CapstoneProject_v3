@@ -16,7 +16,7 @@ export default function HandledRequestsPage() {
         <TableLoader />
       ) : (
         <DataTable
-          title="Handled Material Requests"
+          title="Evaluation History"
           columns={columns}
           data={data}
           page={page}

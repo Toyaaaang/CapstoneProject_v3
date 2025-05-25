@@ -34,8 +34,10 @@ export default function ReportPreviewDialog({ report }: { report: ReceivingRepor
             <ul className="space-y-1 text-sm">
               {report.items.map((item) => (
                 <li key={item.id} className="flex justify-between border-b py-1">
-                  <span>{item.material_name}</span>
-                  <span>{item.quantity} {item.unit}</span>
+                  <span>{item.material_name || "Custom Item"}</span>
+                  <span>
+                    {item.quantity} {item.unit || "-"}
+                  </span>
                 </li>
               ))}
             </ul>

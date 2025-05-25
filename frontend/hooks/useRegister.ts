@@ -2,12 +2,13 @@ import axios from "axios";
 import { useState } from "react";
 import { API_BASE_URL } from "@/utils/config";
 
-
 interface RegisterData {
   username: string;
   email: string;
   password: string;
   role: string;
+  first_name: string;  // ✅ Added
+  last_name: string;   // ✅ Added
 }
 
 interface UseRegisterReturn {

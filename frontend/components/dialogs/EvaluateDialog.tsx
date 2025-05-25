@@ -15,7 +15,8 @@ import { toast } from "sonner";
 
 type Item = {
   id: number;
-  material: { id: number; name: string };
+  material?: { id: number; name: string } | null;
+  custom_name?: string;
   quantity: number;
   unit: string;
 };
@@ -27,19 +28,27 @@ type Props = {
   refreshData: () => void;
 };
 
-export default function EvaluateDialog({ requestId, items,refreshData, triggerLabel = "Evaluate",  }: Props) {
+export default function EvaluateDialog({
+  requestId,
+  items,
+  refreshData,
+  triggerLabel = "Evaluate",
+}: Props) {
   const [open, setOpen] = useState(false);
   const [decisions, setDecisions] = useState<Record<number, "charge" | "requisition">>(() => {
     const defaults: Record<number, "charge" | "requisition"> = {};
-    items.forEach((i) => (defaults[i.id] = "charge"));
+    items.forEach((i) => {
+      const isCustom = !i.material?.id;
+      defaults[i.id] = isCustom ? "requisition" : "charge";
+    });
     return defaults;
   });
 
   const handleEvaluate = async () => {
     const charge_items = items
-      .filter((i) => decisions[i.id] === "charge")
+      .filter((i) => decisions[i.id] === "charge" && i.material?.id)
       .map((i) => ({
-        material_id: i.material.id,
+        material_id: i.material!.id,
         quantity: i.quantity,
         unit: i.unit,
       }));
@@ -47,10 +56,13 @@ export default function EvaluateDialog({ requestId, items,refreshData, triggerLa
     const requisition_items = items
       .filter((i) => decisions[i.id] === "requisition")
       .map((i) => ({
-        material_id: i.material.id,
+        material_id: i.material?.id,
+        custom_name: i.custom_name,
+        custom_unit: i.unit,
         quantity: i.quantity,
         unit: i.unit,
       }));
+
 
     try {
       await axios.post(`/requests/material-requests/${requestId}/evaluate/`, {
@@ -101,23 +113,45 @@ export default function EvaluateDialog({ requestId, items,refreshData, triggerLa
         </DialogHeader>
 
         <ul className="space-y-2">
-          {items.map((item) => (
-            <li key={item.id} className="flex justify-between items-center border p-2 rounded">
-              <span>
-                {item.material?.name} – {item.quantity} {item.unit}
-              </span>
-              <select
-                className="border rounded p-1"
-                value={decisions[item.id]}
-                onChange={(e) =>
-                  setDecisions({ ...decisions, [item.id]: e.target.value as "charge" | "requisition" })
-                }
+          {items.map((item) => {
+            const isCustom = !item.material?.id;
+            const name = item.material?.name || item.custom_name || "Custom Item";
+
+            return (
+              <li
+                key={item.id}
+                className="flex justify-between items-center border p-2 rounded"
               >
-                <option value="charge">Charge</option>
-                <option value="requisition">Requisition</option>
-              </select>
-            </li>
-          ))}
+                <span>
+                  {name} – {item.quantity} {item.unit}
+                  {isCustom && (
+                    <span className="ml-2 px-2 py-1 text-xs bg-gray-200 text-gray-600 rounded">
+                      Custom Item
+                    </span>
+                  )}
+                </span>
+
+                {!isCustom ? (
+                  <select
+                    className="border rounded p-1"
+                    value={decisions[item.id]}
+                    onChange={(e) =>
+                      setDecisions({
+                        ...decisions,
+                        [item.id]: e.target.value as "charge" | "requisition",
+                      })
+                    }
+                  >
+                    <option value="charge">Charge</option>
+                    <option value="requisition">Requisition</option>
+                  </select>
+                ) : (
+                  <span className="text-sm text-gray-500 italic">Requisition (Custom)</span>
+
+                )}
+              </li>
+            );
+          })}
         </ul>
 
         <DialogFooter className="flex justify-between pt-4">

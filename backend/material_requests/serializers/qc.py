@@ -54,8 +54,16 @@ class QualityCheckItemSerializer(serializers.ModelSerializer):
         ]
     def get_delivery_record_id(self, obj):
         deliveries = obj.quality_check.purchase_order.deliveries
-        material_match = deliveries.filter(material=obj.po_item.material).first()
-        return material_match.id if material_match else deliveries.first().id if deliveries.exists() else None
+        item = obj.po_item
+
+        if item.material:
+            # Match by stock material
+            match = deliveries.filter(material=item.material).first()
+        else:
+            # Match by custom name (case-insensitive to be safer)
+            match = deliveries.filter(custom_name__iexact=item.custom_name).first()
+
+        return match.id if match else None
 
 # --- Serializer for creating a full Quality Check with items ---
 class QualityCheckSerializer(serializers.ModelSerializer):

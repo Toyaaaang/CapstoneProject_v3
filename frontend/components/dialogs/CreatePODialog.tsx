@@ -19,17 +19,18 @@ type CreatePODialogProps = {
     id: number;
     rv_number: string;
     department: string;
-    requester: {
-      first_name: string;
-      last_name: string;
+    requester?: {
+      first_name?: string;
+      last_name?: string;
     };
     created_at: string;
-    items: {
+    items?: {
       id: number;
-      material: {
+      material?: {
         id: number;
         name: string;
-      };
+      } | null;
+      custom_name?: string;
       quantity: number;
       unit: string;
     }[];
@@ -38,16 +39,18 @@ type CreatePODialogProps = {
 };
 
 export default function CreatePODialog({ rv, refreshData }: CreatePODialogProps) {
+  if (!rv?.id || !rv.items) return null;
+
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [supplierName, setSupplierName] = useState("");
   const [supplierAddress, setSupplierAddress] = useState("");
   const [vatRate, setVatRate] = useState(12);
 
-  const [items, setItems] = useState(
-    rv.items.map((item) => ({
-      material_id: item.material.id,
-      material_name: item.material.name,
+  const [items, setItems] = useState(() =>
+    rv.items!.map((item) => ({
+      material_id: item.material?.id ?? null,
+      material_name: item.material?.name || item.custom_name || "Custom Item",
       quantity: item.quantity,
       unit: item.unit,
       unit_price: 0,
@@ -62,9 +65,11 @@ export default function CreatePODialog({ rv, refreshData }: CreatePODialogProps)
     setItems(updated);
   };
 
+  const round = (num: number) => Math.round(num * 100) / 100;
+
   const subtotal = items.reduce((sum, i) => sum + i.total_price, 0);
-  const vatAmount = subtotal * (vatRate / 100);
-  const grandTotal = subtotal + vatAmount;
+  const vatAmount = round(subtotal * (vatRate / 100));
+  const grandTotal = round(subtotal + vatAmount);
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("en-PH", {
@@ -87,22 +92,32 @@ export default function CreatePODialog({ rv, refreshData }: CreatePODialogProps)
     setLoading(true);
     try {
       await axios.post("/requests/purchase-orders/", {
-        rv_id: rv.id, // ✅ Correct field name
+        rv_id: rv.id,
         supplier: supplierName,
         supplier_address: supplierAddress,
         vat_rate: vatRate,
-        items: items.map((i) => ({
-          material_id: i.material_id,
-          quantity: i.quantity,
-          unit: i.unit,
-          unit_price: i.unit_price,
-        })),
+        items: items.map((i) => {
+          if (i.material_id) {
+            return {
+              material_id: i.material_id,
+              quantity: i.quantity,
+              unit: i.unit,
+              unit_price: i.unit_price,
+            };
+          } else {
+            return {
+              custom_name: i.material_name,
+              custom_unit: i.unit,
+              quantity: i.quantity,
+              unit: i.unit,
+              unit_price: i.unit_price,
+            };
+          }
+        }),
       });
       toast.success("Purchase Order created.");
-      setTimeout(() => {
-        setOpen(false);
-        refreshData();
-      }, 1000);
+      setOpen(false);
+      refreshData();
     } catch (err) {
       console.error(err);
       toast.error("Failed to create PO.");
@@ -116,13 +131,13 @@ export default function CreatePODialog({ rv, refreshData }: CreatePODialogProps)
       <Button size="sm" onClick={() => setOpen(true)}>
         Create PO
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(state) => !loading && setOpen(state)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Create Purchase Order for {rv.rv_number}</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              Department: {rv.department.charAt(0).toUpperCase() + rv.department.slice(1)} | Requested By:{" "}
-              {rv.requester.first_name} {rv.requester.last_name}
+              Department: {rv.department?.charAt(0).toUpperCase() + rv.department?.slice(1)} | Requested By:{" "}
+              {rv.requester?.first_name || "N/A"} {rv.requester?.last_name || ""}
             </p>
           </DialogHeader>
 
@@ -149,7 +164,9 @@ export default function CreatePODialog({ rv, refreshData }: CreatePODialogProps)
             <div className="grid grid-cols-4 gap-4 px-2 py-2 font-semibold text-sm border-b">
               <div>Material</div>
               <div>Quantity</div>
-              <div>Unit Price</div>
+              <div>
+                Unit Price <span className="text-muted-foreground text-xs">(PHP)</span>
+              </div>
               <div>Total</div>
             </div>
 

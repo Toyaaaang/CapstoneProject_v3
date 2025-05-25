@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import axios from "@/lib/axios";
+import { useCallback } from "react";
 
 export default function useDeliveredPOs(page: number, pageSize: number = 10) {
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
 
-  const fetch = async () => {
+  const fetch = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await axios.get("/requests/purchase-orders/", {
         params: {
-          delivered: "true",
+          delivered: true,
           page,
           page_size: pageSize,
         },
@@ -23,7 +24,7 @@ export default function useDeliveredPOs(page: number, pageSize: number = 10) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, pageSize]);
 
   useEffect(() => {
     fetch();

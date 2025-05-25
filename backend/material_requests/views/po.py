@@ -10,22 +10,29 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
     serializer_class = PurchaseOrderSerializer
 
     def get_queryset(self):
-        queryset = PurchaseOrder.objects.all().order_by("-created_at")
+        queryset = PurchaseOrder.objects.order_by("-created_at")
         status_filter = self.request.query_params.get("status")
         delivered = self.request.query_params.get("delivered")
+        department = self.request.query_params.get("department")  # 👈 NEW
 
         if status_filter:
             queryset = queryset.filter(status=status_filter)
 
         if delivered == "true":
-            queryset = queryset.filter(
-                deliveries__isnull=False,
-                requisition_voucher__department__in=["engineering", "operations_maintenance"]
-            ).exclude(quality_checks__isnull=False).distinct()
-        else:
-            queryset = queryset.exclude(deliveries__isnull=False)
-            
+            queryset = queryset.filter(deliveries__isnull=False)
+
+            if department:
+                queryset = queryset.filter(
+                    requisition_voucher__department__iexact=department
+                )
+            queryset = queryset.exclude(quality_checks__isnull=False)
+
+        elif delivered == "false":
+            queryset = queryset.filter(deliveries__isnull=True)
+
         return queryset
+
+
 
 
     @action(detail=True, methods=["patch"], url_path="recommend")
@@ -78,23 +85,56 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         if not items or not delivery_date:
             return Response({"detail": "Items and delivery date are required."}, status=400)
 
+        validated_records = []
         for item in items:
             item["delivery_date"] = delivery_date
             item["purchase_order"] = po.id
 
-        serializer = DeliveryRecordSerializer(data=items, many=True)
-        serializer.is_valid(raise_exception=True)
+            # Basic validation
+            if not item.get("material") and not item.get("custom_name"):
+                return Response({"detail": "Each item must have a material or custom name."}, status=400)
 
-        DeliveryRecord.objects.bulk_create([
-            DeliveryRecord(
-                purchase_order=po,
-                material=item["material"],
-                delivered_quantity=item["delivered_quantity"],
-                delivery_status=item["delivery_status"],
-                delivery_date=item["delivery_date"],
-                remarks=item.get("remarks", "")
+            validated_records.append(
+                DeliveryRecord(
+                    purchase_order=po,
+                    material_id=item.get("material"),  # can be None
+                    custom_name=item.get("custom_name"),
+                    custom_unit=item.get("custom_unit"),
+                    delivered_quantity=item["delivered_quantity"],
+                    delivery_status=item["delivery_status"],
+                    delivery_date=delivery_date,
+                    remarks=item.get("remarks", "")
+                )
             )
-            for item in serializer.validated_data
-        ])
 
+        DeliveryRecord.objects.bulk_create(validated_records)
         return Response({"message": "Delivery recorded successfully."}, status=201)
+
+    @action(detail=False, methods=["get"], url_path="history")
+    def history(self, request):
+        pos = PurchaseOrder.objects.prefetch_related("items", "items__material").order_by("-created_at")
+
+        data = []
+        for po in pos:
+            data.append({
+                "id": po.id,
+                "type": "PO",
+                "reference_number": po.po_number,
+                "supplier": po.supplier,
+                "date": po.created_at,
+                "total": po.grand_total,
+                "status": po.status,
+                "items": [
+                    {
+                        "material_name": item.material.name if item.material else None,
+                        "custom_name": item.custom_name,
+                        "quantity": item.quantity,
+                        "unit": item.unit
+                    }
+                    for item in po.items.all()
+                ]
+            })
+
+        # 🚧 Future: append purchase return records here as well
+
+        return Response(data)

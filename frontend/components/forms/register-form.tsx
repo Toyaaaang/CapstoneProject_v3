@@ -1,6 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { signIn } from "next-auth/react"; 
 import { toast } from "sonner"; // Import toast from sonner
 import {
   Card,
@@ -28,11 +29,13 @@ export function RegisterForm({
   const { isLoading, register } = useRegister();
   const router = useRouter(); // Initialize useRouter
   const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
     username: "",
     email: "",
     password: "",
     confirmPassword: "",
-    role: "employee", // Default role
+    role: "employee",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,14 +50,24 @@ export function RegisterForm({
       return;
     }
 
+    const payload = {
+      username: formData.username,
+      email: formData.email,
+      password: formData.password,
+      role: formData.role,
+      first_name: formData.firstName, // ✅ map to backend format
+      last_name: formData.lastName,   // ✅ map to backend format
+    };
+
     try {
-      await register(formData);
+      await register(payload); // ✅ use mapped payload
       toast.success("Registration successful!");
-      router.push("/login"); // Redirect to login page
+      router.push("/login");
     } catch {
       toast.error("An error occurred during registration.");
     }
   };
+
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
@@ -65,6 +78,30 @@ export function RegisterForm({
         <CardContent>
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
+              <div className="grid gap-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  type="text"
+                  placeholder="Enter your first name..."
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  type="text"
+                  placeholder="Enter your last name..."
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
@@ -137,7 +174,11 @@ export function RegisterForm({
               <Button type="submit" className="w-full">
                 {isLoading ? "Registering..." : "Register"}
               </Button>
-              <Button variant="outline" className="w-full">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => signIn("google")}
+              >
                 Continue with Google
               </Button>
             </div>

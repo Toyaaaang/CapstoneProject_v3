@@ -3,25 +3,38 @@ from ..models import PurchaseOrderItem, Material, PurchaseOrder, RequisitionVouc
 from authentication.models import User  # if needed
 from inventory.serializers import MaterialSerializer
 from .delivery import DeliveryRecordSerializer
+from decimal import Decimal, ROUND_HALF_UP
 
 
 
 class PurchaseOrderItemSerializer(serializers.ModelSerializer):
-    material = MaterialSerializer(read_only=True)  # 👈 include full material info
+    material = MaterialSerializer(read_only=True) 
     material_id = serializers.PrimaryKeyRelatedField(
         queryset=Material.objects.all(),
         source='material',
-        write_only=True
+        write_only=True,
+        required=False,
+        allow_null=True
     )
     total = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    custom_name = serializers.CharField(required=False, allow_blank=True)
+    custom_unit = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = PurchaseOrderItem
-        fields = ['id', 'material', 'material_id', 'quantity', 'unit', 'unit_price', 'total'] 
-        
+        fields = ['id', 'material', 'material_id', 'quantity', 'unit', 'unit_price', 'total'
+                  , 'custom_name', 'custom_unit'
+                  ] 
+    def validate(self, data):
+        if not data.get("material") and not data.get("custom_name"):
+            raise serializers.ValidationError("Provide either a stock material or custom item details.")
+        if data.get("material") and data.get("custom_name"):
+            raise serializers.ValidationError("Only one of material or custom_name should be set.")
+        return data
+
           
 class PurchaseOrderSerializer(serializers.ModelSerializer):
-    items = PurchaseOrderItemSerializer(many=True)
+    items = PurchaseOrderItemSerializer(many=True,)
     rv_id = serializers.PrimaryKeyRelatedField(
         queryset=RequisitionVoucher.objects.all(),
         source='requisition_voucher'
@@ -70,19 +83,22 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
 
         subtotal = 0
         for item_data in items_data:
-            quantity = item_data['quantity']
-            unit_price = item_data['unit_price']
-            item_total = quantity * unit_price
+            quantity = item_data["quantity"]
+            unit_price = item_data["unit_price"]
+            item_total = (Decimal(quantity) * Decimal(unit_price)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
             subtotal += item_total
 
             PurchaseOrderItem.objects.create(
                 purchase_order=po,
-                material=item_data['material'],
+                material=item_data.get("material"),
+                custom_name=item_data.get("custom_name"),
+                custom_unit=item_data.get("custom_unit"),
                 quantity=quantity,
-                unit=item_data['unit'],
+                unit=item_data["unit"],
                 unit_price=unit_price,
                 total=item_total
             )
+
 
         vat_amount = subtotal * (vat_rate / 100)
         po.vat_amount = vat_amount

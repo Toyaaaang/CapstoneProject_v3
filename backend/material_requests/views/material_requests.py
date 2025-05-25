@@ -92,6 +92,8 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                 origin="employee"
             )
             for item in charge_items:
+                if not item.get("material_id"):
+                    continue  # skip custom items
                 ChargeTicketItem.objects.create(
                     charge_ticket=ticket,
                     material_id=item["material_id"],
@@ -114,12 +116,23 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                 origin="employee"
             )
             for item in requisition_items:
-                RequisitionItem.objects.create(
-                    requisition=rv,
-                    material_id=item["material_id"],
-                    quantity=item["quantity"],
-                    unit=item["unit"]
-                )
+                if item.get("material_id"):
+                    RequisitionItem.objects.create(
+                        requisition=rv,
+                        material_id=item["material_id"],
+                        quantity=item["quantity"],
+                        unit=item["unit"]
+                    )
+                else:
+                    RequisitionItem.objects.create(
+                        requisition=rv,
+                        custom_name=item.get("custom_name"),
+                        custom_unit=item.get("custom_unit"),
+                        quantity=item["quantity"],
+                        unit=item["unit"]
+                    )
+
+
             # 🔔 Notify all Budget Analysts
             budget_analysts = User.objects.filter(role="budget_analyst", is_role_confirmed=True)
             for analyst in budget_analysts:

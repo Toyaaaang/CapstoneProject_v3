@@ -9,6 +9,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import React from "react";
 
 export const columns: ColumnDef<any>[] = [
   {
@@ -18,85 +19,141 @@ export const columns: ColumnDef<any>[] = [
   {
     header: "Supplier",
     accessorKey: "supplier",
+    cell: ({ row }) => {
+      const supplier = row.original.supplier;
+      return (
+        <span className="font-semibold">
+          {supplier
+            ? supplier.charAt(0).toUpperCase() + supplier.slice(1)
+            : <span className="italic text-muted-foreground">N/A</span>}
+        </span>
+      );
+    },
   },
   {
     header: "Created At",
     accessorKey: "created_at",
-    cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
+    cell: ({ row }) => {
+      const date = row.original.created_at ? new Date(row.original.created_at) : null;
+      return date
+        ? date.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })
+        : "";
+    },
   },
   {
     header: "Status",
     accessorKey: "status",
-    cell: ({ row }) => <Badge>{row.original.status}</Badge>,
+    cell: ({ row }) => (
+      <Badge>
+        {row.original.status
+          ? row.original.status.charAt(0).toUpperCase() + row.original.status.slice(1)
+          : ""}
+      </Badge>
+    ),
   },
   {
     header: "Total",
     accessorKey: "grand_total",
-    cell: ({ row }) => `₱${parseFloat(row.original.grand_total).toFixed(2)}`,
+    cell: ({ row }) => (
+      <span className="font-mono font-semibold text-green-700 dark:text-green-400">
+        ₱
+        {parseFloat(row.original.grand_total).toLocaleString("en-PH", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}
+      </span>
+    ),
   },
   {
     header: "Review",
-    cell: ({ row, table }) => {
+    cell: ({ row }) => {
       const items = row.original.items || [];
       const vatRate = parseFloat(row.original.vat_rate) || 0;
       const vatAmount = parseFloat(row.original.vat_amount) || 0;
       const grandTotal = parseFloat(row.original.grand_total) || 0;
       const subtotal = grandTotal - vatAmount;
 
-      const refresh = table.options.meta?.refreshData;
+      const [open, setOpen] = React.useState(false);
 
       return (
-        <Popover>
+        <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button size="sm" variant="outline">View Details</Button>
           </PopoverTrigger>
           <PopoverContent className="w-[32rem]">
-            <div className="mb-2 font-semibold text-sm">PO Items:</div>
-            <div className="text-xs max-h-56 overflow-auto space-y-2 pr-1">
+            <div className="grid grid-cols-4 gap-2 font-semibold text-xs mb-2 px-1">
+              <span>Material</span>
+              <span className="text-center">Qty</span>
+              <span className="text-center">Unit Price</span>
+              <span className="text-right">Total</span>
+            </div>
+            <div className="max-h-56 overflow-auto flex flex-col gap-2 pr-1">
               {items.map((item: any, i: number) => (
                 <div
                   key={i}
-                  className="border rounded-md p-2 text-sm space-y-1"
+                  className="grid grid-cols-4 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
                 >
-                  <div className="font-medium">{item.material?.name}</div>
-                  <div className="text-muted-foreground">
-                    {item.quantity} {item.unit} × ₱{parseFloat(item.unit_price).toFixed(2)}
+                  <div className="font-medium truncate">
+                    {item.material?.name || item.custom_name || "Unknown Item"}
                   </div>
-                  <div className="font-semibold">
-                    Total: ₱{parseFloat(item.total).toFixed(2)}
+                  <div className="text-center text-muted-foreground">
+                    {item.quantity}
+                  </div>
+                  <div className="text-center text-muted-foreground">
+                    ₱{parseFloat(item.unit_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                  </div>
+                  <div className="text-right font-semibold">
+                    ₱{parseFloat(item.total).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
                   </div>
                 </div>
               ))}
             </div>
 
             <div className="text-right mt-4 space-y-1 text-sm">
-              <div>Subtotal: ₱{subtotal.toFixed(2)}</div>
-              <div>VAT ({vatRate}%): ₱{vatAmount.toFixed(2)}</div>
-              <div className="font-bold">Grand Total: ₱{grandTotal.toFixed(2)}</div>
-            </div>
-
-            <div className="flex gap-2 justify-end mt-4">
-              <Button
-                size="sm"
-                onClick={async () => {
-                  try {
-                    await axios.patch(`/requests/purchase-orders/${row.original.id}/approve/`);
-                    toast.success("PO approved.");
-                    setTimeout(() => refresh?.(), 200);
-                  } catch {
-                    toast.error("Failed to approve PO.");
-                  }
-                }}
-              >
-                Approve
-              </Button>
-              <RejectPODialog
-                poId={row.original.id}
-                refreshData={() => setTimeout(() => refresh?.(), 200)}
-              />
+              <div>Subtotal: ₱{subtotal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</div>
+              <div>VAT ({vatRate}%): ₱{vatAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</div>
+              <div className="font-bold">Grand Total: ₱{grandTotal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</div>
             </div>
           </PopoverContent>
         </Popover>
+      );
+    },
+  },
+  {
+    header: "Action",
+    cell: ({ row, table }) => {
+      const refresh = table.options.meta?.refreshData;
+      const [loading, setLoading] = React.useState(false);
+
+      return (
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              try {
+                await axios.patch(`/requests/purchase-orders/${row.original.id}/approve/`);
+                toast.success("PO approved.");
+                setTimeout(() => refresh?.(), 200);
+              } catch {
+                toast.error("Failed to approve PO.");
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            Approve
+          </Button>
+          <RejectPODialog
+            poId={row.original.id}
+            refreshData={() => setTimeout(() => refresh?.(), 200)}
+          />
+        </div>
       );
     },
   },

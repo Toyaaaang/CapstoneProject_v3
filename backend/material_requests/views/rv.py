@@ -89,3 +89,10 @@ class RequisitionVoucherViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"message": "RV rejected."}, status=200)
+    
+    @action(detail=False, methods=["get"], url_path="custom-only")
+    def custom_only(self, request):
+        queryset = self.get_queryset().filter(items__material__isnull=True).distinct()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+

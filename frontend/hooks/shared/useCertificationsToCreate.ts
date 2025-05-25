@@ -6,6 +6,7 @@ export interface CertifiableItem {
   id: number;
   delivery_record_id: number;
   po_item: {
+    custom_name: string;
     id: number;
     material: {
       name: string;
