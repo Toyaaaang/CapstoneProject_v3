@@ -6,6 +6,7 @@ import AccountPopover from "@/components/shared/AccountPopover";
 import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/shared/app-sidebar";
+import RoleLayout from "@/components/guards/RoleLayout";
 import { Menu } from "@/components/sidebar-contents/employee";
 import {
   Breadcrumb,
@@ -62,7 +63,7 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
               <AccountPopover />
             </div>
           </header>
-          <main className="p-4">{children}</main>
+          <main className="p-4"><RoleLayout allowedRole="employee">{children}</RoleLayout></main>
         </div>
       </SidebarInset>
     </SidebarProvider>

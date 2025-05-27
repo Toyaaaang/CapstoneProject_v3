@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/shared/app-sidebar";
 import { warehouseAdminMenu } from "@/components/sidebar-contents/admin";
+import RoleLayout from "@/components/guards/RoleLayout";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -63,7 +64,7 @@ export default function WarehouseAdminLayout({ children }: { children: React.Rea
               <AccountPopover />
             </div>
           </header>
-          <main className="p-4">{children}</main>
+          <main className="p-4"><RoleLayout allowedRole="warehouse_admin">{children}</RoleLayout></main>
         </div>
       </SidebarInset>
     </SidebarProvider>

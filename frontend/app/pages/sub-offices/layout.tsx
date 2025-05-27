@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/shared/app-sidebar";
 import { Menu } from "@/components/sidebar-contents/employee";
+import RoleLayout from "@/components/guards/RoleLayout";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -62,7 +63,7 @@ export default function SubOfficeLayout({ children }: { children: React.ReactNod
               <AccountPopover />
             </div>
           </header>
-          <main className="p-4">{children}</main>
+          <main className="p-4"><RoleLayout allowedRole="sub_office">{children}</RoleLayout></main>
         </div>
       </SidebarInset>
     </SidebarProvider>

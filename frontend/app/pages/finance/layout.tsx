@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/shared/app-sidebar";
 import { Menu } from "@/components/sidebar-contents/finance";
+import RoleLayout from "@/components/guards/RoleLayout";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -62,7 +63,7 @@ export default function OperationsMaintainanceLayout({ children }: { children: R
               <AccountPopover />
             </div>
           </header>
-          <main className="p-4">{children}</main>
+          <main className="p-4"><RoleLayout allowedRole="finance">{children}</RoleLayout></main>
         </div>
       </SidebarInset>
     </SidebarProvider>
