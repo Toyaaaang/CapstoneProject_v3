@@ -5,19 +5,21 @@ import { toast } from "sonner";
 
 type ApprovalHistory = {
   id: number;
-  user_username: string; // Username of the user whose role request was processed
-  requested_role: string; // The role requested by the user
-  status: string; // "approved" or "rejected"
-  processed_by_username: string; // Username of the admin who processed the request
-  processed_at: string; // Timestamp of when the request was processed
+  user_username: string;
+  requested_role: string;
+  status: string;
+  processed_by_username: string;
+  processed_at: string;
 };
 
 export const useApprovalHistory = () => {
   const [data, setData] = useState<ApprovalHistory[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 10;
 
-  // Get the access token from localStorage or another secure storage
   const getAccessToken = () => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("access_token");
@@ -27,7 +29,6 @@ export const useApprovalHistory = () => {
 
   const accessToken = getAccessToken();
 
-  // Axios instance with Authorization header
   const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
     headers: {
@@ -35,13 +36,16 @@ export const useApprovalHistory = () => {
     },
   });
 
-  // Fetch approval history
-  const fetchApprovalHistory = async () => {
+  const fetchApprovalHistory = async (currentPage = 1) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axiosInstance.get("api/authentication/approval-history/");
-      setData(response.data as ApprovalHistory[]);
+      const response = await axiosInstance.get<{
+        results: ApprovalHistory[];
+        count: number;
+      }>(`api/authentication/approval-history/?page=${currentPage}`);
+      setData(response.data.results);
+      setTotalCount(response.data.count);
     } catch (err) {
       setError("Failed to fetch approval history.");
       toast.error("Failed to fetch approval history.");
@@ -52,8 +56,16 @@ export const useApprovalHistory = () => {
   };
 
   useEffect(() => {
-    fetchApprovalHistory();
-  }, []);
+    fetchApprovalHistory(page);
+  }, [page]);
 
-  return { data, loading, error, fetchApprovalHistory };
+  return {
+    data,
+    loading,
+    error,
+    page,
+    setPage,
+    totalCount,
+    fetchApprovalHistory,
+  };
 };

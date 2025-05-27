@@ -10,6 +10,14 @@ export const warehouseStaffMenu = [
       ],
     },
     {
+      title: "Requests Management",
+      items: [
+        { title: "Pending Requests", url: "/pages/warehouse_staff/material-requests" },
+        { title: "Requests History", url: "/pages/warehouse_staff/evaluation-history" },
+
+      ],
+    },
+    {
       title: "Delivery",
       items: [
         { title: "Delivery Checking", url: "/pages/warehouse_staff/check-delivery" },

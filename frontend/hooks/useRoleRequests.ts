@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { API_BASE_URL } from "@/utils/config";
-import { toast } from "sonner"; // Import the toast function
-import { useRouter } from "next/navigation"; // Import useRouter for navigation
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 type RoleRequest = {
   id: number;
-  username: string;
+  full_name: string;
   role: string;
   date_joined: string;
   is_role_confirmed: boolean;
@@ -16,9 +16,12 @@ export const useRoleRequests = () => {
   const [data, setData] = useState<RoleRequest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter(); // Initialize the router
+  const [totalCount, setTotalCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const pageSize = 10;
 
-  // Get the access token from localStorage or another secure storage
+  const router = useRouter();
+
   const getAccessToken = () => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("access_token");
@@ -28,7 +31,6 @@ export const useRoleRequests = () => {
 
   const accessToken = getAccessToken();
 
-  // Axios instance with Authorization header
   const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
     headers: {
@@ -36,13 +38,18 @@ export const useRoleRequests = () => {
     },
   });
 
-  // Fetch role requests
-  const fetchRoleRequests = async () => {
+  const fetchRoleRequests = async (currentPage = 1) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axiosInstance.get("api/authentication/pending-roles/");
-      setData(response.data as RoleRequest[]);
+      const response = await axiosInstance.get<{
+        results: RoleRequest[];
+        count: number;
+      }>(
+        `api/authentication/pending-roles/?page=${currentPage}`
+      );
+      setData(response.data.results);
+      setTotalCount(response.data.count);
     } catch (err) {
       setError("Failed to fetch role requests.");
       toast.error("Failed to fetch role requests.");
@@ -52,20 +59,13 @@ export const useRoleRequests = () => {
     }
   };
 
-  // Approve a role request
   const approveRoleRequest = async (id: number) => {
     try {
       const response = await axiosInstance.post(`api/authentication/accept-role/${id}/`);
-      const message = (response.data as { message: string }).message;
-      toast.success(message);
-
-      // Remove the approved request from the pending list
-      setData((prevData) => prevData.filter((request) => request.id !== id));
-
-      // Push to role history
+      const data = response.data as { message: string };
+      toast.success(data.message);
+      fetchRoleRequests(page); // Refresh current page
       await pushToRoleHistory(id);
-
-      // Navigate to role history page
       router.push(`/pages/admin/role-history`);
     } catch (err) {
       toast.error("Error approving role.");
@@ -73,20 +73,13 @@ export const useRoleRequests = () => {
     }
   };
 
-  // Reject a role request
   const rejectRoleRequest = async (id: number) => {
     try {
       const response = await axiosInstance.post(`api/authentication/reject-role/${id}/`);
-      const message = (response.data as { message: string }).message;
-      toast.success(message);
-
-      // Remove the rejected request from the pending list
-      setData((prevData) => prevData.filter((request) => request.id !== id));
-
-      // Push to role history
+      const data = response.data as { message: string };
+      toast.success(data.message);
+      fetchRoleRequests(page); // Refresh current page
       await pushToRoleHistory(id);
-
-      // Navigate to role history page
       router.push(`/pages/admin/role-history`);
     } catch (err) {
       toast.error("Error rejecting role.");
@@ -94,20 +87,27 @@ export const useRoleRequests = () => {
     }
   };
 
-  // Push to role history
   const pushToRoleHistory = async (id: number) => {
     try {
       await axiosInstance.post(`api/authentication/role-history/`);
-      // toast.success("Role history updated successfully.");
     } catch (err) {
-      // toast.error("Error updating role history.");
-      // console.error("Error updating role history:", err);
+      // Silent fail
     }
   };
 
   useEffect(() => {
-    fetchRoleRequests();
-  }, []);
+    fetchRoleRequests(page);
+  }, [page]);
 
-  return { data, loading, error, fetchRoleRequests, approveRoleRequest, rejectRoleRequest };
+  return {
+    data,
+    loading,
+    error,
+    page,
+    setPage,
+    totalCount,
+    fetchRoleRequests,
+    approveRoleRequest,
+    rejectRoleRequest,
+  };
 };

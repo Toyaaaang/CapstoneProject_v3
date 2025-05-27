@@ -7,7 +7,16 @@ import { columns } from "./columns";
 import { useApprovalHistory } from "@/hooks/useApprovalHistory";
 
 export default function RoleHistoryPage() {
-  const { data, loading, error } = useApprovalHistory();
+  const {
+  data,
+  loading,
+  error,
+  page,
+  setPage,
+  totalCount,
+  fetchApprovalHistory,
+} = useApprovalHistory();
+
   const searchParams = useSearchParams(); // Get query parameters
 
   if (loading) {
@@ -24,7 +33,12 @@ export default function RoleHistoryPage() {
         title="Approval History"
         columns={columns}
         data={data}
+        page={page}
+        setPage={setPage}
+        totalCount={totalCount}
+        refreshData={() => fetchApprovalHistory(page)}
       />
+
     </div>
   );
 }

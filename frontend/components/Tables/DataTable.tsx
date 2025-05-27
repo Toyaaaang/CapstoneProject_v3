@@ -57,11 +57,14 @@ export default function DataTable<TData>({
       },
     },
     onPaginationChange: (updater) => {
-      const nextPageIndex =
+      const newPageIndex =
         typeof updater === "function"
           ? updater({ pageIndex: page - 1, pageSize }).pageIndex
           : updater.pageIndex;
-      setPage(nextPageIndex + 1);
+
+      if (typeof setPage === "function") {
+        setPage(newPageIndex + 1);
+      }
     },
     getCoreRowModel: getCoreRowModel(),
     meta: {

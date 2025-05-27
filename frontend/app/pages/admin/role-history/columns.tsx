@@ -22,7 +22,7 @@ export const columns: ColumnDef<ApprovalHistory>[] = [
     accessorKey: "requested_role",
     header: "Requested Role",
     cell: ({ row }) => (
-      <div className="py-2">{row.original.requested_role}</div>
+      <div className="py-2 capitalize">{row.original.requested_role}</div>
     ),
   },
   {
@@ -41,7 +41,7 @@ export const columns: ColumnDef<ApprovalHistory>[] = [
     accessorKey: "processed_by_username",
     header: "Processed By",
     cell: ({ row }) => (
-      <div className="py-2">{row.original.processed_by_username}</div>
+      <div className="py-2 capitalize">{row.original.processed_by_username}</div>
     ),
   },
   {

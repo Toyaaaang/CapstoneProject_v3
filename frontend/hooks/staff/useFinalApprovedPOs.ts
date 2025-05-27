@@ -12,6 +12,7 @@ export default function useFinalApprovedPOs(page: number, pageSize: number = 10)
       const res = await axios.get("/requests/purchase-orders/", {
         params: {
           status: "approved",
+          delivered: "false",
           page,
           page_size: pageSize,
         },

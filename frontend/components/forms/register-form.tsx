@@ -21,6 +21,8 @@ import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useRouter } from "next/navigation"; // Import useRouter
 import useRegister from "@/hooks/useRegister";
+import zxcvbn from "zxcvbn";
+
 
 export function RegisterForm({
   className,
@@ -43,10 +45,19 @@ export function RegisterForm({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const passwordStrength = zxcvbn(formData.password);
+  const passwordScore = passwordStrength.score; // 0 to 4
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (formData.password !== formData.confirmPassword) {
       toast.error("Passwords do not match!");
+      return;
+    }
+
+    if (passwordScore < 2) {
+      toast.error("Password is too weak. Try adding numbers, symbols, or more characters.");
       return;
     }
 
@@ -55,18 +66,25 @@ export function RegisterForm({
       email: formData.email,
       password: formData.password,
       role: formData.role,
-      first_name: formData.firstName, // ✅ map to backend format
-      last_name: formData.lastName,   // ✅ map to backend format
+      first_name: formData.firstName,
+      last_name: formData.lastName,
     };
 
     try {
-      await register(payload); // ✅ use mapped payload
-      toast.success("Registration successful!");
+      await register(payload);
+      toast.success("Registration successful! Please wait for admin verification.");
       router.push("/login");
-    } catch {
-      toast.error("An error occurred during registration.");
+    } catch (error: any) {
+      const detail = error?.response?.data;
+      if (typeof detail === "object") {
+        const firstError = Object.values(detail)[0];
+        toast.error(firstError as string);
+      } else {
+        toast.error("An error occurred during registration.");
+      }
     }
   };
+
 
 
   return (
@@ -137,6 +155,17 @@ export function RegisterForm({
                   onChange={handleChange}
                   required
                 />
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Strength:{" "}
+                <span
+                  className={
+                    passwordScore < 2 ? "text-red-600" :
+                    passwordScore < 4 ? "text-yellow-600" : "text-green-600"
+                  }
+                >
+                  {["Very Weak", "Weak", "Fair", "Good", "Strong"][passwordScore]}
+                </span>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>

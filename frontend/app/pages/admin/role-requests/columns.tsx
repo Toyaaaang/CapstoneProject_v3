@@ -5,20 +5,31 @@ import { useRoleRequests } from "@/hooks/useRoleRequests";
 
 type RoleRequest = {
   id: number;
-  username: string; 
+  full_name: string;
   role: string;
-  is_role_confirmed: boolean; 
+  is_role_confirmed: boolean;
   date_joined: string;
 };
 
 export const columns: ColumnDef<RoleRequest>[] = [
   {
-    accessorKey: "username", // Correct field for the user's name
+    accessorKey: "full_name",
     header: "Name",
+    cell: ({ row }) => {
+      const name = row.original.full_name
+        .split(" ")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+      return <div className="py-2">{name}</div>;
+    },
   },
   {
     accessorKey: "role",
     header: "Role",
+    cell: ({ getValue }) => {
+      const role = getValue() as string;
+      return <span className="capitalize">{role}</span>;
+    },
   },
   {
     accessorKey: "date_joined",

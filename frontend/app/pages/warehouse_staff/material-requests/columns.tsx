@@ -1,29 +1,30 @@
 import { ColumnDef } from "@tanstack/react-table";
+import EvaluateDialog from "@/components/dialogs/EvaluateDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-// ✅ Type definition
-export type EvaluatedRequest = {
+export type MaterialRequest = {
   id: number;
+  department: string;
+  purpose: string;
+  status: string;
   requester: {
     id: number;
     first_name: string;
     last_name: string;
   };
-  department: string;
-  purpose: string;
-  status: string;
-  created_at: string;
   items: {
-    material: { name: string };
+    custom_unit: string;
+    custom_name: string;
+    id: number;
+    material: { id: number; name: string };
     quantity: number;
     unit: string;
   }[];
 };
 
-// ✅ Column definitions
-export const columns: ColumnDef<EvaluatedRequest>[] = [
+export const columns: ColumnDef<MaterialRequest>[] = [
   {
     header: "Request ID",
     accessorKey: "id",
@@ -38,6 +39,8 @@ export const columns: ColumnDef<EvaluatedRequest>[] = [
 
     },
   },
+
+  
   {
     header: "Department",
     accessorKey: "department",
@@ -48,37 +51,28 @@ export const columns: ColumnDef<EvaluatedRequest>[] = [
     ),
   },
   {
-    header: "Status",
-    accessorKey: "status",
-    cell: ({ row }) => {
-      const status = row.original.status;
-      const labelMap: Record<string, string> = {
-        charged: "Charge Ticket Created",
-        requisitioned: "Requisition Voucher Created",
-        partially_fulfilled: "Partially Fulfilled",
-        rejected: "Rejected",
-        invalid: "Invalid",
-      };
-      const variantMap: Record<string, "info" | "warning" | "destructive" | "secondary"> = {
-        charged: "info",
-        requisitioned: "info",
-        partially_fulfilled: "warning",
-        rejected: "destructive",
-        invalid: "destructive",
-      };
-      return (
-        <Badge variant={variantMap[status] || "secondary"}>
-          {labelMap[status] || status}
-        </Badge>
-      );
-    },
+    header: "Purpose",
+    accessorKey: "purpose",
+    cell: ({ row }) => (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button>{row.original.purpose || "No purpose provided"}</Button>
+
+        </PopoverTrigger>
+        <PopoverContent className="w-72">
+          <p className="text-sm">{row.original.purpose}</p>
+        </PopoverContent>
+      </Popover>
+    ),
   },
   {
     header: "Materials",
     cell: ({ row }) => (
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm">View Items</Button>
+          <Button variant="outline" size="sm">
+            View Items
+          </Button>
         </PopoverTrigger>
         <PopoverContent className="w-80 max-h-72 overflow-auto">
           {row.original.items && row.original.items.length > 0 ? (
@@ -89,36 +83,28 @@ export const columns: ColumnDef<EvaluatedRequest>[] = [
                 <span className="text-right">Unit</span>
               </div>
               <div className="space-y-2">
-                {row.original.items.map((item, i) => (
+                {row.original.items.map((item) => (
                   <div
-                    key={i}
+                    key={item.id}
                     className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
                   >
                     <div className="font-medium truncate flex items-center gap-1">
                       {item.material?.name
-                        ? (
-                            <>
-                              {item.material.name.charAt(0).toUpperCase() + item.material.name.slice(1)}
-                              {item.custom_name && (
-                                <Badge variant="outline" className="ml-1 text-[10px]">Custom</Badge>
-                              )}
-                            </>
-                          )
+                        ? item.material.name.charAt(0).toUpperCase() + item.material.name.slice(1)
                         : (
-                            <>
-                              <span className="italic text-muted-foreground">
-                                {item.custom_name ? item.custom_name : "Custom Item"}
-                              </span>
-                              <Badge variant="outline" className="ml-1 text-[10px]">Custom</Badge>
-                            </>
-                          )
-                      }
+                          <span className="italic text-muted-foreground">
+                            {item.custom_name || "Custom Item"}
+                          </span>
+                        )}
+                      {!item.material?.id && (
+                        <Badge variant="outline" className="ml-1 text-[10px]">Custom</Badge>
+                      )}
                     </div>
                     <div className="text-center text-muted-foreground">
                       {item.quantity}
                     </div>
                     <div className="text-right text-muted-foreground uppercase">
-                      {item.unit}
+                      {item.custom_unit || item.unit}
                     </div>
                   </div>
                 ))}
@@ -130,5 +116,18 @@ export const columns: ColumnDef<EvaluatedRequest>[] = [
         </PopoverContent>
       </Popover>
     ),
+  },
+  {
+    header: "Actions",
+    cell: ({ row, table }) => {
+      const request = row.original;
+      return (
+        <EvaluateDialog
+          requestId={request.id}
+          items={request.items}
+          refreshData={() => table.options.meta?.refreshData?.()}
+        />
+      );
+    },
   },
 ];

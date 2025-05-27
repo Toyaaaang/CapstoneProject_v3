@@ -1,161 +1,155 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import axios from "@/lib/axios";
-import { toast } from "sonner";
+import useRVRestockingForm from "@/hooks/shared/useRVRequestForm"
+import { useEffect, useState } from "react"
+import { Card } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select"
 
-type Material = {
-  id: number;
-  name: string;
-  unit: string;
-};
-
-type Item = {
-  material_id?: number;
-  quantity: number;
-  unit: string;
-  remarks?: string;
-};
-
-export default function RVRequestForm() {
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [items, setItems] = useState<Item[]>([]);
-  const [purpose, setPurpose] = useState("");
+export default function RVRestockingForm() {
+  const [department, setDepartment] = useState<string | null>(null)
+  const purposeOptions = [
+  "Stock Depletion",
+  "New Project",
+  "Buffer Inventory",
+  "Damaged Replacement",
+  "Scheduled Maintenance",
+  "Other",
+]
 
   useEffect(() => {
-    axios.get("/inventory/available/").then((res) => {
-      setMaterials(res.data);
-    });
-  }, []);
+    const role = localStorage.getItem("role")
+    setDepartment(role)
+  }, [])
 
-  const updateItem = (index: number, field: keyof Item, value: any) => {
-    const updated = [...items];
-    updated[index][field] = value;
+  const {
+    materials,
+    items,
+    updateItem,
+    addItem,
+    removeItem,
+    purpose,
+    setPurpose,
+    handleSubmit,
+    isSubmitting,
+  } = useRVRestockingForm(department || "")
 
-    if (field === "material_id") {
-      const selected = materials.find((m) => m.id === value);
-      if (selected) updated[index].unit = selected.unit;
-    }
-
-    setItems(updated);
-  };
-
-  const addItem = () => {
-    setItems([...items, { quantity: 1, unit: "" }]);
-  };
-
-  const removeItem = (index: number) => {
-    const updated = [...items];
-    updated.splice(index, 1);
-    setItems(updated);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      await axios.post("/requests/requisition-voucher/", {
-        purpose,
-        items,
-      });
-
-      toast.success("Requisition submitted successfully.");
-      setPurpose("");
-      setItems([]);
-    } catch (err) {
-      toast.error("Submission failed. Please check your input.");
-    }
-  };
+  if (!department) return null
 
   return (
     <Card className="w-full p-6 space-y-6">
-      <h1 className="text-xl font-bold">Departmental Requisition Request</h1>
+      <h1 className="text-xl font-bold">Restocking Request</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <Label className="p-2">Purpose</Label>
-          <Textarea
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
-            required
-          />
-        </div>
+      <div>
+        <Label className="p-2">Purpose</Label>
+        <Select value={purpose} onValueChange={setPurpose}>
+          <SelectTrigger className="w-80">
+            <SelectValue placeholder="Select purpose" />
+          </SelectTrigger>
+          <SelectContent>
+            {purposeOptions.map((option) => (
+              <SelectItem key={option} value={option}>
+                {option}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-        <div className="space-y-2">
-          <Label className="p-2">Materials</Label>
-          {items.map((item, i) => (
-            <div
-              key={i}
-              className="flex flex-wrap gap-2 items-center border p-3 rounded"
+
+      <div className="space-y-2">
+        <Label className="p-2">Items</Label>
+        {items.map((item, i) => (
+          <div key={i} className="flex flex-wrap items-center gap-2 border p-3 rounded">
+            {item.is_custom ? (
+              <>
+                <Input
+                  placeholder="Custom name"
+                  value={item.custom_name || ""}
+                  onChange={(e) => updateItem(i, "custom_name", e.target.value)}
+                  className="w-64"
+                />
+                <Input
+                  placeholder="Custom unit"
+                  value={item.custom_unit || ""}
+                  onChange={(e) => updateItem(i, "custom_unit", e.target.value)}
+                  className="w-32"
+                />
+                <Button type="button" onClick={() => updateItem(i, "is_custom", false)}>
+                  Use existing
+                </Button>
+              </>
+            ) : (
+              <>
+                <Select
+                  value={item.material_id?.toString() || ""}
+                  onValueChange={(val) => {
+                    if (val === "custom") {
+                      updateItem(i, "is_custom", true)
+                      updateItem(i, "material_id", undefined)
+                    } else {
+                      updateItem(i, "material_id", Number(val))
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-64">
+                    <SelectValue placeholder="Select material" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {materials.map((m) => (
+                      <SelectItem key={m.id} value={m.id.toString()}>
+                        {m.name}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">➕ Custom / Not in List</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  placeholder="Unit"
+                  value={item.unit}
+                  onChange={(e) => updateItem(i, "unit", e.target.value)}
+                  className="w-20"
+                />
+              </>
+            )}
+
+            <Input
+              type="number"
+              placeholder="Qty"
+              value={item.quantity}
+              onChange={(e) =>
+                updateItem(i, "quantity", Number(e.target.value))
+              }
+              className="w-20"
+              min={1}
+            />
+
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => removeItem(i)}
             >
-              <select
-                value={item.material_id ?? ""}
-                onChange={(e) =>
-                  updateItem(i, "material_id", Number(e.target.value))
-                }
-                className="w-60 border rounded px-2 py-1"
-              >
-                <option value="" disabled>
-                  Select material
-                </option>
-                {materials.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-
-              <Input
-                type="number"
-                min={1}
-                className="w-24"
-                placeholder="Qty"
-                value={item.quantity}
-                onChange={(e) =>
-                  updateItem(i, "quantity", Number(e.target.value))
-                }
-              />
-
-              <Input
-                className="w-24"
-                placeholder="Unit"
-                disabled
-                value={item.unit}
-              />
-
-              <Input
-                className="w-64"
-                placeholder="Remarks (optional)"
-                value={item.remarks || ""}
-                onChange={(e) =>
-                  updateItem(i, "remarks", e.target.value)
-                }
-              />
-
-              <Button
-                type="button"
-                variant="destructive"
-                size="icon"
-                onClick={() => removeItem(i)}
-              >
-                ✕
-              </Button>
-            </div>
-          ))}
-          <Button type="button" variant="outline" onClick={addItem}>
-            + Add Material
-          </Button>
-        </div>
-
-        <Button type="submit" className="w-full">
-          Submit Request
+              ✕
+            </Button>
+          </div>
+        ))}
+        <Button type="button" onClick={addItem}>
+          + Add Item
         </Button>
-      </form>
+      </div>
+
+      <Button type="submit" className="w-full" onClick={handleSubmit} disabled={isSubmitting || items.length === 0}>
+        Submit Restocking RV
+      </Button>
     </Card>
-  );
+  )
 }
