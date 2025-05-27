@@ -4,7 +4,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate
-from .serializers import UserSerializer, LoginSerializer, RoleRequestRecordSerializer
+from .serializers import UserSerializer, LoginSerializer, RoleRequestRecordSerializer, PendingUserSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from notification.models import Notification
@@ -15,6 +15,10 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 import os
 from .models import RoleRequestRecord
+from rest_framework.pagination import PageNumberPagination
+
+class RoleRequestPagination(PageNumberPagination):
+    page_size = 10
 
 
 User = get_user_model()
@@ -210,11 +214,14 @@ class PendingRoleRequestsView(views.APIView):
         if request.user.role != "warehouse_admin":
             return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
 
-        pending_users = User.objects.filter(is_role_confirmed=False).values(
-            "id", "username", "role", "is_role_confirmed","date_joined"
-        )
-        return Response(pending_users, status=status.HTTP_200_OK)
+        # ✅ Make sure this is outside the if-block!
+        pending_users = User.objects.filter(is_role_confirmed=False)
 
+        paginator = RoleRequestPagination()
+        result_page = paginator.paginate_queryset(pending_users, request)
+
+        serializer = PendingUserSerializer(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 # Accept Role Request View
 class AcceptRoleRequestView(views.APIView):
@@ -268,8 +275,10 @@ class ApprovalHistoryView(views.APIView):
         if request.user.role != "warehouse_admin":
             return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
 
-        # Fetch all role request records
-        role_requests = RoleRequestRecord.objects.all()
-        serializer = RoleRequestRecordSerializer(role_requests, many=True)
+        role_requests = RoleRequestRecord.objects.all().order_by("-processed_at")  # optional ordering
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        paginator = RoleRequestPagination()
+        result_page = paginator.paginate_queryset(role_requests, request)
+
+        serializer = RoleRequestRecordSerializer(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)

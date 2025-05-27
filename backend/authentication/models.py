@@ -19,6 +19,7 @@ class User(AbstractUser):
     role = models.CharField(max_length=50, choices=ROLE_CHOICES, default='employee')
     is_role_confirmed = models.BooleanField(default=False)
     signature = models.FileField(upload_to='signatures/', null=True, blank=True)  
+    email = models.EmailField(unique=True)
     
     def __str__(self):
         return self.username

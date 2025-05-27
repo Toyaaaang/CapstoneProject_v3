@@ -41,9 +41,21 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
             return MaterialRequest.objects.filter(requester=user).order_by("-created_at")
 
         if self.action == "handled_requests":
-            return MaterialRequest.objects.filter(department=role).exclude(status="pending").order_by("-created_at")
+            if role == "warehouse_staff":
+                return MaterialRequest.objects.filter(
+                    department="finance"
+                ).exclude(status="pending").order_by("-created_at")
+            
+            return MaterialRequest.objects.filter(
+                department=role
+            ).exclude(status="pending").order_by("-created_at")
 
-        
+        if role == "warehouse_staff":
+            return MaterialRequest.objects.filter(
+                department="finance",
+                status="pending"
+            ).order_by("-created_at")
+            
         if role in ["engineering", "operations_maintenance", "finance"]:
             return MaterialRequest.objects.filter(department=role).order_by("-created_at")
 

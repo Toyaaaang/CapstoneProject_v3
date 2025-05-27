@@ -8,8 +8,13 @@ from notification.utils import send_notification
 class RequisitionItemSerializer(serializers.ModelSerializer):
     material = MaterialSerializer(read_only=True)
     material_id = serializers.PrimaryKeyRelatedField(
-        queryset=Material.objects.all(), source='material', write_only=True
+        queryset=Material.objects.all(),
+        source='material',
+        write_only=True,
+        required=False,
+        allow_null=True,
     )
+
     material_name = serializers.CharField(source="material.name", read_only=True)
     custom_name = serializers.CharField(required=False, allow_blank=True)
     custom_unit = serializers.CharField(required=False, allow_blank=True)
@@ -25,17 +30,39 @@ class RequisitionItemSerializer(serializers.ModelSerializer):
         return obj.custom_name or "Custom Item"
 
     def validate(self, data):
-        if not data.get('material') and not data.get('custom_name'):
-            raise serializers.ValidationError("Either a material or custom name must be provided.")
+        material = data.get('material')
+        custom_name = data.get('custom_name')
+        custom_unit = data.get('custom_unit')
+
+        if not material and not custom_name:
+            raise serializers.ValidationError("Either a material or a custom name must be provided.")
+
+        if not material and not custom_unit:
+            raise serializers.ValidationError("Custom unit is required for custom materials.")
+
         return data
+    
+    def create(self, validated_data):
+        # Auto-fill unit with custom_unit if it's a custom item
+        if not validated_data.get("material") and validated_data.get("custom_unit"):
+            validated_data["unit"] = validated_data["custom_unit"]
+        return super().create(validated_data)
+
+
     
 class RequisitionVoucherSerializer(serializers.ModelSerializer):
     items = RequisitionItemSerializer(many=True)
     material_request = serializers.PrimaryKeyRelatedField(
-        queryset=MaterialRequest.objects.all(), required=True
+        queryset=MaterialRequest.objects.all(), required=False, allow_null=True
     )
     requester = serializers.SerializerMethodField()
-    
+    purpose_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RequisitionVoucher
+        fields = '__all__'
+        read_only_fields = ['rv_number', 'requester', 'department', 'origin']  # Prevent user from overriding
+
     def get_requester(self, obj):
         return {
             "id": obj.requester.id,
@@ -43,22 +70,44 @@ class RequisitionVoucherSerializer(serializers.ModelSerializer):
             "last_name": obj.requester.last_name,
         }
 
-    class Meta:
-        model = RequisitionVoucher
-        fields = '__all__'
+    def get_purpose_display(self, obj):
+        return "Restocking" if obj.is_restocking else f"Request #{obj.material_request.id if obj.material_request else 'N/A'}"
+
+    def validate(self, data):
+        if not data.get("is_restocking") and not data.get("material_request"):
+            raise serializers.ValidationError({
+                "material_request": "This field is required unless this is a restocking voucher."
+            })
+        return data
 
     def create(self, validated_data):
-        items_data = validated_data.pop('items')
+        request = self.context["request"]
+        items_data = validated_data.pop("items")
+
+        # Ensure fallback values are injected
+        validated_data["requester"] = request.user
+        validated_data["department"] = validated_data.get("department", request.user.role)
+        validated_data["origin"] = validated_data.get("origin", request.user.get_full_name() or request.user.username)
+
         rv = RequisitionVoucher.objects.create(**validated_data)
+
+        # ✅ Handle custom material units
         for item in items_data:
+            if not item.get("material") and item.get("custom_unit"):
+                item["unit"] = item["custom_unit"]
             RequisitionItem.objects.create(requisition=rv, **item)
 
-        update_request_status(rv.material_request)
-        send_notification(
-            user=rv.material_request.requester,
-            message=f"Your request #{rv.material_request.id} has been forwarded for requisition."
-        )
+        # ✅ Handle related material request update and notification
+        if rv.material_request and not rv.is_restocking:
+            update_request_status(rv.material_request)
+            send_notification(
+                user=rv.material_request.requester,
+                message=f"Your request #{rv.material_request.id} has been forwarded for requisition."
+            )
+
         return rv
+
+
     
 class RequisitionVoucherApprovalSerializer(serializers.ModelSerializer):
     class Meta:

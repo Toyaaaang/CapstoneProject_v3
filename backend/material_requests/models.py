@@ -117,6 +117,7 @@ class RequisitionVoucher(BaseRequest):
     material_request = models.ForeignKey(
     MaterialRequest, on_delete=models.CASCADE, related_name='requisition_voucher', null=True, blank=True)
 
+    is_restocking = models.BooleanField(default=False)
     rejection_reason = models.TextField(blank=True, null=True)
     rejected_by = models.ForeignKey(
     'authentication.User',

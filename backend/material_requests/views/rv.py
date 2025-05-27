@@ -14,6 +14,7 @@ class RequisitionVoucherViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = RequisitionVoucher.objects.all().order_by("-created_at")
         status_filter = self.request.query_params.get("status")
+        role= self.request.user.role  
         handled_by_me = self.request.query_params.get("handled_by_me")
         final_handled_by_me = self.request.query_params.get("final_handled_by_me")
         exclude_with_po = self.request.query_params.get("exclude_with_po")  # ✅ optional flag
@@ -37,7 +38,7 @@ class RequisitionVoucherViewSet(viewsets.ModelViewSet):
                 Q(final_approved_by=user) |
                 Q(status="rejected", rejected_by=user)
             )
-
+        
         return queryset
 
 
@@ -96,3 +97,17 @@ class RequisitionVoucherViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    @action(detail=False, methods=["get"], url_path="restocking-history")
+    def restocking_history(self, request):
+        queryset = self.get_queryset().filter(
+            is_restocking=True,
+            status="approved"
+        ).order_by("-created_at")
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

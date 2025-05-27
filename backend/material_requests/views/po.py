@@ -108,6 +108,9 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
             )
 
         DeliveryRecord.objects.bulk_create(validated_records)
+        po.status = "delivered"
+        po.save()
+
         return Response({"message": "Delivery recorded successfully."}, status=201)
 
     @action(detail=False, methods=["get"], url_path="history")
