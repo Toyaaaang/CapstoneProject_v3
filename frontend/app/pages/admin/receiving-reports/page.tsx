@@ -14,9 +14,8 @@ export default function RRApprovalPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-bold">Receiving Reports for Approval</h1>
       <DataTable
-        title="Unapproved Reports"
+        title="Receiving Reports for Approval"
         columns={columns}
         data={reports.slice((page - 1) * pageSize, page * pageSize)}
         isLoading={isLoading}

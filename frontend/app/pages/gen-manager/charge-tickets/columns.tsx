@@ -1,10 +1,11 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { RejectDialog } from "@/components/Dialogs/RejectDialog";
+import { RejectDialog } from "@/components/dialogs/RejectDialog";
 import axios from "@/lib/axios";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 export type PendingChargeRequestForGM = {
   id: number;
@@ -91,46 +92,71 @@ export const columns = ({
         <PopoverTrigger asChild>
           <Button size="sm" variant="outline">View</Button>
         </PopoverTrigger>
-        <PopoverContent className="w-72">
-          <ul className="text-sm space-y-1 py-2">
-            {row.original.items.map((item, i) => (
-              <li key={i}>
-                {item.material_name} – {item.quantity} {item.unit}
-              </li>
-            ))}
-          </ul>
+        <PopoverContent className="w-72 max-h-72 overflow-auto">
+          {row.original.items && row.original.items.length > 0 ? (
+            <div>
+              <div className="grid grid-cols-3 gap-2 font-semibold text-xs mb-2 px-1">
+                <span>Material</span>
+                <span className="text-center">Qty</span>
+                <span className="text-right">Unit</span>
+              </div>
+              <div className="space-y-2">
+                {row.original.items.map((item, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
+                  >
+                    <div className="font-medium truncate">{item.material_name}</div>
+                    <div className="text-center text-muted-foreground">{item.quantity}</div>
+                    <div className="text-right text-muted-foreground">{item.unit}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-muted-foreground text-xs italic py-4 text-center">No items</div>
+          )}
         </PopoverContent>
       </Popover>
     ),
   },
   {
-  header: "Action",
-  cell: ({ row, table }) => {
-    const ticketId = row.original.id;
+    header: "Action",
+    cell: ({ row, table }) => {
+      const ticketId = row.original.id;
 
-    const handleApprove = async () => {
-      try {
-        await axios.post(`/requests/charge-tickets/${ticketId}/approve/`);
-        toast.success("Charge ticket approved.");
-        table.options.meta?.refreshData?.();
-      } catch (err) {
-        console.error(err);
-        toast.error("Approval failed.");
-      }
-    };
+      const handleApprove = async () => {
+        try {
+          await axios.post(`/requests/charge-tickets/${ticketId}/approve/`);
+          toast.success("Charge ticket approved.");
+          table.options.meta?.refreshData?.();
+        } catch (err) {
+          console.error(err);
+          toast.error("Approval failed.");
+        }
+      };
 
-    return (
-      <div className="flex gap-2">
-        <Button size="sm" onClick={handleApprove}>
-          Approve
-        </Button>
-        <RejectDialog
-          ticketId={ticketId}
-          refreshData={() => table.options.meta?.refreshData?.()}
-        />
-      </div>
-    );
-  },
-}
+      return (
+        <div className="flex gap-2">
+          <ConfirmActionDialog
+            trigger={
+              <Button size="sm">
+                Approve
+              </Button>
+            }
+            title="Approve Charge Ticket?"
+            description="Do you want to continue with this action? This cannot be undone."
+            confirmLabel="Approve"
+            cancelLabel="Cancel"
+            onConfirm={handleApprove}
+          />
+          <RejectDialog
+            ticketId={ticketId}
+            refreshData={() => table.options.meta?.refreshData?.()}
+          />
+        </div>
+      );
+    },
+  }
   
 ];

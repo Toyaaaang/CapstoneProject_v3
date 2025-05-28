@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/popover";
 import axios from "@/lib/axios";
 import { toast } from "sonner";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 export const columns: ColumnDef<any>[] = [
   {
@@ -123,9 +124,18 @@ export const columns: ColumnDef<any>[] = [
 
       return (
         <div className="flex gap-2">
-          <Button size="sm" onClick={handleRecommend}>
-            Recommend
-          </Button>
+          <ConfirmActionDialog
+            trigger={
+              <Button size="sm">
+                Recommend
+              </Button>
+            }
+            title="Recommend Restocking RV?"
+            description="Do you want to continue with this action? This cannot be undone."
+            confirmLabel="Recommend"
+            cancelLabel="Cancel"
+            onConfirm={handleRecommend}
+          />
           <RejectRVDialog
             rvId={rvId}
             refreshData={() => table.options.meta?.refreshData?.()}

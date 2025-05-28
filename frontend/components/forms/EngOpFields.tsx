@@ -41,7 +41,7 @@ export default function EngOpFields({ values, onChange }: Props) {
         </Select>
       </div>
 
-      {/* Target Date + Actual Date */}
+      {/* Target Date + Duration */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label className="p-2">Target Date of Completion</Label>
@@ -52,18 +52,6 @@ export default function EngOpFields({ values, onChange }: Props) {
           />
         </div>
         <div>
-          <Label className="p-2">Actual Date of Completion</Label>
-          <Input
-            type="date"
-            value={values.actual_completion}
-            onChange={(e) => onChange("actual_completion", e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Duration + Manpower */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
           <Label className="p-2">Duration</Label>
           <Input
             placeholder="e.g. 3 days (optional)"
@@ -71,6 +59,10 @@ export default function EngOpFields({ values, onChange }: Props) {
             onChange={(e) => onChange("duration", e.target.value)}
           />
         </div>
+      </div>
+
+      {/* Manpower */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label className="p-2">Manpower Requirements</Label>
           <Input

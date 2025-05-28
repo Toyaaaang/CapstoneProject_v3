@@ -2,6 +2,7 @@ from uuid import uuid4
 from django.db import models
 from authentication.models import User
 from inventory.models import Material
+from django.utils.timezone import now
 
 class MaterialRequest(models.Model):
     requester = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -25,6 +26,7 @@ class MaterialRequest(models.Model):
     ]
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='pending')
 
+    rejection_reason = models.TextField(blank=True, null=True)
 
     # New fields for engineering/ops
     work_order_no = models.CharField(max_length=100, blank=True, null=True)
@@ -36,10 +38,23 @@ class MaterialRequest(models.Model):
     # Finance-only field
     requester_department = models.CharField(max_length=100, blank=True, null=True)
 
+
+    def save(self, *args, **kwargs):
+        if not self.work_order_no and self.department in ['engineering', 'operations_maintenance']:
+            date_str = now().strftime("%Y%m%d")
+            dept_count = MaterialRequest.objects.filter(
+                department=self.department,
+                created_at__date=now().date()
+            ).count() + 1
+            prefix = "WO-ENG" if self.department == "engineering" else "WO-OPS"
+            self.work_order_no = f"{prefix}-{date_str}-{dept_count:03d}"
+
+        super().save(*args, **kwargs)
+
+        
     def __str__(self):
         return f"Request #{self.id} by {self.requester.username} to {self.department}"
-
-
+    
 class MaterialRequestItem(models.Model):
     request = models.ForeignKey(MaterialRequest, on_delete=models.CASCADE, related_name='items')
     material = models.ForeignKey(Material, on_delete=models.CASCADE, blank=True, null=True)
@@ -177,6 +192,7 @@ class PurchaseOrder(models.Model):
             ('recommended', 'Recommended'),
             ('approved', 'Approved'),
             ('rejected', 'Rejected'),
+            ('delivered', 'Delivered'),
         ],
         default='pending'
     )

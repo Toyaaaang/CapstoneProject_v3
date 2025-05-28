@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import React from "react";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 export const columns: ColumnDef<any>[] = [
   {
@@ -129,26 +130,34 @@ export const columns: ColumnDef<any>[] = [
       const refresh = table.options.meta?.refreshData;
       const [loading, setLoading] = React.useState(false);
 
+      const handleApprove = async () => {
+        setLoading(true);
+        try {
+          await axios.patch(`/requests/purchase-orders/${row.original.id}/approve/`);
+          toast.success("PO approved.");
+          setTimeout(() => refresh?.(), 200);
+        } catch {
+          toast.error("Failed to approve PO.");
+        } finally {
+          setLoading(false);
+        }
+      };
+
       return (
         <div className="flex gap-2">
-          <Button
-            size="sm"
-            disabled={loading}
-            onClick={async () => {
-              setLoading(true);
-              try {
-                await axios.patch(`/requests/purchase-orders/${row.original.id}/approve/`);
-                toast.success("PO approved.");
-                setTimeout(() => refresh?.(), 200);
-              } catch {
-                toast.error("Failed to approve PO.");
-              } finally {
-                setLoading(false);
-              }
-            }}
-          >
-            Approve
-          </Button>
+          <ConfirmActionDialog
+            trigger={
+              <Button size="sm" disabled={loading}>
+                Approve
+              </Button>
+            }
+            title="Approve Purchase Order?"
+            description="Do you want to continue with this action? This cannot be undone."
+            confirmLabel="Approve"
+            cancelLabel="Cancel"
+            onConfirm={handleApprove}
+            loading={loading}
+          />
           <RejectPODialog
             poId={row.original.id}
             refreshData={() => setTimeout(() => refresh?.(), 200)}

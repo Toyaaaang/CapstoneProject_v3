@@ -7,6 +7,7 @@ import { CertifiableItem } from "@/hooks/shared/useCertificationsToCreate";
 import { startCertification } from "@/hooks/shared/useStartCertification";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 export const columns: ColumnDef<CertifiableItem>[] = [
 	{
@@ -98,9 +99,18 @@ export const columns: ColumnDef<CertifiableItem>[] = [
 			return (
 				<div className="space-x-2">
 					{isFirstForDelivery && (
-						<Button size="sm" variant="default" onClick={handleStartCertification}>
-							Start Certification
-						</Button>
+						<ConfirmActionDialog
+							trigger={
+								<Button size="sm" variant="default">
+									Start Certification
+								</Button>
+							}
+							title="Start Certification?"
+							description="Do you want to continue with this action? This cannot be undone."
+							confirmLabel="Start"
+							cancelLabel="Cancel"
+							onConfirm={handleStartCertification}
+						/>
 					)}
 				</div>
 			);

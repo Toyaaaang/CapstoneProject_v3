@@ -12,6 +12,14 @@ import {
 import { Button } from "@/components/ui/button";
 import axios from "@/lib/axios";
 import { toast } from "sonner";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 type Item = {
   id: number;
@@ -28,6 +36,16 @@ type Props = {
   refreshData: () => void;
 };
 
+const REJECTION_REASONS = [
+  "Insufficient documentation",
+  "Incorrect material details",
+  "Budget not approved",
+  "Duplicate request",
+  "Not aligned with project scope",
+  "Requires further review",
+  "Other",
+];
+
 export default function EvaluateDialog({
   requestId,
   items,
@@ -43,6 +61,9 @@ export default function EvaluateDialog({
     });
     return defaults;
   });
+
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   const handleEvaluate = async () => {
     const charge_items = items
@@ -63,7 +84,6 @@ export default function EvaluateDialog({
         unit: i.unit,
       }));
 
-
     try {
       await axios.post(`/requests/material-requests/${requestId}/evaluate/`, {
         action: "evaluate",
@@ -79,12 +99,20 @@ export default function EvaluateDialog({
   };
 
   const handleReject = async () => {
+    if (!rejectionReason) {
+      toast.error("Please select a reason.");
+      return;
+    }
     try {
       await axios.post(`/requests/material-requests/${requestId}/evaluate/`, {
-        action: "reject",
+        action: "rejected",
+        rejection_reason: rejectionReason,
       });
       toast.success("Request rejected.");
       setOpen(false);
+      setRejectDialogOpen(false);
+      setRejectionReason("");
+      refreshData();
     } catch {
       toast.error("Failed to reject.");
     }
@@ -147,7 +175,6 @@ export default function EvaluateDialog({
                   </select>
                 ) : (
                   <span className="text-sm text-gray-500 italic">Requisition (Custom)</span>
-
                 )}
               </li>
             );
@@ -156,16 +183,73 @@ export default function EvaluateDialog({
 
         <DialogFooter className="flex justify-between pt-4">
           <div className="space-x-2">
-            <Button variant="destructive" onClick={handleReject}>
+            <Button
+              variant="destructive"
+              onClick={() => setRejectDialogOpen(true)}
+            >
               Reject
             </Button>
-            <Button variant="outline" onClick={handleInvalid}>
-              Mark Invalid
-            </Button>
+            <ConfirmActionDialog
+              trigger={
+                <Button variant="outline">
+                  Mark Invalid
+                </Button>
+              }
+              title="Mark as Invalid?"
+              description="Do you want to continue with this action? This cannot be undone."
+              confirmLabel="Mark Invalid"
+              onConfirm={handleInvalid}
+            />
           </div>
-          <Button onClick={handleEvaluate}>Submit</Button>
+          <ConfirmActionDialog
+            trigger={
+              <Button>
+                Submit
+              </Button>
+            }
+            title="Submit Evaluation?"
+            description="Do you want to continue with this action? This cannot be undone."
+            confirmLabel="Submit"
+            onConfirm={handleEvaluate}
+          />
         </DialogFooter>
       </DialogContent>
+
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Rejection Reason</DialogTitle>
+          </DialogHeader>
+          <Select value={rejectionReason} onValueChange={setRejectionReason}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a reason..." />
+            </SelectTrigger>
+            <SelectContent>
+              {REJECTION_REASONS.map((reason) => (
+                <SelectItem key={reason} value={reason}>
+                  {reason}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="flex justify-end pt-4">
+            <ConfirmActionDialog
+              trigger={
+                <Button
+                  variant="destructive"
+                  disabled={!rejectionReason}
+                >
+                  Confirm Reject
+                </Button>
+              }
+              title="Reject Request?"
+              description="Do you want to continue with this action? This cannot be undone."
+              confirmLabel="Reject"
+              onConfirm={handleReject}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

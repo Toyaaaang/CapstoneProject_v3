@@ -1,4 +1,4 @@
-import useSWR from "swr";
+import { useEffect, useState } from "react";
 import axios from "@/lib/axios";
 
 export interface AccountabilityItem {
@@ -14,23 +14,32 @@ export interface AccountabilityItem {
 export interface Accountability {
   id: number;
   user: string;
+  department: string;
   created_at: string;
   items: AccountabilityItem[];
 }
 
-const fetcher = (url: string) =>
-  axios.get(url).then((res) => res.data.results || []);  // ✅ correctly reads paginated results
-
 export default function useAllAccountabilities() {
-  const { data, error, isLoading, mutate } = useSWR<Accountability[]>(
-    "/accountability/",
-    fetcher
-  );
+  const [data, setData] = useState<Accountability[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  return {
-    data: data ?? [],
-    isLoading,
-    error,
-    refetch: mutate,
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const res = await axios.get("/accountability/");
+      setData(res.data.results || []);
+    } catch (err) {
+      console.error("Error fetching accountabilities", err);
+      setError(err as Error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  return { data, isLoading, error, refetch: fetchData };
 }

@@ -8,6 +8,7 @@ import axios from "@/lib/axios";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 export const columns: ColumnDef<CertificationRecord>[] = [
 	{
@@ -124,9 +125,18 @@ export const columns: ColumnDef<CertificationRecord>[] = [
 
 			return (
 				<div className="flex gap-2 flex-wrap">
-					<Button size="sm" onClick={handleApprove}>
-						Approve
-					</Button>
+					<ConfirmActionDialog
+						trigger={
+							<Button size="sm">
+								Approve
+							</Button>
+						}
+						title="Approve Certification?"
+						description="Do you want to continue with this action? This cannot be undone."
+						confirmLabel="Approve"
+						cancelLabel="Cancel"
+						onConfirm={handleApprove}
+					/>
 					<Button size="sm" variant="destructive" onClick={() => setOpen(true)}>
 						Reject
 					</Button>
@@ -154,9 +164,19 @@ export const columns: ColumnDef<CertificationRecord>[] = [
 										<SelectItem value="Other">Other</SelectItem>
 									</SelectContent>
 								</Select>
-								<Button disabled={!reason} onClick={handleReject}>
-									Submit Rejection
-								</Button>
+								<ConfirmActionDialog
+									trigger={
+										<Button disabled={!reason} variant="destructive">
+											Submit Rejection
+										</Button>
+									}
+									title="Reject Certification?"
+									description="Do you want to continue with this action? This cannot be undone."
+									confirmLabel="Reject"
+									cancelLabel="Cancel"
+									onConfirm={handleReject}
+									disabled={!reason}
+								/>
 							</div>
 						</DialogContent>
 					</Dialog>

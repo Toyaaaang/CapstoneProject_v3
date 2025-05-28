@@ -14,17 +14,18 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select"
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog"
 
 export default function RVRestockingForm() {
   const [department, setDepartment] = useState<string | null>(null)
   const purposeOptions = [
-  "Stock Depletion",
-  "New Project",
-  "Buffer Inventory",
-  "Damaged Replacement",
-  "Scheduled Maintenance",
-  "Other",
-]
+    "Stock Depletion",
+    "New Project",
+    "Buffer Inventory",
+    "Damaged Replacement",
+    "Scheduled Maintenance",
+    "Other",
+  ]
 
   useEffect(() => {
     const role = localStorage.getItem("role")
@@ -64,7 +65,6 @@ export default function RVRestockingForm() {
           </SelectContent>
         </Select>
       </div>
-
 
       <div className="space-y-2">
         <Label className="p-2">Items</Label>
@@ -147,9 +147,23 @@ export default function RVRestockingForm() {
         </Button>
       </div>
 
-      <Button type="submit" className="w-full" onClick={handleSubmit} disabled={isSubmitting || items.length === 0}>
-        Submit Restocking RV
-      </Button>
+      <ConfirmActionDialog
+        trigger={
+          <Button
+            type="button"
+            className="w-full"
+            disabled={isSubmitting || items.length === 0}
+          >
+            Submit Restocking RV
+          </Button>
+        }
+        title="Submit Restocking Request?"
+        description="Do you want to continue with this action? This cannot be undone."
+        confirmLabel="Submit"
+        cancelLabel="Cancel"
+        onConfirm={handleSubmit}
+        loading={isSubmitting}
+      />
     </Card>
   )
 }

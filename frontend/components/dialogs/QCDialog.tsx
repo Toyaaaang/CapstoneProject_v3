@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import axios from "@/lib/axios";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 const QC_REMARKS = [
   "Satisfactory",
@@ -135,9 +136,19 @@ export default function QualityCheckDialog({
         </div>
 
         <DialogFooter className="pt-4">
-          <Button onClick={handleSubmit} disabled={loading} className="w-full">
-            {loading ? "Submitting..." : "Submit QC"}
-          </Button>
+          <ConfirmActionDialog
+            trigger={
+              <Button disabled={loading} className="w-full">
+                {loading ? "Submitting..." : "Submit QC"}
+              </Button>
+            }
+            title="Submit Quality Check?"
+            description="Do you want to continue with this action? This cannot be undone."
+            confirmLabel="Submit"
+            cancelLabel="Cancel"
+            onConfirm={handleSubmit}
+            loading={loading}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>

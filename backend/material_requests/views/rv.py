@@ -111,3 +111,31 @@ class RequisitionVoucherViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="departmental-history")
+    def departmental_history(self, request):
+        user = request.user
+        department = None
+
+        if user.role == "engineering":
+            department = "engineering"
+        elif user.role == "operations_maintenance":
+            department = "operations_maintenance"
+        elif user.role == "finance":
+            department = "finance"
+
+        if not department:
+            return Response({"detail": "Your role is not associated with a department."}, status=403)
+
+        queryset = self.get_queryset().filter(
+            department=department,
+            status="approved"
+        ).order_by("-created_at")
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)

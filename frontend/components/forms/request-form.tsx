@@ -17,6 +17,7 @@ import { toast } from "sonner";
 
 import EngOpFields from "./EngOpFields";
 import FinanceFields from "./FinanceFields";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 type Material = {
   id: number;
@@ -44,11 +45,12 @@ export default function RequestForm() {
   // Engineering/Op fields
   const [manpower, setManpower] = useState("");
   const [targetCompletion, setTargetCompletion] = useState("");
-  const [actualCompletion, setActualCompletion] = useState("");
   const [duration, setDuration] = useState("");
 
   // Finance fields
   const [requesterDept, setRequesterDept] = useState("");
+
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (department) {
@@ -89,8 +91,15 @@ export default function RequestForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items.map((i) => i.material_id).join(), materials]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    if (items.length === 0) {
+      toast.error("Please add at least one item to your request.");
+      return;
+    }
+
+    setSubmitting(true);
 
     const formatDate = (val: string) => (val ? val.slice(0, 10) : null);
 
@@ -122,7 +131,6 @@ export default function RequestForm() {
     } else {
       payload.manpower = manpower;
       payload.target_completion = formatDate(targetCompletion);
-      payload.actual_completion = formatDate(actualCompletion);
       payload.duration = duration;
     }
 
@@ -136,7 +144,6 @@ export default function RequestForm() {
       setPurpose("");
       setManpower("");
       setTargetCompletion("");
-      setActualCompletion("");
       setDuration("");
       setRequesterDept("");
     } catch (err: any) {
@@ -145,6 +152,8 @@ export default function RequestForm() {
         err?.response?.data?.detail ||
         "Failed to submit. Please review the form.";
       toast.error(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -152,7 +161,12 @@ export default function RequestForm() {
     <Card className="p-6 w-full mx-auto space-y-4">
       <h1 className="text-xl font-bold">New Material Request</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+        }}
+        className="space-y-4"
+      >
         {/* Department */}
         <div>
           <Label className="p-2">Department</Label>
@@ -188,14 +202,12 @@ export default function RequestForm() {
               purpose,
               manpower,
               target_completion: targetCompletion,
-              actual_completion: actualCompletion,
               duration,
             }}
             onChange={(field, value) => {
               if (field === "purpose") setPurpose(value);
               if (field === "manpower") setManpower(value);
               if (field === "target_completion") setTargetCompletion(value);
-              if (field === "actual_completion") setActualCompletion(value);
               if (field === "duration") setDuration(value);
             }}
           />
@@ -299,11 +311,25 @@ export default function RequestForm() {
           <Button type="button" variant="outline" onClick={addItem}>
             + Add Item
           </Button>
-        </div>
 
-        <Button type="submit" className="w-full">
-          Submit Request
-        </Button>
+          <ConfirmActionDialog
+            trigger={
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={items.length === 0 || submitting}
+              >
+                Submit Request
+              </Button>
+            }
+            title="Submit Material Request?"
+            description="Do you want to continue with this action? This cannot be undone."
+            confirmLabel="Submit"
+            cancelLabel="Cancel"
+            onConfirm={handleSubmit}
+            loading={submitting}
+          />
+        </div>
       </form>
     </Card>
   );

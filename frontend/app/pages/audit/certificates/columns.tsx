@@ -14,6 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 
 export const columns: ColumnDef<CertificationRecord>[] = [
@@ -115,7 +116,6 @@ export const columns: ColumnDef<CertificationRecord>[] = [
       const cert = row.original;
       const [open, setOpen] = useState(false);
       const [reason, setReason] = useState("");
-      
 
       const handleApprove = async () => {
         try {
@@ -140,13 +140,21 @@ export const columns: ColumnDef<CertificationRecord>[] = [
 
       return (
         <div className="flex gap-2">
-          <Button size="sm" onClick={handleApprove}>
-            Approve
-          </Button>
+          <ConfirmActionDialog
+            trigger={
+              <Button size="sm">
+                Approve
+              </Button>
+            }
+            title="Approve Certification?"
+            description="Do you want to continue with this action? This cannot be undone."
+            confirmLabel="Approve"
+            cancelLabel="Cancel"
+            onConfirm={handleApprove}
+          />
           <Button size="sm" variant="destructive" onClick={() => setOpen(true)}>
             Reject
           </Button>
-
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogContent>
               <DialogHeader>
@@ -165,9 +173,19 @@ export const columns: ColumnDef<CertificationRecord>[] = [
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button disabled={!reason} onClick={handleReject}>
-                  Submit Rejection
-                </Button>
+                <ConfirmActionDialog
+                  trigger={
+                    <Button disabled={!reason} variant="destructive">
+                      Submit Rejection
+                    </Button>
+                  }
+                  title="Reject Certification?"
+                  description="Do you want to continue with this action? This cannot be undone."
+                  confirmLabel="Reject"
+                  cancelLabel="Cancel"
+                  onConfirm={handleReject}
+                  disabled={!reason}
+                />
               </div>
             </DialogContent>
           </Dialog>

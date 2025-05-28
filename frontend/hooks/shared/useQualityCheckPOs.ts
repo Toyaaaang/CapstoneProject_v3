@@ -28,23 +28,24 @@ export default function useQualityCheckPOs(page: number, pageSize: number = 10) 
   const [isLoading, setIsLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
 
-  // ✅ Get department from localStorage
-  const userRole = localStorage.getItem("role");
+  // ✅ Normalize department (user role) from localStorage
+  const userRole = localStorage.getItem("role")?.toLowerCase();
 
   const fetchData = async () => {
-    if (!userRole) return; // Don't fetch if role is not defined
+    if (!userRole) return;
 
     setIsLoading(true);
     try {
       const res = await axios.get("/requests/purchase-orders/", {
         params: {
-          status: "approved",
+          status: "delivered",
           delivered: "true",
-          department: userRole, // ✅ Send department to backend
+          department: userRole,
           page,
           page_size: pageSize,
         },
       });
+
       setData(res.data?.results || []);
       setTotalCount(res.data?.count || 0);
     } catch (err) {

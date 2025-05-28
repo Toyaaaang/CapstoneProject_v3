@@ -55,14 +55,19 @@ export default function StockBarChart({ data }: Props) {
     department: item.department,
   }))
 
-  const role = typeof window !== "undefined" ? localStorage.getItem("role") : null
+  const role =
+    typeof window !== "undefined" ? localStorage.getItem("role") : null
+
+  // 🔧 Dynamically calculate width based on number of bars
+  const barWidth = 60
+  const barSpacing = 30
+  const chartWidth = chartData.length * (barWidth + barSpacing) + 100
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Current Stock Levels</CardTitle>
 
-        {/* Department legend for admin-like roles */}
         {role !== "engineering" &&
           role !== "operations_maintenance" &&
           role !== "finance" && (
@@ -82,9 +87,13 @@ export default function StockBarChart({ data }: Props) {
           )}
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="overflow-x-auto">
         <ChartContainer config={chartConfig}>
-          <BarChart data={chartData} height={350}>
+          <BarChart
+            data={chartData}
+            height={350}
+            width={chartWidth} // 🔧 responsive width
+          >
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="name"

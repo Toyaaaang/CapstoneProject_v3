@@ -2,6 +2,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 export type ReceivingReportRecord = {
     id: number;
@@ -74,5 +75,41 @@ export const columns: ColumnDef<ReceivingReportRecord>[] = [
         </PopoverContent>
       </Popover>
     ),
+  },
+  {
+    header: "Actions",
+    cell: ({ row, table }) => {
+      const [loading, setLoading] = React.useState(false);
+
+      const handleAcknowledge = async () => {
+        setLoading(true);
+        try {
+          // Replace with your actual endpoint and logic
+          await axios.patch(`/warehouse/receiving-reports/${row.original.id}/acknowledge/`);
+          toast.success("Receiving Report acknowledged.");
+          table.options.meta?.refreshData?.();
+        } catch (err) {
+          toast.error("Failed to acknowledge.");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <ConfirmActionDialog
+          trigger={
+            <Button size="sm" disabled={loading}>
+              Acknowledge
+            </Button>
+          }
+          title="Acknowledge Receiving Report?"
+          description="Do you want to continue with this action? This cannot be undone."
+          confirmLabel="Acknowledge"
+          cancelLabel="Cancel"
+          onConfirm={handleAcknowledge}
+          loading={loading}
+        />
+      );
+    },
   },
 ];

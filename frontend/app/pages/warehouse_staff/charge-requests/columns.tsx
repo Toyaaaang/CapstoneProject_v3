@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from "sonner";
 import axios from "@/lib/axios";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 export type ChargeTicketForRelease = {
   id: number;
@@ -37,14 +38,17 @@ export const columns = ({
     },
   },
   {
-    header: "Department",
-    accessorKey: "department",
-    cell: ({ row }) => (
+  header: "Department",
+  accessorKey: "department", // department is at the top level
+  cell: ({ getValue }) => {
+    const dept = getValue<string>();
+    return (
       <Badge variant="secondary">
-        {row.original.department.replace(/_/g, " ").toUpperCase()}
+        {dept ? dept.replace(/_/g, " ").toUpperCase() : "—"}
       </Badge>
-    ),
+    );
   },
+},
   {
     header: "Requested By",
     accessorKey: "requester",
@@ -89,15 +93,30 @@ export const columns = ({
             View Items
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-72">
-          <ul className="text-sm space-y-1 py-2">
-            {row.original.items?.map((item) => (
-              <li key={item.id}>
-                {item.material.name} – {item.quantity} {item.unit}
-              </li>
-            ))}
-
-          </ul>
+        <PopoverContent className="w-72 max-h-72 overflow-auto">
+          {row.original.items && row.original.items.length > 0 ? (
+            <div>
+              <div className="grid grid-cols-3 gap-2 font-semibold text-xs mb-2 px-1">
+                <span>Material</span>
+                <span className="text-center">Qty</span>
+                <span className="text-right">Unit</span>
+              </div>
+              <div className="space-y-2">
+                {row.original.items.map((item, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
+                  >
+                    <div className="font-medium truncate">{item.material.name}</div>
+                    <div className="text-center text-muted-foreground">{item.quantity}</div>
+                    <div className="text-right text-muted-foreground">{item.unit}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-muted-foreground text-xs italic py-4 text-center">No items</div>
+          )}
         </PopoverContent>
       </Popover>
     ),
@@ -118,9 +137,18 @@ export const columns = ({
       };
 
       return (
-        <Button size="sm" onClick={handleRelease}>
-          Confirm Release
-        </Button>
+        <ConfirmActionDialog
+          trigger={
+            <Button size="sm">
+              Confirm Release
+            </Button>
+          }
+          title="Mark as Released?"
+          description="Do you want to continue with this action? This cannot be undone."
+          confirmLabel="Release"
+          cancelLabel="Cancel"
+          onConfirm={handleRelease}
+        />
       );
     },
   },

@@ -63,7 +63,7 @@ export default function BudgetAnalystLayout({ children }: { children: React.Reac
               <AccountPopover />
             </div>
           </header>
-          <main className="p-4"><RoleLayout allowedRole="budget_analyst">{children}</RoleLayout>{children}</main>
+          <main className="p-4"><RoleLayout allowedRole="budget_analyst">{children}</RoleLayout></main>
         </div>
       </SidebarInset>
     </SidebarProvider>

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import axios from "@/lib/axios";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 type CreatePODialogProps = {
   rv: {
@@ -217,9 +218,19 @@ export default function CreatePODialog({ rv, refreshData }: CreatePODialogProps)
           </div>
 
           <DialogFooter className="pt-4">
-            <Button onClick={handleSubmit} disabled={loading || !isFormValid}>
-              {loading ? "Creating..." : "Submit PO"}
-            </Button>
+            <ConfirmActionDialog
+              trigger={
+                <Button disabled={loading || !isFormValid}>
+                  {loading ? "Creating..." : "Submit PO"}
+                </Button>
+              }
+              title="Create Purchase Order?"
+              description="Do you want to continue with this action? This cannot be undone."
+              confirmLabel="Submit"
+              cancelLabel="Cancel"
+              onConfirm={handleSubmit}
+              loading={loading}
+            />
           </DialogFooter>
         </DialogContent>
       </Dialog>

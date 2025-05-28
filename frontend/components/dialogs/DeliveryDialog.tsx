@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import axios from "@/lib/axios";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 type ValidateDeliveryDialogProps = {
   po: any;
@@ -156,9 +157,19 @@ export default function ValidateDeliveryDialog({ po, refreshData }: ValidateDeli
         </div>
 
         <DialogFooter className="pt-4">
-          <Button onClick={handleSubmit} disabled={loading}>
-            {loading ? "Submitting..." : "Submit Delivery"}
-          </Button>
+          <ConfirmActionDialog
+            trigger={
+              <Button disabled={loading}>
+                {loading ? "Submitting..." : "Submit Delivery"}
+              </Button>
+            }
+            title="Confirm Delivery Count?"
+            description="Do you want to continue with this action? This cannot be undone."
+            confirmLabel="Submit"
+            cancelLabel="Cancel"
+            onConfirm={handleSubmit}
+            loading={loading}
+          />
         </DialogFooter>
       </DialogContent>
     </Dialog>

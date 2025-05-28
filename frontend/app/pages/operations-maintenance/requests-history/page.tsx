@@ -1,25 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
-import DataTable from "@/components/Tables/DataTable";
 import { columns } from "./columns";
-import { RVRequest } from "./columns";
+import DataTable from "@/components/Tables/DataTable";
+import { useState } from "react";
+import TableLoader from "@/components/Loaders/TableLoader";
+import useDepartmentalRVHistory from "@/hooks/shared/useDepartmentalRVHistory"; // ✅ make sure path matches your project
 
-export default function DepartmentRVTrackingPage() {
-  const [data, setData] = useState<RVRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function DepartmentalRVHistoryPage() {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  useEffect(() => {
-    axios.get("/requests/departmental-rv/") // Adjust to your actual endpoint
-      .then((res) => setData(res.data))
-      .catch((err) => console.error("Failed to load RVs", err))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, isLoading, totalCount, refetch } = useDepartmentalRVHistory(page, pageSize);
 
   return (
     <div className="p-6 space-y-4">
-      <DataTable title="Departmental Requisitions" columns={columns} data={data} isLoading={loading} />
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Departmental RV History"
+          columns={columns}
+          data={data}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          refreshData={refetch}
+        />
+      )}
     </div>
   );
 }

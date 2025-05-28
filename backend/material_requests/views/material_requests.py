@@ -83,16 +83,24 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
 
         action = request.data.get("action", "evaluate")
 
-        if action in ["reject", "invalid"]:
+        # ✅ Early return for rejection/invalid to prevent further processing
+        if action in ["rejected", "invalid"]:
             req.status = action
+            rejection_reason = request.data.get("rejection_reason")
+            
+            if action == "rejected" and rejection_reason:
+                req.rejection_reason = rejection_reason 
+
             req.save()
+
             send_notification(
                 user=req.requester,
                 message=f"Your material request has been {action}ed by {req.department.title()}."
             )
             return Response({"message": f"Request {action}ed."})
 
-        # Normal evaluation
+
+        # ✅ Normal evaluation flow
         charge_items = request.data.get("charge_items", [])
         requisition_items = request.data.get("requisition_items", [])
 
@@ -105,14 +113,15 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
             )
             for item in charge_items:
                 if not item.get("material_id"):
-                    continue  # skip custom items
+                    continue
                 ChargeTicketItem.objects.create(
                     charge_ticket=ticket,
                     material_id=item["material_id"],
                     quantity=item["quantity"],
                     unit=item["unit"]
                 )
-            # ✅ Notify General Manager
+
+            # Notify GM
             gms = User.objects.filter(role="manager")
             for gm in gms:
                 send_notification(
@@ -144,15 +153,15 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                         unit=item["unit"]
                     )
 
-
-            # 🔔 Notify all Budget Analysts
-            budget_analysts = User.objects.filter(role="budget_analyst", is_role_confirmed=True)
-            for analyst in budget_analysts:
+            # Notify Budget Analysts
+            analysts = User.objects.filter(role="budget_analyst", is_role_confirmed=True)
+            for analyst in analysts:
                 send_notification(
                     user=analyst,
                     message=f"A new Requisition Voucher ({rv.rv_number}) requires recommendation."
                 )
 
+        # ✅ Final request status
         if charge_items and requisition_items:
             req.status = "partially_fulfilled"
         elif charge_items:
@@ -170,6 +179,7 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"message": "Evaluation complete."})
+
     
     
     @action(detail=False, methods=["get"])

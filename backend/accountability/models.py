@@ -5,7 +5,7 @@ from material_requests.models import ChargeTicket
 
 class Accountability(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    department = models.CharField(max_length=50, null=True, blank=True)  # Optional: useful if you want to filter by department
+    department = models.CharField(max_length=50, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -12,6 +12,8 @@ class AccountabilityItemSerializer(serializers.ModelSerializer):
 class AccountabilitySerializer(serializers.ModelSerializer):
     items = AccountabilityItemSerializer(many=True, read_only=True)
     user = serializers.SerializerMethodField()
+    department = serializers.CharField()
+    
 
     class Meta:
         model = Accountability
@@ -19,3 +21,5 @@ class AccountabilitySerializer(serializers.ModelSerializer):
     
     def get_user(self, obj):
         return obj.user.get_full_name() or obj.user.username
+    
+    

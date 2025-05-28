@@ -1,7 +1,9 @@
+import React from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import axios from "@/lib/axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 interface DeliveryRecord {
   id: number;
@@ -89,8 +91,10 @@ export const columns: ColumnDef<DeliveryRecord>[] = [
     header: "Action",
     cell: ({ row, table }) => {
       const delivery = row.original;
+      const [loading, setLoading] = React.useState(false);
 
       const handleCreateReport = async () => {
+        setLoading(true);
         const payload = {
           purchase_order_id: delivery.purchase_order_details.id,
           delivery_record: delivery.id,
@@ -114,13 +118,25 @@ export const columns: ColumnDef<DeliveryRecord>[] = [
         } catch (err) {
           toast.error("Failed to create report.");
           console.error(err);
+        } finally {
+          setLoading(false);
         }
       };
 
       return (
-        <Button size="sm" onClick={handleCreateReport}>
-          Create Report
-        </Button>
+        <ConfirmActionDialog
+          trigger={
+            <Button size="sm" disabled={loading}>
+              Create Report
+            </Button>
+          }
+          title="Create Receiving Report?"
+          description="Do you want to continue with this action? This cannot be undone."
+          confirmLabel="Create"
+          cancelLabel="Cancel"
+          onConfirm={handleCreateReport}
+          loading={loading}
+        />
       );
     },
   },

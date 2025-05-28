@@ -16,10 +16,18 @@ export type EvaluatedRequest = {
   status: string;
   created_at: string;
   items: {
-    material: { name: string };
+    material?: { name: string };
+    custom_name?: string;
     quantity: number;
     unit: string;
   }[];
+  work_order_no?: string;
+  manpower?: string;
+  target_completion?: string;
+  actual_completion?: string;
+  duration?: string;
+  requester_department?: string;
+  rejection_reason?: string;
 };
 
 // ✅ Column definitions
@@ -35,7 +43,6 @@ export const columns: ColumnDef<EvaluatedRequest>[] = [
     cell: ({ row }) => {
       const { first_name, last_name } = row.original.requester || {};
       return <span>{first_name} {last_name}</span>;
-
     },
   },
   {
@@ -95,23 +102,21 @@ export const columns: ColumnDef<EvaluatedRequest>[] = [
                     className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
                   >
                     <div className="font-medium truncate flex items-center gap-1">
-                      {item.material?.name
-                        ? (
-                            <>
-                              {item.material.name.charAt(0).toUpperCase() + item.material.name.slice(1)}
-                              {item.custom_name && (
-                                <Badge variant="outline" className="ml-1 text-[10px]">Custom</Badge>
-                              )}
-                            </>
-                          )
-                        : (
-                            <>
-                              <span className="italic text-muted-foreground">
-                                {item.custom_name ? item.custom_name : "Custom Item"}
-                              </span>
-                              <Badge variant="outline" className="ml-1 text-[10px]">Custom</Badge>
-                            </>
+                      {item.material?.name ? (
+                        <>
+                          {item.material.name.charAt(0).toUpperCase() + item.material.name.slice(1)}
+                          {item.custom_name && (
+                            <Badge variant="outline" className="ml-1 text-[10px]">Custom</Badge>
                           )}
+                        </>
+                      ) : (
+                        <>
+                          <span className="italic text-muted-foreground">
+                            {item.custom_name ? item.custom_name : "Custom Item"}
+                          </span>
+                          <Badge variant="outline" className="ml-1 text-[10px]">Custom</Badge>
+                        </>
+                      )}
                     </div>
                     <div className="text-center text-muted-foreground">
                       {item.quantity}
@@ -129,5 +134,41 @@ export const columns: ColumnDef<EvaluatedRequest>[] = [
         </PopoverContent>
       </Popover>
     ),
+  },
+  {
+    header: "Full Details",
+    cell: ({ row }) => {
+      const req = row.original;
+      const isEng = req.department === "engineering";
+      const isOMD = req.department === "operations_maintenance";
+      const isFinance = req.department === "finance";
+
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm">Details</Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[300px] text-sm space-y-2">
+            {(isEng || isOMD) && (
+              <>
+                {req.work_order_no && <p><strong>Work Order No:</strong> {req.work_order_no}</p>}
+                {req.manpower && <p><strong>Manpower:</strong> {req.manpower}</p>}
+                {req.target_completion && <p><strong>Target Completion:</strong> {req.target_completion}</p>}
+                {req.actual_completion && <p><strong>Actual Completion:</strong> {req.actual_completion}</p>}
+                {req.duration && <p><strong>Duration:</strong> {req.duration}</p>}
+              </>
+            )}
+
+            {isFinance && req.requester_department && (
+              <p><strong>Requester Dept:</strong> {req.requester_department}</p>
+            )}
+
+            {["rejected", "invalid"].includes(req.status) && req.rejection_reason && (
+              <p className="text-red-600"><strong>Rejection Reason:</strong> {req.rejection_reason}</p>
+            )}
+          </PopoverContent>
+        </Popover>
+      );
+    },
   },
 ];

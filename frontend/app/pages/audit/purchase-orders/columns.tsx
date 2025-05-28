@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import React from "react";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 // Extend TableMeta to include refreshData
 declare module '@tanstack/react-table' {
@@ -22,6 +23,9 @@ export const columns: ColumnDef<any>[] = [
   {
     header: "PO No.",
     accessorKey: "po_number",
+    cell: ({ getValue }) => (
+      <span className="font-mono">{getValue()}</span>
+    ),
   },
   {
     header: "Supplier",
@@ -42,13 +46,17 @@ export const columns: ColumnDef<any>[] = [
     accessorKey: "created_at",
     cell: ({ row }) => {
       const date = row.original.created_at ? new Date(row.original.created_at) : null;
-      return date
-        ? date.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })
-        : "";
+      return (
+        <span className="whitespace-nowrap">
+          {date
+            ? date.toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })
+            : ""}
+        </span>
+      );
     },
   },
   {
@@ -74,17 +82,17 @@ export const columns: ColumnDef<any>[] = [
         })}
       </span>
     ),
+    meta: { align: "right" },
   },
   {
     header: "Review",
-    cell: ({ row, table }) => {
+    cell: ({ row }) => {
       const items = row.original.items || [];
       const vatRate = parseFloat(row.original.vat_rate) || 0;
       const vatAmount = parseFloat(row.original.vat_amount) || 0;
       const grandTotal = parseFloat(row.original.grand_total) || 0;
       const subtotal = grandTotal - vatAmount;
 
-      // Add state to control popover open/close
       const [open, setOpen] = React.useState(false);
 
       return (
@@ -126,36 +134,61 @@ export const columns: ColumnDef<any>[] = [
               <div>VAT ({vatRate}%): ₱{vatAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</div>
               <div className="font-bold">Grand Total: ₱{grandTotal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</div>
             </div>
-
-            <div className="flex gap-2 justify-end mt-4">
-              <Button
-                size="sm"
-                onClick={async () => {
-                  try {
-                    await axios.patch(`/requests/purchase-orders/${row.original.id}/recommend/`);
-                    toast.success("PO recommended.");
-                    setOpen(false); // Close the popover
-                    setTimeout(() => {
-                      table.options.meta?.refreshData?.();
-                    }, 200);
-                  } catch {
-                    toast.error("Failed to recommend PO.");
-                  }
-                }}
-              >
-                Recommend
-              </Button>
-              <RejectPODialog
-                poId={row.original.id}
-                refreshData={() => {
-                  setOpen(false); // Close the popover when rejecting
-                  table.options.meta?.refreshData?.();
-                }}
-              />
-            </div>
           </PopoverContent>
         </Popover>
       );
     },
+  },
+  {
+    header: () => (
+      <div className="text-right w-full pr-2">Action</div>
+    ),
+    id: "actions",
+    cell: ({ row, table }) => {
+      const [loading, setLoading] = React.useState(false);
+      const [popoverOpen, setPopoverOpen] = React.useState(false);
+
+      const handleRecommend = async () => {
+        setLoading(true);
+        try {
+          await axios.patch(`/requests/purchase-orders/${row.original.id}/recommend/`);
+          toast.success("PO recommended.");
+          setPopoverOpen(false);
+          setTimeout(() => {
+            table.options.meta?.refreshData?.();
+          }, 200);
+        } catch {
+          toast.error("Failed to recommend PO.");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="flex gap-2 justify-end">
+          <ConfirmActionDialog
+            trigger={
+              <Button size="sm" disabled={loading}>
+                Recommend
+              </Button>
+            }
+            title="Recommend Purchase Order?"
+            description="Do you want to continue with this action? This cannot be undone."
+            confirmLabel="Recommend"
+            cancelLabel="Cancel"
+            onConfirm={handleRecommend}
+            loading={loading}
+          />
+          <RejectPODialog
+            poId={row.original.id}
+            refreshData={() => {
+              setPopoverOpen(false);
+              table.options.meta?.refreshData?.();
+            }}
+          />
+        </div>
+      );
+    },
+    meta: { align: "right" },
   },
 ];

@@ -5,6 +5,7 @@ import axios from "@/lib/axios";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RejectRVDialog } from "@/components/dialogs/RejectRVDialog";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 
 interface RequisitionVoucher {
   id: number;
@@ -142,7 +143,18 @@ export const columns: ColumnDef<RequisitionVoucher>[] = [
 
       return (
         <div className="flex gap-2">
-          <Button size="sm" onClick={handleApprove}>Approve</Button>
+          <ConfirmActionDialog
+            trigger={
+              <Button size="sm">
+                Approve
+              </Button>
+            }
+            title="Approve Requisition Voucher?"
+            description="Do you want to continue with this action? This cannot be undone."
+            confirmLabel="Approve"
+            cancelLabel="Cancel"
+            onConfirm={handleApprove}
+          />
           <RejectRVDialog
             rvId={rvId}
             refreshData={() => table.options.meta?.refreshData?.()}

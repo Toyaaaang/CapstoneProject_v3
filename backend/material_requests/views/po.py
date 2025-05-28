@@ -11,28 +11,31 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = PurchaseOrder.objects.order_by("-created_at")
+
         status_filter = self.request.query_params.get("status")
         delivered = self.request.query_params.get("delivered")
-        department = self.request.query_params.get("department")  # 👈 NEW
+        department = self.request.query_params.get("department")
 
         if status_filter:
             queryset = queryset.filter(status=status_filter)
 
         if delivered == "true":
+            # Only delivered POs
             queryset = queryset.filter(deliveries__isnull=False)
 
+            # Only POs from this department's RV
             if department:
                 queryset = queryset.filter(
                     requisition_voucher__department__iexact=department
                 )
+
+            # Exclude POs that already have QC (any dept)
             queryset = queryset.exclude(quality_checks__isnull=False)
 
         elif delivered == "false":
             queryset = queryset.filter(deliveries__isnull=True)
 
         return queryset
-
-
 
 
     @action(detail=True, methods=["patch"], url_path="recommend")

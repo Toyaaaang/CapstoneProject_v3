@@ -17,6 +17,7 @@ export default function AccountabilityPage() {
   const formattedData: AccountabilityRecord[] = paginatedData.map((acc) => ({
     id: acc.id,
     user: acc.user,
+    department: acc.department, // ✅ Now included
     created_at: acc.created_at,
     items: acc.items.map((item) => ({
       material: {
