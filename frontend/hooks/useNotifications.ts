@@ -1,30 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { toast } from "sonner";
 
 interface Notification {
   id: number;
   message: string;
   is_read: boolean;
   created_at: string;
+  link?: string;
 }
 
 export default function useNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const socketRef = useRef<WebSocket | null>(null);
 
   const BASE_URL = `${process.env.NEXT_PUBLIC_API_BASE_URL}notification/`;
 
   const fetchNotifications = async () => {
     try {
-      const token = localStorage.getItem("access_token");
-      if (!token) return;
-
       setLoading(true);
       const response = await fetch(BASE_URL, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        credentials: "include",
+        credentials: "include", // ✅ Send cookies
       });
 
       if (!response.ok) throw new Error("Failed to fetch notifications");
@@ -39,13 +36,64 @@ export default function useNotifications() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      fetchNotifications();
-      const interval = setInterval(fetchNotifications, 20000);
-      return () => clearInterval(interval);
-    }
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 20000);
+    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+  let shouldReconnect = true;
+
+  const connectWebSocket = () => {
+    const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsHost = process.env.NEXT_PUBLIC_WS_URL || window.location.host;
+    const ws = new WebSocket(`${wsScheme}://${wsHost}/ws/notifications/`);
+
+
+    socketRef.current = ws;
+
+    ws.onopen = () => {
+      console.log("✅ WebSocket connected");
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const newNotif: Notification = {
+          id: data.id ?? Date.now(),
+          message: data.message,
+          is_read: false,
+          created_at: data.timestamp ?? new Date().toISOString(),
+          link: data.link ?? undefined,
+        };
+
+        setNotifications((prev) => [newNotif, ...prev]);
+
+        toast(data.message || "📬 New notification", {
+          description: data.link ? `Go to: ${data.link}` : undefined,
+        });
+      } catch {}
+    };
+
+    ws.onclose = () => {
+      if (shouldReconnect) {
+        setTimeout(connectWebSocket, 5000);
+      }
+    };
+
+    ws.onerror = () => {}; // silent fail
+  };
+
+  connectWebSocket();
+
+  return () => {
+    shouldReconnect = false;
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.close();
+    }
+  };
+}, []);
+
 
   return {
     notifications,
@@ -53,88 +101,42 @@ export default function useNotifications() {
     error,
 
     markAsRead: async (id: number) => {
-      try {
-        const token = localStorage.getItem("access_token");
-        if (!token) return;
-
-        await fetch(`${BASE_URL}${id}/mark_as_read/`, {
-          method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-        });
-
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-        );
-      } catch (err) {
-        console.error("Failed to mark notification as read", err);
-      }
+      await fetch(`${BASE_URL}${id}/mark_as_read/`, {
+        method: "PATCH",
+        credentials: "include",
+      });
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
     },
 
     deleteNotification: async (id: number) => {
-      try {
-        const token = localStorage.getItem("access_token");
-        if (!token) return;
-
-        await fetch(`${BASE_URL}${id}/`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-        });
-
-        setNotifications((prev) => prev.filter((n) => n.id !== id));
-      } catch (err) {
-        console.error("Failed to delete notification", err);
-      }
+      await fetch(`${BASE_URL}${id}/`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
     },
 
     clearAllNotifications: async () => {
-      try {
-        const token = localStorage.getItem("access_token");
-        if (!token) return;
-
-        await fetch(`${BASE_URL}clear_all/`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          credentials: "include",
-        });
-
-        setNotifications([]);
-      } catch (err) {
-        console.error("Failed to clear notifications", err);
-      }
+      await fetch(`${BASE_URL}clear_all/`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      setNotifications([]);
     },
 
-    
     markAllAsRead: async () => {
-    try {
-      const token = localStorage.getItem("access_token");
-      if (!token) return;
-
       const unread = notifications.filter((n) => !n.is_read);
       await Promise.all(
         unread.map((n) =>
-          fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}notification/${n.id}/mark_as_read/`, {
+          fetch(`${BASE_URL}${n.id}/mark_as_read/`, {
             method: "PATCH",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
             credentials: "include",
           })
         )
       );
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    } catch (err) {
-      console.error("Failed to mark all notifications as read", err);
-    }
-  },
-
+    },
   };
-  
 }
