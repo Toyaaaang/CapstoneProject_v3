@@ -1,5 +1,6 @@
 import axios from "@/lib/axios";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 export interface ReceivingReport {
   id: number;
@@ -23,19 +24,33 @@ export interface ReceivingReport {
 }
 
 export default function useUnapprovedReceivingReports() {
-  const [data, setData] = useState<ReceivingReport[]>([]);
+  const [reports, setReports] = useState<ReceivingReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isError, setIsError] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
-    const res = await axios.get("/requests/receiving-reports/unapproved/");
-    setData(res.data.results);
-    setIsLoading(false);
+    setIsError(false);
+    try {
+      const res = await axios.get("/requests/receiving-reports/unapproved/");
+      setReports(res.data.results || []);
+    } catch (err) {
+      setIsError(true);
+      toast.error("Failed to fetch unapproved receiving reports.");
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  return { reports: data, isLoading, refetch: fetchData };
+  return {
+    reports,
+    isLoading,
+    isError,
+    refetch: fetchData,
+  };
 }

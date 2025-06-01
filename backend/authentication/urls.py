@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     RegisterView, LoginView, LogoutView, CustomTokenObtainPairView, 
     ConfirmRoleView, GetUserView, SaveSignatureView, GetSignatureView, AccountView, PendingRoleRequestsView,
-    AcceptRoleRequestView, ApprovalHistoryView, RejectRoleRequestView
+    AcceptRoleRequestView, ApprovalHistoryView, RejectRoleRequestView, MeView
 )
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -14,6 +14,7 @@ urlpatterns = [
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("confirm-role/<int:user_id>/", ConfirmRoleView.as_view(), name="confirm_role"),
     path("user/", GetUserView.as_view(), name="get_user"),
+    path("me/", MeView.as_view(), name="me"),
     
     path("save-signature/", SaveSignatureView.as_view(), name="save-signature"),
     path("get-signature/", GetSignatureView.as_view(), name="get-signature"),

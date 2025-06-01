@@ -23,12 +23,17 @@ export default function useCertificationsForAdmin() {
 
   const fetchData = async () => {
     setIsLoading(true);
-    const res = await axios.get("/requests/certifications/monitoring/", {
-      params: { page, page_size: pageSize },
-    });
-    setData(res.data.results);
-    setTotalCount(res.data.count);
-    setIsLoading(false);
+    try {
+      const res = await axios.get("/requests/certifications/monitoring/", {
+        params: { page, page_size: pageSize },
+      });
+      setData(res.data.results);
+      setTotalCount(res.data.count);
+    } catch (error) {
+      console.error("Failed to fetch certifications:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
-import { API_BASE_URL } from "@/utils/config";
+import axios from "@/lib/axios"; // ✅ your configured axios with withCredentials
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -22,31 +21,12 @@ export const useRoleRequests = () => {
 
   const router = useRouter();
 
-  const getAccessToken = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("access_token");
-    }
-    return null;
-  };
-
-  const accessToken = getAccessToken();
-
-  const axiosInstance = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-      Authorization: accessToken ? `Bearer ${accessToken}` : "",
-    },
-  });
-
   const fetchRoleRequests = async (currentPage = 1) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axiosInstance.get<{
-        results: RoleRequest[];
-        count: number;
-      }>(
-        `api/authentication/pending-roles/?page=${currentPage}`
+      const response = await axios.get<{ results: RoleRequest[]; count: number }>(
+        `authentication/pending-roles/?page=${currentPage}`
       );
       setData(response.data.results);
       setTotalCount(response.data.count);
@@ -61,37 +41,35 @@ export const useRoleRequests = () => {
 
   const approveRoleRequest = async (id: number) => {
     try {
-      const response = await axiosInstance.post(`api/authentication/accept-role/${id}/`);
-      const data = response.data as { message: string };
-      toast.success(data.message);
-      fetchRoleRequests(page); // Refresh current page
+      const response = await axios.post(`authentication/accept-role/${id}/`);
+      toast.success(response.data.message);
+      fetchRoleRequests(page);
       await pushToRoleHistory(id);
       router.push(`/pages/admin/role-history`);
     } catch (err) {
       toast.error("Error approving role.");
-      console.error("Error approving role:", err);
+      console.error(err);
     }
   };
 
   const rejectRoleRequest = async (id: number) => {
     try {
-      const response = await axiosInstance.post(`api/authentication/reject-role/${id}/`);
-      const data = response.data as { message: string };
-      toast.success(data.message);
-      fetchRoleRequests(page); // Refresh current page
+      const response = await axios.post(`authentication/reject-role/${id}/`);
+      toast.success(response.data.message);
+      fetchRoleRequests(page);
       await pushToRoleHistory(id);
       router.push(`/pages/admin/role-history`);
     } catch (err) {
       toast.error("Error rejecting role.");
-      console.error("Error rejecting role:", err);
+      console.error(err);
     }
   };
 
-  const pushToRoleHistory = async (id: number) => {
+  const pushToRoleHistory = async (_id: number) => {
     try {
-      await axiosInstance.post(`api/authentication/role-history/`);
-    } catch (err) {
-      // Silent fail
+      await axios.post(`authentication/role-history/`);
+    } catch {
+      // Silently fail — optional to toast
     }
   };
 

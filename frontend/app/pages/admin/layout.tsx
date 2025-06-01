@@ -33,6 +33,7 @@ export default function WarehouseAdminLayout({ children }: { children: React.Rea
   }, [pathname]);
 
   return (
+    <RoleLayout allowedRole="warehouse_admin">
     <SidebarProvider>
       <AppSidebar menuData={warehouseAdminMenu} />
       <SidebarInset>
@@ -64,9 +65,10 @@ export default function WarehouseAdminLayout({ children }: { children: React.Rea
               <AccountPopover />
             </div>
           </header>
-          <main className="p-4"><RoleLayout allowedRole="warehouse_admin">{children}</RoleLayout></main>
+          <main className="p-4">{children}</main>
         </div>
       </SidebarInset>
     </SidebarProvider>
+    </RoleLayout>
   );
 }

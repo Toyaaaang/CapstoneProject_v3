@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import axios from "@/lib/axios";
 
 export default function RoleLayout({
   allowedRole,
@@ -11,19 +12,33 @@ export default function RoleLayout({
   children: React.ReactNode;
 }) {
   const [authorized, setAuthorized] = useState(false);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const role = localStorage.getItem("role");
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get("/authentication/me/");
+        const userRole = res.data.role;
+        const isConfirmed = res.data.is_role_confirmed;
 
-    if (role === allowedRole) {
-      setAuthorized(true);
-    } else {
-      router.replace("/unauthorized");
-    }
+        if (userRole === allowedRole && isConfirmed) {
+          setAuthorized(true);
+        } else {
+          router.replace("/unauthorized");
+        }
+      } catch (err) {
+        console.error("Failed to fetch user info:", err);
+        router.replace("/unauthorized");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
   }, [allowedRole, router]);
 
-  if (!authorized) return null;
+  if (loading || !authorized) return null;
 
   return <>{children}</>;
 }

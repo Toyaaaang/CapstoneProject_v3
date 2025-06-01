@@ -16,6 +16,7 @@ from django.conf import settings
 import os
 from .models import RoleRequestRecord
 from rest_framework.pagination import PageNumberPagination
+from django.http import JsonResponse
 
 class RoleRequestPagination(PageNumberPagination):
     page_size = 10
@@ -85,36 +86,50 @@ class LoginView(views.APIView):
         if serializer.is_valid():
             user = serializer.validated_data["user"]
             refresh = RefreshToken.for_user(user)
-            return Response({
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
+            access_token = str(refresh.access_token)
+
+            # 🍪 Create response and set access token in secure cookie
+            response = JsonResponse({
+                "refresh": str(refresh),  # keep this if you still want to allow manual logout via refresh token
                 "role": user.role,
                 "is_role_confirmed": user.is_role_confirmed,
                 "last_login": user.last_login,
             })
+
+            # 🍪 Set cookie
+            response.set_cookie(
+                key="access_token",
+                value=access_token,
+                httponly=True,       # 🔐 protects from JavaScript access
+                secure=False,        # 🔐 set to True in production (requires HTTPS)
+                samesite="Lax",      # or "Strict" for more protection
+                max_age=3600,        # 1 hour expiry (adjust as needed)
+            )
+
+            return response
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
 class LogoutView(views.APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def post(self, request):
-        try:
-            # Debugging: Log the incoming request data
-            print("Request data:", request.data)
+        refresh_token = request.data.get("refresh")
 
-            refresh_token = request.data.get("refresh")
-            if not refresh_token:
-                return Response({"error": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+        # Blacklist refresh token if present
+        if refresh_token:
+            try:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
+            except Exception:
+                pass
 
-            # Attempt to blacklist the refresh token
-            token = RefreshToken(refresh_token)
-            token.blacklist()  # This will now work if the blacklist feature is enabled
-            return Response({"message": "Logged out successfully"}, status=status.HTTP_200_OK)
-        except Exception as e:
-            print("Error during logout:", str(e))  # Log the error for debugging
-            return Response({"error": "Invalid token"}, status=status.HTTP_400_BAD_REQUEST)
-        
+        # 🍪 Clear cookie
+        response = JsonResponse({"message": "Logged out successfully"})
+        response.delete_cookie("access_token")
+        return response
+   
         
 # View to Confirm User Role (Only Admins Can Confirm)
 class ConfirmRoleView(views.APIView):
@@ -282,3 +297,18 @@ class ApprovalHistoryView(views.APIView):
 
         serializer = RoleRequestRecordSerializer(result_page, many=True)
         return paginator.get_paginated_response(serializer.data)
+    
+class MeView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            "id": user.id,
+            "username": user.username,
+            "role": user.role,
+            "is_role_confirmed": user.is_role_confirmed,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+        })

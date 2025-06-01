@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
-import { API_BASE_URL } from "@/utils/config";
+import axios from "@/lib/axios"; // ✅ uses your axios config with cookies
 import { toast } from "sonner";
 
 type ApprovalHistory = {
@@ -20,30 +19,14 @@ export const useApprovalHistory = () => {
   const [page, setPage] = useState<number>(1);
   const pageSize = 10;
 
-  const getAccessToken = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("access_token");
-    }
-    return null;
-  };
-
-  const accessToken = getAccessToken();
-
-  const axiosInstance = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-      Authorization: accessToken ? `Bearer ${accessToken}` : "",
-    },
-  });
-
   const fetchApprovalHistory = async (currentPage = 1) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axiosInstance.get<{
+      const response = await axios.get<{
         results: ApprovalHistory[];
         count: number;
-      }>(`api/authentication/approval-history/?page=${currentPage}`);
+      }>(`authentication/approval-history/?page=${currentPage}`);
       setData(response.data.results);
       setTotalCount(response.data.count);
     } catch (err) {

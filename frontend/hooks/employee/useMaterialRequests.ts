@@ -9,24 +9,26 @@ export function useMaterialRequests() {
   const pageSize = 8;
 
   const fetchData = async (pageNumber = 1) => {
-  setLoading(true);
-  try {
-    const res = await axios.get(
-      `requests/material-requests/my_requests/?page=${pageNumber}`
-    );
-    const data = res.data as { results: any[]; count: number };
-    setData(data.results);
-    setTotalCount(data.count);
-    const typedData = res.data as { results: any[]; count: number };
-
-
-  } catch (err) {
-    console.error("Failed to fetch material requests:", err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `/requests/material-requests/my_requests/`,
+        {
+          params: {
+            page: pageNumber,
+            page_size: pageSize,
+          },
+        }
+      );
+      const { results, count } = res.data;
+      setData(results);
+      setTotalCount(count);
+    } catch (err) {
+      console.error("Failed to fetch material requests:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchData(page);

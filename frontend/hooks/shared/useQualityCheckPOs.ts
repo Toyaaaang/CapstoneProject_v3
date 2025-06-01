@@ -27,20 +27,16 @@ export default function useQualityCheckPOs(page: number, pageSize: number = 10) 
   const [data, setData] = useState<QCPO[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
-  // ✅ Normalize department (user role) from localStorage
-  const userRole = localStorage.getItem("role")?.toLowerCase();
-
-  const fetchData = async () => {
-    if (!userRole) return;
-
+  const fetchData = async (role: string) => {
     setIsLoading(true);
     try {
       const res = await axios.get("/requests/purchase-orders/", {
         params: {
           status: "delivered",
           delivered: "true",
-          department: userRole,
+          department: role,
           page,
           page_size: pageSize,
         },
@@ -56,14 +52,27 @@ export default function useQualityCheckPOs(page: number, pageSize: number = 10) 
   };
 
   useEffect(() => {
-    fetchData();
-  }, [page, pageSize, userRole]);
+    const getUserRoleAndFetch = async () => {
+      try {
+        const me = await axios.get("/authentication/me/");
+        const role = me.data?.role?.toLowerCase();
+        if (role) {
+          setUserRole(role);
+          fetchData(role);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user role from /me/", err);
+      }
+    };
+
+    getUserRoleAndFetch();
+  }, [page, pageSize]);
 
   return {
     data,
     isLoading,
     totalCount,
-    refetch: fetchData,
-    refreshData: fetchData,
+    refetch: () => userRole && fetchData(userRole),
+    refreshData: () => userRole && fetchData(userRole),
   };
 }
