@@ -17,6 +17,14 @@ import os
 from .models import RoleRequestRecord
 from rest_framework.pagination import PageNumberPagination
 from django.http import JsonResponse
+from notification.utils import send_notification
+
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils.http import urlsafe_base64_decode
+from django.contrib.auth.forms import SetPasswordForm
 
 class RoleRequestPagination(PageNumberPagination):
     page_size = 10
@@ -61,16 +69,14 @@ class RegisterView(generics.CreateAPIView):
         try:
             user = serializer.save()
 
-            # Send notification to the new user
+            # Send to new user
             user_message = generate_notification_message(user)
-            Notification.objects.create(recipient=user, message=user_message)
+            send_notification(user=user, message=user_message)
 
-            # Send notification to warehouse admins
-            warehouse_admins = User.objects.filter(role="warehouse_admin")
+            # Send to warehouse_admins group
             admin_message = f"New user '{user.username}' is requesting role approval for '{user.role}'."
-            
-            for admin in warehouse_admins:
-                Notification.objects.create(recipient=admin, message=admin_message)
+            send_notification(role="warehouse_admin", message=admin_message)
+
 
         except ValidationError as e:
             print("Validation Error:", e.detail)  # Logs errors
@@ -143,6 +149,10 @@ class ConfirmRoleView(views.APIView):
             user = User.objects.get(id=user_id)
             user.is_role_confirmed = True
             user.save()
+            send_notification(
+                user=user,
+                message=f"Your role request as '{user.role}' has been approved! You now have access to the system."
+            )
             return Response({"message": f"{user.username}'s role confirmed!"}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
@@ -257,6 +267,11 @@ class AcceptRoleRequestView(views.APIView):
                 status="approved",
                 processed_by=request.user,
             )
+            send_notification(
+                user=user,
+                message=f"Your role request as '{user.role}' has been approved! You now have access to the system."
+            )
+
             return Response({"message": f"{user.username}'s role has been accepted!"}, status=status.HTTP_200_OK)
         except User.DoesNotExist:
             return Response({"error": "User not found or already confirmed"}, status=status.HTTP_404_NOT_FOUND)
@@ -277,6 +292,10 @@ class RejectRoleRequestView(views.APIView):
                 requested_role=user.role,
                 status="rejected",
                 processed_by=request.user,
+            )
+            send_notification(
+                user=user,
+                message=f"Your role request for '{user.role}' has been rejected. Please contact admin for more information."
             )
 
             return Response({"message": f"{user.username}'s role request has been rejected!"}, status=status.HTTP_200_OK)
@@ -312,3 +331,47 @@ class MeView(views.APIView):
             "last_name": user.last_name,
             "email": user.email,
         })
+
+class CustomPasswordResetView(views.APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        
+        email = request.data.get("email")
+        if not email:
+            return Response({"error": "Email is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        users = User.objects.filter(email=email)
+        if not users.exists():
+            # Silent fail
+            return Response({"message": "If the email is registered, a reset link was sent."})
+
+        for user in users:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_url = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}"
+
+            subject = "Reset your password"
+            message = f"Click the link below to reset your password:\n\n{reset_url}"
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email])
+
+        return Response({"message": "If the email is registered, a reset link was sent."})
+    
+class PasswordResetConfirmAPIView(views.APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request, uidb64, token):
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = User.objects.get(pk=uid)
+        except (User.DoesNotExist, ValueError, TypeError, OverflowError):
+            return Response({"error": "Invalid or expired reset link."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({"error": "Reset link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+        form = SetPasswordForm(user, request.data)
+        if form.is_valid():
+            form.save()
+            return Response({"message": "Password reset successful."})
+        return Response({"errors": form.errors}, status=status.HTTP_400_BAD_REQUEST)

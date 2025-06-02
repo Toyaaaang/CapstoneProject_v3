@@ -10,6 +10,10 @@ from notification.utils import send_notification
 from authentication.models import User
 from accountability.models import Accountability, AccountabilityItem
 
+def get_ticket_code(ticket: ChargeTicket) -> str:
+    return ticket.ic_no or ticket.mc_no or f"Charge Ticket #{ticket.id}"
+
+
 class ChargeTicketViewSet(viewsets.ModelViewSet):
     queryset = ChargeTicket.objects.all().prefetch_related("items")
     serializer_class = ChargeTicketSerializer
@@ -33,7 +37,7 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
             # ✅ Notify requester
             send_notification(
                 user=ticket.requester,
-                message="Your charge ticket has been approved by the General Manager and is awaiting final approval."
+                message=f"Your charge ticket ({get_ticket_code(ticket)}) has been approved by the General Manager and is awaiting final approval."
             )
 
             # ✅ Notify Warehouse Admin(s)
@@ -41,7 +45,7 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
             for wh in wh_admins:
                 send_notification(
                     user=wh,
-                    message=f"A charge ticket from {ticket.department.title()} is ready for your approval."
+                    message=f"Charge ticket ({get_ticket_code(ticket)}) from {ticket.department.title()} is ready for your approval."
                 )
 
         elif ticket.approval_count == 2 and role == "warehouse_admin":
@@ -53,7 +57,7 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
             # ✅ Notify requester
             send_notification(
                 user=ticket.requester,
-                message="Your charge ticket has been fully approved and is ready for release."
+                message=f"Your charge ticket ({get_ticket_code(ticket)}) has been fully approved and is ready for release."
             )
 
             # ✅ Notify Warehouse Staff
@@ -61,7 +65,7 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
             for s in staff:
                 send_notification(
                     user=s,
-                    message=f"A fully approved charge ticket from {ticket.department.title()} is ready to be released."
+                    message=f"Charge ticket ({get_ticket_code(ticket)}) from {ticket.department.title()} is ready to be released."
                 )
 
         else:
@@ -72,8 +76,9 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
         if ticket.approval_count == 3:
             send_notification(
                 user=ticket.requester,
-                message="Your charge ticket has been fully approved and is ready for release."
+                message=f"Your charge ticket ({get_ticket_code(ticket)}) has been fully approved and is ready for release."
             )
+
 
         return Response({"message": "Approval recorded."}, status=status.HTTP_200_OK)
     
@@ -101,7 +106,7 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
 
             send_notification(
                 user=ticket.requester,
-                message=f"Your charge ticket has been rejected. Reason: {ticket.rejection_reason}"
+                message=f"Your charge ticket ({get_ticket_code(ticket)}) was rejected. Reason: {ticket.rejection_reason}"
             )
 
             return Response({"message": "Charge ticket rejected."}, status=status.HTTP_200_OK)
@@ -212,7 +217,7 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
         # Notify requester
         send_notification(
             user=ticket.requester,
-            message="Your charge ticket has been released by the warehouse staff."
+            message=f"Your charge ticket ({get_ticket_code(ticket)}) has been released by warehouse staff."
         )
 
         return Response({"message": "Ticket marked as released and accountability recorded."})

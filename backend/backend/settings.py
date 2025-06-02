@@ -121,10 +121,18 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [os.environ.get("REDIS_URL")]
-        },
+            "hosts": [
+                {
+                    "address": "rediss://default:Aa0iAAIjcDFhYWM1NDZjNTY0ZDQ0MDMyYTUwMjFhNmQwZTA0NzY5MXAxMA@one-horse-44322.upstash.io:6379"
+                }
+            ]
+        }
     }
 }
+
+FRONTEND_URL = "http://localhost:3000"
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "noreply@yourdomain.com"
 
 
 ROOT_URLCONF = 'backend.urls'

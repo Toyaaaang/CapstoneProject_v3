@@ -4,12 +4,17 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Notification
 from .serializers import NotificationSerializer
+from django.db import models
 
 class NotificationViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
-        queryset = Notification.objects.filter(recipient=request.user).order_by("-created_at")
+        queryset = Notification.objects.filter(
+            models.Q(recipient=request.user) | 
+            models.Q(recipient__isnull=True, role=request.user.role)
+        ).order_by("-created_at")
+
         serializer = NotificationSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -46,9 +51,15 @@ class NotificationViewSet(viewsets.ViewSet):
     @action(detail=False, methods=["delete"])
     def clear_all(self, request):
         Notification.objects.filter(recipient=request.user).delete()
+
         return Response({"message": "All notifications cleared"})
 
     @action(detail=False, methods=["get"])
     def unread_count(self, request):
-        count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        count = Notification.objects.filter(
+            models.Q(recipient=request.user) | 
+            models.Q(recipient__isnull=True, role=request.user.role),
+            is_read=False
+        ).count()
+
         return Response({"unread_count": count})

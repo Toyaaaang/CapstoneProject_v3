@@ -26,11 +26,12 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
         material_request = serializer.save(requester=self.request.user)
         
          # ✅ Notify the department the request is assigned to
-        recipients = User.objects.filter(role=material_request.department)
+        recipients = User.objects.filter(role=material_request.department, is_role_confirmed=True)
         for user in recipients:
             send_notification(
                 user=user,
-                message=f"{self.request.user.get_full_name()} submitted a new material request to your department for evaluation."
+                message=f"{self.request.user.get_full_name()} submitted a new material request for evaluation.",
+                link=f"/material-requests/{material_request.id}"
             )
 
     def get_queryset(self):
@@ -95,7 +96,8 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
 
             send_notification(
                 user=req.requester,
-                message=f"Your material request has been {action}ed by {req.department.title()}."
+                message=f"Your material request has been {action}ed by {req.department.title()}.",
+                link=f"/material-requests/{req.id}"
             )
             return Response({"message": f"Request {action}ed."})
 
@@ -109,7 +111,8 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                 requester=req.requester,
                 department=req.department,
                 purpose=req.purpose,
-                origin="employee"
+                origin="employee",
+                material_request=req  
             )
             for item in charge_items:
                 if not item.get("material_id"):
@@ -122,8 +125,7 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                 )
 
             # Notify GM
-            gms = User.objects.filter(role="manager")
-            for gm in gms:
+            for gm in User.objects.filter(role="manager", is_role_confirmed=True):
                 send_notification(
                     user=gm,
                     message=f"A new charge ticket from {req.department.title()} needs your approval."
@@ -134,7 +136,9 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                 requester=req.requester,
                 department=req.department,
                 purpose=req.purpose,
-                origin="employee"
+                origin="employee",
+                material_request=req
+                
             )
             for item in requisition_items:
                 if item.get("material_id"):
@@ -154,11 +158,11 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                     )
 
             # Notify Budget Analysts
-            analysts = User.objects.filter(role="budget_analyst", is_role_confirmed=True)
-            for analyst in analysts:
+            for analyst in User.objects.filter(role="budget_analyst", is_role_confirmed=True):
                 send_notification(
                     user=analyst,
-                    message=f"A new Requisition Voucher ({rv.rv_number}) requires recommendation."
+                    message=f"A new Requisition Voucher ({rv.rv_number}) requires recommendation.",
+                    link=f"/requisition-vouchers/{rv.id}"
                 )
 
         # ✅ Final request status
@@ -175,8 +179,10 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
 
         send_notification(
             user=req.requester,
-            message=f"Your material request has been evaluated by the {req.department.title()} department."
+            message=f"Your material request has been evaluated by the {req.department.title()} department.",
+            link=f"/material-requests/{req.id}"
         )
+
 
         return Response({"message": "Evaluation complete."})
 

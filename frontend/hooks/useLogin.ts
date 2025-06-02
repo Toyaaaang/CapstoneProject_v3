@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useNotifications } from "@/components/providers/NotificationProvider";
 import { API_BASE_URL } from "@/utils/config";
 
 interface LoginData {
@@ -18,6 +19,7 @@ export default function useLogin(): UseLoginReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { reconnect } = useNotifications();
 
   const login = async ({ identifier, password }: LoginData) => {
     if (!identifier || !password) {
@@ -49,13 +51,14 @@ export default function useLogin(): UseLoginReturn {
       });
 
       const meData = await meRes.json();
-      console.log("User data:", meData);
+      // console.log("User data:", meData);
       if (!meData.is_role_confirmed) {
         toast.error("Login blocked", {
           description: "Your role has not been verified by the admin.",
         });
         return;
       }
+      reconnect();
 
       toast.success("Login successful", {
         description: "Redirecting to your dashboard...",

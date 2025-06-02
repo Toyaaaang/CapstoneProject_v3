@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Bell, Trash2, CheckCircle2 } from "lucide-react";
-import useNotifications from "@/hooks/useNotifications";
+import { useNotifications } from "@/components/providers/NotificationProvider"; // ✅ from context
 import { formatDistanceToNow } from "date-fns";
 
 export default function SidebarNotifications() {
@@ -16,11 +16,22 @@ export default function SidebarNotifications() {
     notifications = [],
     loading,
     error,
+    isAuthenticated,
     markAsRead,
     deleteNotification,
     clearAllNotifications,
     markAllAsRead,
   } = useNotifications();
+
+  if (isAuthenticated === false) {
+    // Not authenticated, don't show notifications
+    return null;
+  }
+
+  if (isAuthenticated === null) {
+    // Still checking auth, optionally show a loader or nothing
+    return null;
+  }
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
@@ -82,8 +93,10 @@ export default function SidebarNotifications() {
               </DropdownMenuItem>
             ))}
 
-            {/* Mark All as Read */}
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex justify-center mt-2">
+            <DropdownMenuItem
+              onSelect={(e) => e.preventDefault()}
+              className="flex justify-center mt-2"
+            >
               <Button
                 variant="ghost"
                 className="text-green-600 w-full"
@@ -94,8 +107,10 @@ export default function SidebarNotifications() {
               </Button>
             </DropdownMenuItem>
 
-            {/* Clear All */}
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="flex justify-center">
+            <DropdownMenuItem
+              onSelect={(e) => e.preventDefault()}
+              className="flex justify-center"
+            >
               <Button
                 variant="ghost"
                 className="text-red-500 w-full"

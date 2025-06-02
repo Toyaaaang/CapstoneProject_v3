@@ -12,10 +12,18 @@ class Notification(models.Model):
         User, on_delete=models.CASCADE, related_name="received_notifications", null=True, blank=True
     )  # The user receiving the notification
     link = models.URLField(blank=True, null=True)
+    # New field for role-based notifications (no recipient)
+    role = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="If set, this notification targets all users with this role"
+    )
 
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Notification for {self.recipient.username}" if self.recipient else "Notification (No recipient)"
+        target = self.recipient.username if self.recipient else (self.role or "No recipient")
+        return f"Notification for {target}"

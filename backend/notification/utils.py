@@ -1,50 +1,58 @@
-# notification/utils.py
 from notification.models import Notification
 from django.utils.timezone import now
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.contrib.auth import get_user_model
 
-def send_notification(user=None, message=None, link=None, role=None):
+User = get_user_model()
+
+def send_notification(user: User = None, message: str = None, link: str = None, role: str = None):
+    if not message:
+        message = "No message provided."
+
     try:
-        if not message:
-            message = "No message provided."
-
         channel_layer = get_channel_layer()
+        timestamp = now().isoformat()
 
+        # 🎯 User-specific
         if user:
             notif = Notification.objects.create(
                 recipient=user,
                 message=message,
-                created_at=now(),
                 link=link,
+                created_at=now(),
             )
             async_to_sync(channel_layer.group_send)(
                 f"user_{user.id}",
                 {
                     "type": "send_notification",
-                    "message": message,
-                    "link": link,
                     "id": notif.id,
+                    "message": message,
                     "timestamp": notif.created_at.isoformat(),
+                    "link": link,
                 }
             )
-            print(f"✅ Notification sent to user_{user.id}")
 
+        # 👥 Role-based (only one DB entry + channel broadcast)
         elif role:
+            notif = Notification.objects.create(
+                role=role,
+                message=message,
+                link=link,
+                created_at=now(),
+            )
             async_to_sync(channel_layer.group_send)(
-                str(role).lower(),
+                role.lower(),  # e.g., "auditor"
                 {
                     "type": "send_notification",
+                    "id": notif.id,
                     "message": message,
+                    "timestamp": notif.created_at.isoformat(),
                     "link": link,
-                    "id": None,
-                    "timestamp": now().isoformat(),
                 }
             )
-            print(f"📢 Notification sent to role: {role}")
-
         else:
-            print("❌ No user or role provided for notification.")
+            raise ValueError("No user or role specified for notification")
 
     except Exception as e:
-        print(f"❌ Failed to send notification: {e}")
+        print(f"[send_notification ❌] {str(e)}")

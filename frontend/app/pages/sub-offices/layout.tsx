@@ -6,7 +6,7 @@ import AccountPopover from "@/components/shared/AccountPopover";
 import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/shared/app-sidebar";
-import { Menu } from "@/components/sidebar-contents/employee";
+import { Menu } from "@/components/sidebar-contents/sub-office";
 import RoleLayout from "@/components/guards/RoleLayout";
 import {
   Breadcrumb,

@@ -1,10 +1,15 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated # type: ignore
 from ..models import RequisitionVoucher
 from ..serializers import RequisitionVoucherSerializer, RequisitionVoucherApprovalSerializer
 from django.db.models import Q
+from notification.utils import send_notification
+
+
+def get_rv_code(rv: RequisitionVoucher) -> str:
+    return rv.rv_number or f"RV #{rv.id}"
 
 
 class RequisitionVoucherViewSet(viewsets.ModelViewSet):
@@ -56,6 +61,16 @@ class RequisitionVoucherViewSet(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        
+        if rv.material_request and rv.material_request.requester:
+            print("Sending notification to:", rv.material_request.requester)
+            send_notification(
+                user=rv.material_request.requester,
+                message=f"Your requisition voucher ({get_rv_code(rv)}) has been recommended and is awaiting final approval."
+            )
+        else:
+            print("No material_request or requester found for RV:", rv.id)
+
         return Response({"message": "RV recommended."}, status=200)
 
     @action(detail=True, methods=['patch'], url_path='approve')
@@ -72,6 +87,12 @@ class RequisitionVoucherViewSet(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        
+        send_notification(
+            user=rv.material_request.requester,
+            message=f"Your requisition voucher ({get_rv_code(rv)}) has been approved and is now queued for purchase order creation."
+        )
+
         return Response({"message": "RV approved."}, status=200)
 
     @action(detail=True, methods=['patch'], url_path='reject')
@@ -89,6 +110,10 @@ class RequisitionVoucherViewSet(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        send_notification(
+            user=rv.material_request.requester,
+            message=f"Your requisition voucher ({get_rv_code(rv)}) has been rejected. Reason: {rv.rejection_reason}"
+        )
         return Response({"message": "RV rejected."}, status=200)
     
     @action(detail=False, methods=["get"], url_path="custom-only")
