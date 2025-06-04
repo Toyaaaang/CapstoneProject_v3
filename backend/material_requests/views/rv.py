@@ -6,8 +6,7 @@ from ..models import RequisitionVoucher
 from ..serializers import RequisitionVoucherSerializer, RequisitionVoucherApprovalSerializer
 from django.db.models import Q
 from notification.utils import send_notification
-
-
+# 
 def get_rv_code(rv: RequisitionVoucher) -> str:
     return rv.rv_number or f"RV #{rv.id}"
 

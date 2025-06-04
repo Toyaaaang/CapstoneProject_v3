@@ -10,19 +10,23 @@ type ApprovalHistory = {
   processed_at: string; // Timestamp of when the request was processed
 };
 
+function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 export const columns: ColumnDef<ApprovalHistory>[] = [
   {
     accessorKey: "user_username",
     header: "User",
     cell: ({ row }) => (
-      <div className="py-2">{row.original.user_username}</div>
+      <div className="py-2">{capitalize(row.original.user_username)}</div>
     ),
   },
   {
     accessorKey: "requested_role",
     header: "Requested Role",
     cell: ({ row }) => (
-      <div className="py-2 capitalize">{row.original.requested_role}</div>
+      <div className="py-2">{capitalize(row.original.requested_role)}</div>
     ),
   },
   {
@@ -33,7 +37,7 @@ export const columns: ColumnDef<ApprovalHistory>[] = [
         variant={row.original.status === "approved" ? "success" : "destructive"}
         className="py-1 px-2"
       >
-        {row.original.status === "approved" ? "Approved" : "Rejected"}
+        {capitalize(row.original.status)}
       </Badge>
     ),
   },
@@ -41,7 +45,7 @@ export const columns: ColumnDef<ApprovalHistory>[] = [
     accessorKey: "processed_by_username",
     header: "Processed By",
     cell: ({ row }) => (
-      <div className="py-2 capitalize">{row.original.processed_by_username}</div>
+      <div className="py-2">{capitalize(row.original.processed_by_username)}</div>
     ),
   },
   {

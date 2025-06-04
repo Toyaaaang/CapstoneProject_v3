@@ -28,7 +28,14 @@ class InventoryByDepartmentView(APIView):
         if not department:
             return Response({"error": "Missing department parameter"}, status=400)
 
-        inventory = Inventory.objects.select_related("material").filter(department=department)
+        # If department is "engineering" or "operations_maintenance", show both (shared inventory)
+        if department in ["engineering", "operations_maintenance"]:
+            inventory = Inventory.objects.select_related("material").filter(
+                department__in=["engineering", "operations_maintenance"]
+            )
+        else:
+            inventory = Inventory.objects.select_related("material").filter(department=department)
+
         serializer = InventorySerializer(inventory, many=True)
         return Response(serializer.data)
     

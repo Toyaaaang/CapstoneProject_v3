@@ -11,29 +11,25 @@ export const warehouseAdminMenu = [
       ],
     },
     {
-      title: "Inventory",
-      items: [
-        { title: "Stock Management", url: "/pages/admin/stock" },
-      ],
-    },
-    {
       title: "Approval Management",
-      items: [
-        { title: "Material Certifications", url: "/pages/admin/certifications" },
+      items: [ 
         { title: "Charge Tickets", url: "/pages/admin/charge-tickets" },
+        { title: "Material Certifications", url: "/pages/admin/certifications" },
         { title: "Receiving Reports", url: "/pages/admin/receiving-reports" },
         { title: "Salvage Tickets", url: "/pages/admin/salvage-tickets" },
         { title: "Credit Tickets", url: "/pages/admin/credit-tickets" },
-
-
-
-
       ],
     },
     {
       title: "Accountability Management",
       items: [
         { title: "Accountabilities", url: "/pages/admin/accountability-management" },
+      ],
+    },
+        {
+      title: "Inventory",
+      items: [
+        { title: "Stock Management", url: "/pages/admin/stock" },
       ],
     },
   ];

@@ -4,10 +4,10 @@ export const Menu = [
       items: [{ title: "Overview", url: "/pages/budget" }],
     },
     {
-      title: "Material Requisition",
+      title: "Requisition Vouchers",
       items: [
-        { title: "Restocking Requests", url: "/pages/budget/restocking-requests" },
-        { title: "Restocking Requests History", url: "/pages/budget/requests-history" },
+        { title: "Requisition Requests", url: "/pages/budget/restocking-requests" },
+        { title: "Requisition Requests History", url: "/pages/budget/requests-history" },
       ],
     },
     {

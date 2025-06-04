@@ -6,7 +6,7 @@ export const Menu = [
     {
       title: "Material Requests",
       items: [
-        { title: "Create Request", url: "/pages/employee/requests" },
+        { title: "Create Material Request", url: "/pages/employee/requests" },
         { title: "Track Requests", url: "/pages/employee/requests-history" },
 
       ],

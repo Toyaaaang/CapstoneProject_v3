@@ -7,6 +7,14 @@ export const Menu = [
 
     },
     {
+      title: "Work Order Management",
+      items: [
+        { title: "Pending Material Requests", url: "/pages/engineering/material-requests" },
+        { title: "Requests History", url: "/pages/engineering/evaluation-history" },
+
+      ],
+    },
+    {
       title: "Material Quality Management",
       items: [
         { title: "Quality Compliance", url: "/pages/engineering/quality-check" },
@@ -16,17 +24,8 @@ export const Menu = [
     {
       title: "Certification Management",
       items: [
-        { title: "Certifications", url: "/pages/engineering/certificates" },
+        { title: "Certification Issuance", url: "/pages/engineering/certificates" },
         { title: "Track Certifications", url: "/pages/engineering/track-certificates" },
-
-      ],
-    },
-    {
-      title: "Requests Management",
-      items: [
-        { title: "Pending Requests", url: "/pages/engineering/material-requests" },
-        { title: "Requests History", url: "/pages/engineering/evaluation-history" },
-
       ],
     },
     {

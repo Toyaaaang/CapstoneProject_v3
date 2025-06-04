@@ -15,11 +15,28 @@ class User(AbstractUser):
         ('finance', 'Finance'),      
         ('audit', 'Audit'),
     )
+    DEPARTMENT_CHOICES = (
+        ('engineering', 'Engineering'),
+        ('operations_maintenance', 'Operations & Maintenance'),
+        ('finance', 'Finance'),
+        ('admin', 'Admin'),
+        
+    )
+
+    SUBOFFICE_CHOICES = (
+        ('sub_office_a', 'Sub Office A'),
+        ('sub_office_b', 'Sub Office B'),
+        ('sub_office_c', 'Sub Office C'),
+    )
     
     role = models.CharField(max_length=50, choices=ROLE_CHOICES, default='employee')
+    department = models.CharField(max_length=50, choices=DEPARTMENT_CHOICES, null=True, blank=True)
+    suboffice = models.CharField(max_length=50, choices=SUBOFFICE_CHOICES, null=True, blank=True)
     is_role_confirmed = models.BooleanField(default=False)
     signature = models.FileField(upload_to='signatures/', null=True, blank=True)  
     email = models.EmailField(unique=True)
+    id_image_url = models.URLField(null=True, blank=True)
+
     
     def __str__(self):
         return self.username

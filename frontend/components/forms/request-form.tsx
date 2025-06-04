@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "@/lib/axios";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import LocationAutocomplete from "@/components/ui/LocationAutocomplete";
 import {
   Select,
   SelectItem,
@@ -14,10 +15,10 @@ import {
 } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
-
 import EngOpFields from "./EngOpFields";
 import FinanceFields from "./FinanceFields";
 import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
+import { useGooglePlacesReady } from "@/hooks/googleAPI/useGooglePlacesReady";
 
 type Material = {
   id: number;
@@ -39,6 +40,9 @@ export default function RequestForm() {
   const [department, setDepartment] = useState("");
   const [items, setItems] = useState<Item[]>([]);
 
+  const [location, setLocation] = useState("");
+  const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null);
+
   // Common fields
   const [purpose, setPurpose] = useState("");
 
@@ -51,14 +55,49 @@ export default function RequestForm() {
   const [requesterDept, setRequesterDept] = useState("");
 
   const [submitting, setSubmitting] = useState(false);
+  const [userInfo, setUserInfo] = useState<{
+    role: string;
+    department: string;
+    suboffice: string;
+  } | null>(null);
+  const [requestDept, setRequestDept] = useState(""); // For dropdown selection
+  const [subofficeEDOMD, setSubofficeEDOMD] = useState(""); // For suboffice: "engineering" or "operations_maintenance"
 
+  // Fetch user info on mount
   useEffect(() => {
-    if (department) {
+    axios.get("/authentication/me/").then((res) => setUserInfo(res.data));
+  }, []);
+
+  // Determine if user should see the dropdown
+  const showDeptDropdown =
+    userInfo &&
+    ((userInfo.role === "employee" &&
+      (userInfo.department === "engineering" ||
+        userInfo.department === "operations_maintenance")) ||
+      userInfo.role === "sub_office");
+
+  // For suboffice, if they choose ED/OMD, they must pick which one
+  const showSubofficeEDOMDSelect =
+    userInfo &&
+    userInfo.role === "sub_office" &&
+    requestDept === "engineering";
+
+  // The department to use for the request
+  const effectiveDept =
+    showSubofficeEDOMDSelect && subofficeEDOMD
+      ? subofficeEDOMD
+      : showDeptDropdown
+      ? requestDept
+      : "finance";
+
+  // Auto-populate materials based on department
+  useEffect(() => {
+    if (effectiveDept) {
       axios
-        .get(`/inventory-by-department/?department=${department}`)
+        .get(`/inventory-by-department/?department=${effectiveDept}`)
         .then((res) => setMaterials(res.data.map((inv) => inv.material)));
     }
-  }, [department]);
+  }, [effectiveDept]);
 
   const addItem = () => {
     setItems([...items, { is_custom: false, quantity: 1, unit: "" }]);
@@ -121,9 +160,12 @@ export default function RequestForm() {
     });
 
     const payload: any = {
-      department,
+      department: effectiveDept,
       items: formattedItems,
       purpose,
+      location,
+      latitude: coordinates?.lat,
+      longitude: coordinates?.lng,
     };
 
     if (department === "finance") {
@@ -146,6 +188,8 @@ export default function RequestForm() {
       setTargetCompletion("");
       setDuration("");
       setRequesterDept("");
+      setRequestDept("");         // <-- clear department dropdown
+      setSubofficeEDOMD("");      // <-- clear suboffice ED/OMD select
     } catch (err: any) {
       console.error(err);
       const message =
@@ -160,58 +204,88 @@ export default function RequestForm() {
   return (
     <Card className="p-6 w-full mx-auto space-y-4">
       <h1 className="text-xl font-bold">New Material Request</h1>
+      <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+        {/* Department Dropdown (only for ED/OMD employee or sub_office) */}
+        {showDeptDropdown && (
+          <div>
+            <Label className="p-2">Request For</Label>
+            <Select onValueChange={setRequestDept} value={requestDept}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="engineering">Engineering / O&M</SelectItem>
+                <SelectItem value="finance">Finance</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-        }}
-        className="space-y-4"
-      >
-        {/* Department */}
-        <div>
-          <Label className="p-2">Department</Label>
-          <Select onValueChange={setDepartment} value={department}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select department" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="engineering">Engineering</SelectItem>
-              <SelectItem value="operations_maintenance">
-                Operations & Maintenance
-              </SelectItem>
-              <SelectItem value="finance">Finance</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Suboffice: If ED/OMD is chosen, pick which one */}
+        {showSubofficeEDOMDSelect && (
+          <div>
+            <Label className="p-2">Choose ED or O&M</Label>
+            <Select onValueChange={setSubofficeEDOMD} value={subofficeEDOMD}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select department" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="engineering">Engineering</SelectItem>
+                <SelectItem value="operations_maintenance">
+                  Operations & Maintenance
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Purpose and Location side by side */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Purpose */}
+          {effectiveDept === "finance" ? (
+            <FinanceFields
+              values={{
+                requester_department:
+                  userInfo && userInfo.role !== "sub_office" && userInfo.department
+                    ? userInfo.department
+                    : "",
+                purpose,
+              }}
+              onChange={(field, value) => {
+                if (field === "purpose") setPurpose(value);
+              }}
+              departmentDisabled={true}
+            />
+          ) : effectiveDept ? (
+            <EngOpFields
+              values={{
+                purpose,
+                manpower,
+                target_completion: targetCompletion,
+              }}
+              onChange={(field, value) => {
+                if (field === "purpose") setPurpose(value);
+                if (field === "manpower") setManpower(value);
+                if (field === "target_completion") setTargetCompletion(value);
+              }}
+            />
+          ) : (
+            <div />
+          )}
+
+          {/* Location */}
+          {effectiveDept && (
+            <div className="flex flex-col">
+              <Label className="p-2">Location (Where materials will be used)</Label>
+              <LocationInput
+                value={location}
+                onChange={setLocation}
+                setCoordinates={setCoordinates}
+                coordinates={coordinates}
+              />
+            </div>
+          )}
         </div>
-
-        {/* Conditional Fields */}
-        {department === "finance" ? (
-          <FinanceFields
-            values={{
-              requester_department: requesterDept,
-              purpose,
-            }}
-            onChange={(field, value) => {
-              if (field === "requester_department") setRequesterDept(value);
-              if (field === "purpose") setPurpose(value);
-            }}
-          />
-        ) : department ? (
-          <EngOpFields
-            values={{
-              purpose,
-              manpower,
-              target_completion: targetCompletion,
-              duration,
-            }}
-            onChange={(field, value) => {
-              if (field === "purpose") setPurpose(value);
-              if (field === "manpower") setManpower(value);
-              if (field === "target_completion") setTargetCompletion(value);
-              if (field === "duration") setDuration(value);
-            }}
-          />
-        ) : null}
 
         {/* Items */}
         <div className="space-y-2">
@@ -332,5 +406,70 @@ export default function RequestForm() {
         </div>
       </form>
     </Card>
+  );
+}
+
+function LocationInput({
+  value,
+  onChange,
+  setCoordinates,
+  coordinates, // <-- add this
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  setCoordinates: (coords: { lat: number; lng: number } | null) => void;
+  coordinates: { lat: number; lng: number } | null; // <-- add this
+}) {
+  const ready = useGooglePlacesReady();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (ready && inputRef.current) {
+      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+        types: ["geocode"],
+        componentRestrictions: { country: "ph" },
+        fields: ["formatted_address", "geometry"],
+      });
+
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        onChange(place.formatted_address || inputRef.current!.value);
+        if (place.geometry && place.geometry.location) {
+          setCoordinates({
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
+          });
+        } else {
+          setCoordinates(null);
+        }
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  return (
+    <div className="space-y-1">
+      <Input
+        ref={inputRef}
+        placeholder={ready ? "Enter location" : "Type location manually"}
+        value={value}
+        onChange={(e) => {
+          onChange(e.target.value);
+          if (!ready) setCoordinates(null); // fallback: no coords
+        }}
+        disabled={false} // ✅ Always editable
+      />
+      {ready === false && (
+        <p className="text-xs text-muted-foreground italic">
+          Google Autocomplete not available. Manual input enabled.
+        </p>
+      )}
+      {/* Optionally show coordinates if available */}
+      {coordinates && (
+        <p className="text-sm text-muted-foreground">
+          📍 Lat: {coordinates.lat.toFixed(5)}, Lng: {coordinates.lng.toFixed(5)}
+        </p>
+      )}
+    </div>
   );
 }

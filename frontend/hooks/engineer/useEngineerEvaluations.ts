@@ -12,14 +12,11 @@ export function useEngineerEvaluations(page: number) {
     setLoading(true);
     axios
       .get("/requests/material-requests/", {
-        params: {
-          page,
-          status: "pending",
-        },
+        params: { page },
       })
       .then((res) => {
-        setData(res.data.results); // ✅ Use paginated results
-        setTotalCount(res.data.count); // ✅ Total for pagination
+        setData(res.data.results);
+        setTotalCount(res.data.count);
       })
       .catch(() => {
         toast.error("Failed to load evaluation requests.");

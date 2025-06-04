@@ -6,10 +6,11 @@ from notification.utils import send_notification
 from django_filters.rest_framework import DjangoFilterBackend
 from material_requests.filters.material_requests import MaterialRequestFilter
 from rest_framework.pagination import PageNumberPagination
-
+from rest_framework.filters import SearchFilter
+from django.db.models import Q
 
 from ..models import MaterialRequest, ChargeTicket, ChargeTicketItem, RequisitionVoucher, RequisitionItem
-from material_requests.serializers.material_requests import MaterialRequestSerializer
+from material_requests.serializers.material_requests import MaterialRequestSerializer, WorkOrderAssignmentSerializer
 
 class EightPerPagePagination(PageNumberPagination):
     page_size = 8
@@ -18,14 +19,13 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
     queryset = MaterialRequest.objects.all().prefetch_related("items")
     serializer_class = MaterialRequestSerializer
     permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    search_fields = ["purpose", "work_order_no", "requester__first_name", "requester__last_name"]
     filterset_class = MaterialRequestFilter
     pagination_class = EightPerPagePagination
-    
+
     def perform_create(self, serializer):
         material_request = serializer.save(requester=self.request.user)
-        
-         # ✅ Notify the department the request is assigned to
         recipients = User.objects.filter(role=material_request.department, is_role_confirmed=True)
         for user in recipients:
             send_notification(
@@ -43,20 +43,20 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
 
         if self.action == "handled_requests":
             if role == "warehouse_staff":
-                return MaterialRequest.objects.filter(
-                    department="finance"
-                ).exclude(status="pending").order_by("-created_at")
-            
+                return MaterialRequest.objects.exclude(status="pending").order_by("-created_at")
             return MaterialRequest.objects.filter(
                 department=role
             ).exclude(status="pending").order_by("-created_at")
 
+        # ✅ Main material-requests endpoint
         if role == "warehouse_staff":
             return MaterialRequest.objects.filter(
-                department="finance",
-                status="pending"
+                (
+                    Q(department__in=["engineering", "operations_maintenance"], status="won_assigned") |
+                    Q(department="finance", status="pending")
+                )
             ).order_by("-created_at")
-            
+
         if role in ["engineering", "operations_maintenance", "finance"]:
             return MaterialRequest.objects.filter(department=role).order_by("-created_at")
 
@@ -65,15 +65,12 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"])
     def my_requests(self, request):
         queryset = MaterialRequest.objects.filter(requester=request.user).order_by("-created_at")
-        
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
 
     @action(detail=True, methods=["post"])
     def evaluate(self, request, pk=None):
@@ -84,16 +81,12 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
 
         action = request.data.get("action", "evaluate")
 
-        # ✅ Early return for rejection/invalid to prevent further processing
         if action in ["rejected", "invalid"]:
             req.status = action
             rejection_reason = request.data.get("rejection_reason")
-            
             if action == "rejected" and rejection_reason:
                 req.rejection_reason = rejection_reason 
-
             req.save()
-
             send_notification(
                 user=req.requester,
                 message=f"Your material request has been {action}ed by {req.department.title()}.",
@@ -101,8 +94,6 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
             )
             return Response({"message": f"Request {action}ed."})
 
-
-        # ✅ Normal evaluation flow
         charge_items = request.data.get("charge_items", [])
         requisition_items = request.data.get("requisition_items", [])
 
@@ -123,8 +114,6 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                     quantity=item["quantity"],
                     unit=item["unit"]
                 )
-
-            # Notify GM
             for gm in User.objects.filter(role="manager", is_role_confirmed=True):
                 send_notification(
                     user=gm,
@@ -138,7 +127,6 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                 purpose=req.purpose,
                 origin="employee",
                 material_request=req
-                
             )
             for item in requisition_items:
                 if item.get("material_id"):
@@ -156,8 +144,6 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                         quantity=item["quantity"],
                         unit=item["unit"]
                     )
-
-            # Notify Budget Analysts
             for analyst in User.objects.filter(role="budget_analyst", is_role_confirmed=True):
                 send_notification(
                     user=analyst,
@@ -165,7 +151,6 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                     link=f"/requisition-vouchers/{rv.id}"
                 )
 
-        # ✅ Final request status
         if charge_items and requisition_items:
             req.status = "partially_fulfilled"
         elif charge_items:
@@ -176,26 +161,42 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
             req.status = "invalid"
 
         req.save()
-
         send_notification(
             user=req.requester,
             message=f"Your material request has been evaluated by the {req.department.title()} department.",
             link=f"/material-requests/{req.id}"
         )
-
-
         return Response({"message": "Evaluation complete."})
 
-    
-    
     @action(detail=False, methods=["get"])
     def handled_requests(self, request):
         queryset = self.get_queryset()
-
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
-
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+    @action(detail=True, methods=["patch"], url_path="assign-work-order")
+    def assign_work_order(self, request, pk=None):
+        try:
+            request_obj = MaterialRequest.objects.get(pk=pk)
+        except MaterialRequest.DoesNotExist:
+            return Response({"error": "Material Request not found."}, status=404)
+
+        if request.user.role not in ["engineering", "operations_maintenance"]:
+            return Response({"error": "Not authorized to assign work order."}, status=403)
+
+        serializer = WorkOrderAssignmentSerializer(request_obj, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            request_obj.status = "won_assigned"
+            request_obj.save()
+            send_notification(
+                user=request_obj.requester,
+                message=f"Your material request has been assigned a Work Order Number by the {request_obj.department.title()} department."
+            )
+            return Response({"message": "Work order assigned and requester notified."})
+        
+        return Response(serializer.errors, status=400)

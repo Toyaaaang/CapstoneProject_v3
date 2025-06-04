@@ -6,18 +6,16 @@ type Props = {
   values: any;
   onChange: (field: string, value: any) => void;
 };
-const PURPOSE_OPTIONS = [
-  { value: "Maintenance", label: "Maintenance – Preventive maintenance, upkeep" },
-  { value: "Power Restoration", label: "Power Restoration – After typhoons or outages" },
-  { value: "System Expansion", label: "System Expansion – Line extension, sitios" },
-  { value: "Equipment Replacement", label: "Equipment Replacement – Damaged, outdated items" },
-  { value: "Emergency Response", label: "Emergency Response – Urgent repair" },
-  { value: "Buffer Stock", label: "Buffer Stock – Standby reserve" },
-  { value: "Metering Projects", label: "Metering/Clustering – Feeder meters, clustering" },
-  { value: "New Service Connections", label: "New Service – Consumer installations" },
-  { value: "Office Needs", label: "Office/Sub-office – Electrical branch needs" },
-  { value: "Special Projects", label: "Special Projects – BAPA, NEA, subsidies" },
+
+// Purposes specific for finance/office supplies
+const FINANCE_PURPOSE_OPTIONS = [
+  { value: "Office Supplies", label: "Office Supplies – Stationery, paper, pens, etc." },
+  { value: "Cleaning Materials", label: "Cleaning Materials – Disinfectants, mops, etc." },
+  { value: "Computer/IT Supplies", label: "Computer/IT Supplies – Toner, mouse, keyboard, etc." },
+  { value: "Furniture/Fixtures", label: "Furniture/Fixtures – Chairs, tables, cabinets" },
+  { value: "Other Office Needs", label: "Other Office Needs – Miscellaneous" },
 ];
+
 export default function FinanceFields({ values, onChange }: Props) {
   return (
     <div className="space-y-4">
@@ -28,6 +26,7 @@ export default function FinanceFields({ values, onChange }: Props) {
           value={values.requester_department}
           onChange={(e) => onChange("requester_department", e.target.value)}
           required
+          className="w-full"
         />
       </div>
 
@@ -39,11 +38,11 @@ export default function FinanceFields({ values, onChange }: Props) {
           onValueChange={(value) => onChange("purpose", value)}
           required
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="Select purpose..." />
           </SelectTrigger>
           <SelectContent>
-            {PURPOSE_OPTIONS.map((opt) => (
+            {FINANCE_PURPOSE_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>

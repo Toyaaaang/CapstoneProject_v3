@@ -18,6 +18,9 @@ class MaterialRequest(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     STATUS_CHOICES = [
         ('pending', 'Pending'),
+        ('won_assigned', 'Work Order Assigned'),
+        ("in_progress", "In Progress"),
+        ("completed", "Completed"), 
         ('charged', 'Charge Ticket Created'),
         ('requisitioned', 'Requisition Voucher Created'),
         ('partially_fulfilled', 'Partially Fulfilled'),
@@ -34,6 +37,9 @@ class MaterialRequest(models.Model):
     target_completion = models.DateField(blank=True, null=True)
     actual_completion = models.DateField(blank=True, null=True)
     duration = models.CharField(max_length=100, blank=True, null=True)
+    location = models.TextField(null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
 
     # Finance-only field
     requester_department = models.CharField(max_length=100, blank=True, null=True)

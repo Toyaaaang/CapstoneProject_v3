@@ -9,29 +9,50 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 
 User = get_user_model()
 
-# User Serializer
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "username", "email", "password", "role", "is_role_confirmed", "last_login","first_name", "last_name"]
+        fields = [
+            "id",
+            "username",
+            "email",
+            "password",
+            "role",
+            "department",
+            "suboffice",
+            "id_image_url",
+            "is_role_confirmed",
+            "last_login",
+            "first_name",
+            "last_name",
+        ]
         extra_kwargs = {
             "password": {"write_only": True},
             "first_name": {"required": True},
             "last_name": {"required": True},
-            }
+        }
 
     def validate(self, attrs):
         password = attrs.get("password")
+        role = attrs.get("role")
+        department = attrs.get("department")
+        suboffice = attrs.get("suboffice")
+
         try:
             validate_password(password)
         except DjangoValidationError as e:
             raise serializers.ValidationError({"password": e.messages})
+
+        if role == "employee" and not department:
+            raise serializers.ValidationError({"department": "Department is required for employees."})
+        if role == "sub_office" and not suboffice:
+            raise serializers.ValidationError({"suboffice": "Suboffice is required for sub office users."})
+
         return attrs
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data) 
-        return user
-    
+        return User.objects.create_user(**validated_data)
+
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Username already exists.")
@@ -41,6 +62,7 @@ class UserSerializer(serializers.ModelSerializer):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email already registered.")
         return value
+
 
 # Login Serializer
 class LoginSerializer(serializers.Serializer):
@@ -87,13 +109,33 @@ class RoleRequestRecordSerializer(serializers.ModelSerializer):
             "processed_at",
         ]
         
-# serializers.py
 class PendingUserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
+    id_image_url = serializers.SerializerMethodField()
+    department = serializers.SerializerMethodField()
+    suboffice = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "full_name", "role", "is_role_confirmed", "date_joined"]
+        fields = [
+            "id",
+            "full_name",
+            "role",
+            "is_role_confirmed",
+            "date_joined",
+            "id_image_url",
+            "department",
+            "suboffice",
+        ]
 
     def get_full_name(self, obj):
         return obj.get_full_name()
+
+    def get_id_image_url(self, obj):
+        return obj.id_image_url or None
+
+    def get_department(self, obj):
+        return obj.department if obj.role == "employee" else None
+
+    def get_suboffice(self, obj):
+        return obj.suboffice if obj.role == "sub_office" else None

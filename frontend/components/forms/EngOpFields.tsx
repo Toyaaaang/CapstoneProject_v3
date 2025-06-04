@@ -1,6 +1,13 @@
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+
 type Props = {
   values: any;
   onChange: (field: string, value: any) => void;
@@ -17,9 +24,10 @@ const PURPOSE_OPTIONS = [
   { value: "Office Needs", label: "Office/Sub-office – Electrical branch needs" },
   { value: "Special Projects", label: "Special Projects – BAPA, NEA, subsidies" },
 ];
+
 export default function EngOpFields({ values, onChange }: Props) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Purpose */}
       <div>
         <Label className="p-2">Purpose</Label>
@@ -28,7 +36,7 @@ export default function EngOpFields({ values, onChange }: Props) {
           onValueChange={(value) => onChange("purpose", value)}
           required
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="Select purpose..." />
           </SelectTrigger>
           <SelectContent>
@@ -41,34 +49,25 @@ export default function EngOpFields({ values, onChange }: Props) {
         </Select>
       </div>
 
-      {/* Target Date + Duration */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
+      {/* Target Date and Manpower side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col w-full">
           <Label className="p-2">Target Date of Completion</Label>
           <Input
             type="date"
             value={values.target_completion}
             onChange={(e) => onChange("target_completion", e.target.value)}
+            className="w-full"
           />
         </div>
-        <div>
-          <Label className="p-2">Duration</Label>
+        <div className="flex flex-col w-full">
+          <Label className="p-2">Manpower Requirement</Label>
           <Input
-            placeholder="e.g. 3 days (optional)"
-            value={values.duration}
-            onChange={(e) => onChange("duration", e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Manpower */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <Label className="p-2">Manpower Requirements</Label>
-          <Input
-            placeholder="(Optional)"
+            placeholder="e.g. 3"
             value={values.manpower}
             onChange={(e) => onChange("manpower", e.target.value)}
+            min={1}
+            className="w-full"
           />
         </div>
       </div>

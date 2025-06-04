@@ -37,12 +37,18 @@ class MaterialRequestSerializer(serializers.ModelSerializer):
     items = MaterialRequestItemSerializer(many=True)
     requester = serializers.SerializerMethodField()
 
+    # Add these fields
+    location = serializers.CharField(required=True)
+    latitude = serializers.FloatField(required=False, allow_null=True)
+    longitude = serializers.FloatField(required=False, allow_null=True)
+    
     class Meta:
         model = MaterialRequest
         fields = [
             'id', 'status', 'requester', 'department', 'purpose', 'created_at',
             'work_order_no', 'manpower', 'target_completion', 'actual_completion',
-            'duration', 'requester_department', 'items'
+            'duration', 'requester_department', 'items','location', 'latitude',
+            'longitude' 
         ]
 
     def create(self, validated_data):
@@ -58,3 +64,13 @@ class MaterialRequestSerializer(serializers.ModelSerializer):
             "first_name": obj.requester.first_name,
             "last_name": obj.requester.last_name,
         }
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+class WorkOrderAssignmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MaterialRequest
+        fields = ['work_order_no', 'manpower', 'target_completion', 'actual_completion', 'duration']
