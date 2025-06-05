@@ -31,6 +31,8 @@ interface DataTableProps<TData> {
   setPage: (page: number) => void;
   totalCount: number;
   pageSize?: number;
+  /** Optional: Pass a custom filter component to render above the table */
+  filters?: React.ReactNode;
 }
 
 export default function DataTable<TData>({
@@ -42,6 +44,7 @@ export default function DataTable<TData>({
   setPage,
   totalCount,
   pageSize = 10,
+  filters, // <-- accept custom filters as a prop
 }: DataTableProps<TData>) {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
@@ -75,6 +78,9 @@ export default function DataTable<TData>({
   return (
     <div className="p-4 border rounded-md shadow-sm">
       <h2 className="text-xl font-bold mb-4 p-4">{title}</h2>
+
+      {/* Custom Filters */}
+      {filters && <div className="mb-4">{filters}</div>}
 
       {/* Table */}
       <Table>

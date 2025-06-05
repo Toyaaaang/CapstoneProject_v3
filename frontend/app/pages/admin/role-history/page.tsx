@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation"; // Import useSearchParams
 import DataTable from "@/components/Tables/DataTable";
 import TableLoader from "@/components/Loaders/TableLoader";
 import { columns } from "./columns";
-import { useApprovalHistory } from "@/hooks/useApprovalHistory";
+import { useApprovalHistory } from "@/hooks/admin/useApprovalHistory";
 
 export default function RoleHistoryPage() {
   const {

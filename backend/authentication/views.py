@@ -25,6 +25,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth.forms import SetPasswordForm
+from django.db.models import Q
 
 class RoleRequestPagination(PageNumberPagination):
     page_size = 10
@@ -309,13 +310,35 @@ class ApprovalHistoryView(views.APIView):
         if request.user.role != "warehouse_admin":
             return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
 
-        role_requests = RoleRequestRecord.objects.all().order_by("-processed_at")  # optional ordering
+        # Get query parameters
+        search_query = request.query_params.get("search", "")
+        status_filter = request.query_params.get("status", "")
+        role_filter = request.query_params.get("role", "")
 
+        # Filter the queryset
+        role_requests = RoleRequestRecord.objects.all()
+
+        if search_query:
+            role_requests = role_requests.filter(
+                Q(user__username__icontains=search_query) |
+                Q(user__email__icontains=search_query)
+            )
+
+        if status_filter:
+            role_requests = role_requests.filter(status=status_filter)
+
+        if role_filter:
+            role_requests = role_requests.filter(requested_role=role_filter)
+
+        role_requests = role_requests.order_by("-processed_at")
+
+        # Paginate results
         paginator = RoleRequestPagination()
         result_page = paginator.paginate_queryset(role_requests, request)
 
         serializer = RoleRequestRecordSerializer(result_page, many=True)
         return paginator.get_paginated_response(serializer.data)
+
     
 class MeView(views.APIView):
     permission_classes = [IsAuthenticated]
