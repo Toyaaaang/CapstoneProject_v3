@@ -9,5 +9,5 @@ class MaterialAdmin(admin.ModelAdmin):
 
 @admin.register(Inventory)
 class InventoryAdmin(admin.ModelAdmin):
-    list_display = ('material', 'department', 'quantity', 'updated_at')
-    list_filter = ('department',)
+    list_display = ('material', 'quantity', 'updated_at')
+    # list_filter = ('department',)

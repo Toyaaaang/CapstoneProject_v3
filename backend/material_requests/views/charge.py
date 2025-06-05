@@ -54,6 +54,11 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
             ticket.status = "approved"
             ticket.save()
 
+            # Mark the related material request as ready for release
+            if ticket.material_request:
+                ticket.material_request.status = "ready_for_release"
+                ticket.material_request.save()
+
             # ✅ Notify requester
             send_notification(
                 user=ticket.requester,
@@ -179,7 +184,6 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
             try:
                 inv = Inventory.objects.get(
                     material=item.material,
-                    department=ticket.department
                 )
 
                 if inv.quantity < item.quantity:
@@ -213,6 +217,11 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
         # Mark ticket as released
         ticket.status = "released"
         ticket.save()
+
+        # Mark the related material request as completed
+        if ticket.material_request:
+            ticket.material_request.status = "completed"
+            ticket.material_request.save()
 
         # Notify requester
         send_notification(

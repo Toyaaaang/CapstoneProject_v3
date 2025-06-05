@@ -95,7 +95,20 @@ export default function RequestForm() {
     if (effectiveDept) {
       axios
         .get(`/inventory-by-department/?department=${effectiveDept}`)
-        .then((res) => setMaterials(res.data.map((inv) => inv.material)));
+        .then((res) => {
+          // Fix: build material objects if needed
+          setMaterials(
+            res.data.map((inv) =>
+              typeof inv.material === "object"
+                ? inv.material
+                : {
+                    id: inv.material,
+                    name: inv.material_name,
+                    unit: inv.unit,
+                  }
+            )
+          );
+        });
     }
   }, [effectiveDept]);
 
@@ -114,21 +127,6 @@ export default function RequestForm() {
     updated.splice(index, 1);
     setItems(updated);
   };
-
-  // Auto-populate units from inventory when material is selected
-  useEffect(() => {
-    const updatedItems = items.map((item) => {
-      if (!item.is_custom && item.material_id) {
-        const selected = materials.find((m) => m.id === item.material_id);
-        if (selected && item.unit !== selected.unit) {
-          return { ...item, unit: selected.unit };
-        }
-      }
-      return item;
-    });
-    setItems(updatedItems);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items.map((i) => i.material_id).join(), materials]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -301,17 +299,13 @@ export default function RequestForm() {
                     <Input
                       placeholder="Custom material name"
                       value={item.custom_name || ""}
-                      onChange={(e) =>
-                        updateItem(i, "custom_name", e.target.value)
-                      }
+                      onChange={(e) => updateItem(i, "custom_name", e.target.value)}
                       className="w-64"
                     />
                     <Input
                       placeholder="Custom unit"
                       value={item.custom_unit || ""}
-                      onChange={(e) =>
-                        updateItem(i, "custom_unit", e.target.value)
-                      }
+                      onChange={(e) => updateItem(i, "custom_unit", e.target.value)}
                       className="w-32"
                     />
                     <Button
@@ -325,13 +319,17 @@ export default function RequestForm() {
                 ) : (
                   <>
                     <Select
-                      value={item.material_id?.toString() || ""}
+                      value={item.material_id !== undefined ? item.material_id.toString() : ""}
                       onValueChange={(val) => {
                         if (val === "custom") {
                           updateItem(i, "is_custom", true);
                           updateItem(i, "material_id", undefined);
+                          updateItem(i, "unit", "");
                         } else {
+                          const mat = materials.find((m) => m.id === Number(val));
+                          updateItem(i, "is_custom", false);
                           updateItem(i, "material_id", Number(val));
+                          updateItem(i, "unit", mat?.unit ?? "");
                         }
                       }}
                     >
@@ -339,11 +337,13 @@ export default function RequestForm() {
                         <SelectValue placeholder="Select material" />
                       </SelectTrigger>
                       <SelectContent>
-                        {materials.map((mat) => (
-                          <SelectItem key={mat.id} value={mat.id.toString()}>
-                            {mat.name}
-                          </SelectItem>
-                        ))}
+                        {materials
+                          .filter((mat) => mat && mat.id !== undefined && mat.name !== undefined)
+                          .map((mat) => (
+                            <SelectItem key={mat.id} value={mat.id.toString()}>
+                              {mat.name}
+                            </SelectItem>
+                          ))}
                         <SelectItem value="custom">
                           ➕ Custom / Not in List
                         </SelectItem>
@@ -351,11 +351,11 @@ export default function RequestForm() {
                     </Select>
                     <Input
                       placeholder="Unit"
-                      value={item.unit}
-                      disabled={!item.is_custom}
-                      onChange={(e) =>
-                        updateItem(i, "unit", e.target.value)
+                      value={
+                        // Always show the correct unit for the selected material
+                        materials.find((m) => m.id === item.material_id)?.unit ?? ""
                       }
+                      disabled
                       className="w-32"
                     />
                   </>

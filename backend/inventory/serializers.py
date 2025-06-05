@@ -7,7 +7,10 @@ class MaterialSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class InventorySerializer(serializers.ModelSerializer):
-    material = MaterialSerializer(read_only=True)
+    material = serializers.PrimaryKeyRelatedField(queryset=Material.objects.all())
+    material_name = serializers.CharField(source='material.name', read_only=True)
+    unit = serializers.CharField(source='material.unit')
+
 
     class Meta:
         model = Inventory
@@ -19,5 +22,5 @@ class InventorySummarySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Inventory
-        fields = ['name', 'unit', 'quantity', 'department']
+        fields = ['name', 'unit', 'quantity',]
 

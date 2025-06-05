@@ -30,6 +30,8 @@ export const warehouseAdminMenu = [
       title: "Inventory",
       items: [
         { title: "Stock Management", url: "/pages/admin/stock" },
+        { title: "Inventory Management", url: "/pages/admin/inventory" },
+        { title: "Materials Management", url: "/pages/admin/materials" },
       ],
     },
   ];

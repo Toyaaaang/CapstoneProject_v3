@@ -22,6 +22,8 @@ class MaterialRequest(models.Model):
         ("in_progress", "In Progress"),
         ("completed", "Completed"), 
         ('charged', 'Charge Ticket Created'),
+        ('ready_for_release', 'Ready for Release'),
+        ('released', 'Released'),
         ('requisitioned', 'Requisition Voucher Created'),
         ('partially_fulfilled', 'Partially Fulfilled'),
         ('invalid', 'Invalid'),

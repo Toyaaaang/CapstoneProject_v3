@@ -9,7 +9,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .models import Material, Inventory
 from .serializers import MaterialSerializer, InventorySerializer, InventorySummarySerializer
-
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
 
 class MaterialListView(APIView):
     permission_classes = [IsAuthenticated]
@@ -28,13 +30,15 @@ class InventoryByDepartmentView(APIView):
         if not department:
             return Response({"error": "Missing department parameter"}, status=400)
 
-        # If department is "engineering" or "operations_maintenance", show both (shared inventory)
         if department in ["engineering", "operations_maintenance"]:
-            inventory = Inventory.objects.select_related("material").filter(
-                department__in=["engineering", "operations_maintenance"]
-            )
+            # Show all inventory except office supplies
+            inventory = Inventory.objects.select_related("material").exclude(material__category="office_supply")
+        elif department == "finance":
+            # Show only office supplies
+            inventory = Inventory.objects.select_related("material").filter(material__category="office_supply")
         else:
-            inventory = Inventory.objects.select_related("material").filter(department=department)
+            # Default: show nothing or handle as needed
+            inventory = Inventory.objects.none()
 
         serializer = InventorySerializer(inventory, many=True)
         return Response(serializer.data)
@@ -51,3 +55,20 @@ class InventorySummaryViewSet(viewsets.ReadOnlyModelViewSet):
             return base_qs.filter(department=user.role)
 
         return base_qs
+
+class MaterialAdminViewSet(viewsets.ModelViewSet):
+    queryset = Material.objects.all()
+    serializer_class = MaterialSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+class InventoryAdminViewSet(viewsets.ModelViewSet):
+    queryset = Inventory.objects.all()
+    serializer_class = InventorySerializer
+    permission_classes = [permissions.IsAdminUser]
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def all_materials_view(request):
+    materials = Material.objects.all()
+    serializer = MaterialSerializer(materials, many=True)
+    return Response(serializer.data)

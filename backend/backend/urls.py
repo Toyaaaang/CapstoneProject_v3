@@ -19,6 +19,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+admin.site.site_header = "Warehouse Management System Admin"
+admin.site.site_title = "Warehouse Operations Management System"
+admin.site.index_title = "Welcome to Warehouse Management System  Portal"
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
