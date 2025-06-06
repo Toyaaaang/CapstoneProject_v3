@@ -28,7 +28,7 @@ class Material(models.Model):
 
 class Inventory(models.Model):
     material = models.ForeignKey(Material, on_delete=models.CASCADE)
-    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    quantity = models.IntegerField(null=True, blank=True)
     # department = models.CharField(
     #     max_length=50,
     #     choices=[

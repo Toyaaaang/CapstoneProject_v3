@@ -1,7 +1,10 @@
 export const Menu = [
     {
       title: "Dashboard",
-      items: [{ title: "Overview", url: "/pages/finance" }],
+      items: [
+        { title: "Overview", url: "/pages/finance" },
+        { title: "Stocks", url: "/pages/finance/stock" }
+      ],
     },
     {
       title: "Reports",

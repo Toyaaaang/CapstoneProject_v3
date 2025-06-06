@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NotificationProvider } from "@/components/providers/NotificationProvider"; 
+import { ThemeProvider } from "@/components/themes/theme-provider";
 
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
@@ -30,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Google Maps Places API */}
         <Script
@@ -38,13 +39,13 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <NotificationProvider>
-        <Toaster position="top-center"/>
-        {children}
-        </NotificationProvider>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <NotificationProvider>
+            <Toaster position="top-center"/>
+            {children}
+          </NotificationProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

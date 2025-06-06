@@ -31,24 +31,36 @@ export const stockColumns: ColumnDef<StockSummary>[] = [
     size: 100,
   },
   {
-    accessorKey: "department",
-    header: "Department",
+    accessorKey: "category",
+    header: "Category",
     cell: ({ getValue }) => {
-      const dept = getValue() as string
+      const category = getValue() as string
       const labels: Record<string, string> = {
-        engineering: "ENGINEERING",
-        finance: "FINANCE",
-        operations_maintenance: "OPERATIONS & MAINTENANCE",
+        wiring: "WIRING AND CONDUCTORS",
+        poles: "POLES AND SUPPORTS",
+        metering: "METERING EQUIPMENT",
+        transformers: "TRANSFORMERS & SUBSTATIONS",
+        hardware: "HARDWARE & FASTENERS",
+        safety: "SAFETY EQUIPMENT",
+        tools: "TOOLS & ACCESSORIES",
+        office_supply: "OFFICE SUPPLIES",
+        uncategorized: "UNCATEGORIZED",
       }
       const badgeVariants: Record<string, "primary" | "secondary" | "info" | "warning" | "destructive" | "success" | "outline" | "default"> = {
-        engineering: "primary",
-        finance: "secondary",
-        operations_maintenance: "info",
+        wiring: "primary",
+        poles: "secondary",
+        metering: "info",
+        transformers: "warning",
+        hardware: "destructive",
+        safety: "success",
+        tools: "outline",
+        office_supply: "default",
+        uncategorized: "secondary",
       }
-      const variant = badgeVariants[dept] || "secondary"
+      const variant = badgeVariants[category] || "secondary"
       return (
         <Badge variant={variant} className="whitespace-nowrap px-2">
-          {labels[dept] || (dept ? dept.replace(/_/g, " ").toUpperCase() : "—")}
+          {labels[category] || (category ? category.replace(/_/g, " ").toUpperCase() : "—")}
         </Badge>
       )
     },

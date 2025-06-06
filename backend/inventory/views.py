@@ -49,12 +49,34 @@ class InventorySummaryViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        base_qs = Inventory.objects.select_related("material").order_by("material__name", "department")
+        base_qs = Inventory.objects.select_related("material").order_by("material__name")
 
-        if user.role in ["engineering", "operations_maintenance", "finance"]:
-            return base_qs.filter(department=user.role)
+        if user.role in ["engineering", "operations_maintenance", "warehouse_admin", "manager"]:
+            # Include everything except office supplies (includes uncategorized)
+            return base_qs.exclude(material__category="office_supply")
+        elif user.role == "finance":
+            # Only include office supplies
+            return base_qs.filter(material__category="office_supply")
+        else:
+            # Optionally include uncategorized for other roles, if needed:
+            return base_qs.filter(material__category="uncategorized")
+        
+class InventorySummaryNoPageView(APIView):
+    permission_classes = [IsAuthenticated]
 
-        return base_qs
+    def get(self, request):
+        user = request.user
+        base_qs = Inventory.objects.select_related("material").order_by("material__name")
+
+        if user.role in ["engineering", "operations_maintenance", "warehouse_admin", "manager"]:
+            queryset = base_qs.exclude(material__category="office_supply")
+        elif user.role == "finance":
+            queryset = base_qs.filter(material__category="office_supply")
+        else:
+            queryset = base_qs.filter(material__category="uncategorized")
+
+        serializer = InventorySummarySerializer(queryset, many=True)
+        return Response(serializer.data)
 
 class MaterialAdminViewSet(viewsets.ModelViewSet):
     queryset = Material.objects.all()

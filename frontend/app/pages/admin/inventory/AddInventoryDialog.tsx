@@ -20,7 +20,13 @@ export default function AddInventoryDialog({
   onAdd: (item: any) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ material: "", materialName: "", quantity: 0, visible: true });
+  const [form, setForm] = useState({
+    material: "",
+    materialName: "",
+    quantity: 0,
+    visible: true,
+    unit: "pcs", // <-- add this
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +41,7 @@ export default function AddInventoryDialog({
     try {
       await onAdd(form);
       setOpen(false);
-      setForm({ material: "", materialName: "", quantity: 0, visible: true });
+      setForm({ material: "", materialName: "", quantity: 0, visible: true, unit: "" });
     } catch {
       setError("Failed to add inventory.");
     } finally {
@@ -74,6 +80,7 @@ export default function AddInventoryDialog({
                       onSelect={() => {
                         handleChange("material", mat.id);
                         handleChange("materialName", mat.name);
+                        handleChange("unit", mat.unit);
                       }}
                     >
                       {mat.name}
@@ -106,6 +113,16 @@ export default function AddInventoryDialog({
                 <span className="text-sm">Visible</span>
               </div>
             </div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <Label htmlFor="unit">Unit</Label>
+            <Input
+              id="unit"
+              value={form.unit}
+              disabled
+              readOnly
+              className="bg-muted cursor-not-allowed"
+            />
           </div>
           {error && <div className="text-red-500">{error}</div>}
           <DialogFooter>

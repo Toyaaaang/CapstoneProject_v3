@@ -9,5 +9,9 @@ class MaterialAdmin(admin.ModelAdmin):
 
 @admin.register(Inventory)
 class InventoryAdmin(admin.ModelAdmin):
-    list_display = ('material', 'quantity', 'updated_at')
-    # list_filter = ('department',)
+    list_display = ('material', 'quantity', 'category', 'updated_at')
+
+    def category(self, obj):
+        return obj.material.get_category_display()
+    category.admin_order_field = 'material__category'
+    category.short_description = 'Category'

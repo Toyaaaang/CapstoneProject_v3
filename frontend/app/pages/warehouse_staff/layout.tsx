@@ -17,6 +17,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
+import { ModeToggle } from "@/components/themes/ModeToggle";
 
 
 export default function WarehouseStaffLayout({ children }: { children: React.ReactNode }) {
@@ -59,6 +60,7 @@ export default function WarehouseStaffLayout({ children }: { children: React.Rea
           
             {/* NotificationDropdown moved to the left of AccountPopover */}
             <div className="flex items-center gap-4">
+              <ModeToggle />
               <NotificationDropdown />
               <AccountPopover />
             </div>
