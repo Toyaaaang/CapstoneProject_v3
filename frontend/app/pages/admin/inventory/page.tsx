@@ -6,6 +6,8 @@ import { useAdminInventory } from "@/hooks/admin/useAdminInventory";
 import { getInventoryColumns } from "./columns";
 import TableLoader from "@/components/Loaders/TableLoader";
 import AddInventoryDialog from "./AddInventoryDialog";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export default function AdminInventoryPage() {
   const {
@@ -19,6 +21,7 @@ export default function AdminInventoryPage() {
   } = useAdminInventory();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [localInventory, setLocalInventory] = useState<any[]>([]);
+  const router = useRouter();
 
   React.useEffect(() => {
     setLocalInventory(inventory);
@@ -64,7 +67,15 @@ export default function AdminInventoryPage() {
 
   return (
     <div>
-      <AddInventoryDialog materials={materials} onAdd={handleAdd} />
+      <div className="flex gap-2 mb-2 ml-5">
+        <AddInventoryDialog materials={materials} onAdd={handleAdd} />
+        <Button
+          variant="outline"
+          onClick={() => router.push("/pages/admin/inventory/batch-add")}
+        >
+          + Batch Add Inventory
+        </Button>
+      </div>
       {loading ? (
         <TableLoader />
       ) : error ? (

@@ -17,5 +17,8 @@ router.register(r'purchase-orders', PurchaseOrderViewSet, basename='purchase-ord
 router.register(r'quality-checks', QualityCheckViewSet, basename='quality-check')
 router.register(r"certifications", CertificationViewSet, basename="certification")
 router.register(r"receiving-reports", ReceivingReportViewSet, basename="receiving-report")
+router.register(r'employee/requests-history', MaterialRequestViewSet, basename='employee-requests-history')
 
-urlpatterns = router.urls
+urlpatterns = [
+    # ...other urls...
+] + router.urls

@@ -1,9 +1,10 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation"; // or "next/router" if using older Next.js
 
 export type MaterialRequest = {
+  work_order_no: string;
   id: number;
   department: string;
   status: string;
@@ -73,6 +74,13 @@ export const columns: ColumnDef<MaterialRequest>[] = [
     ),
   },
   {
+    header: "Work Order No.",
+    accessorKey: "work_order_no",
+    cell: ({ row }) => (
+      <span className="py-2">{row.original.work_order_no || "—"}</span>
+    ),
+  },
+  {
     header: "Status",
     accessorKey: "status",
     cell: ({ row }) => {
@@ -93,23 +101,17 @@ export const columns: ColumnDef<MaterialRequest>[] = [
   },
   {
     header: "Items",
-    cell: ({ row }) => (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm">
-            View Items
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-64">
-          <ul className="text-sm leading-relaxed space-y-1 py-2">
-            {row.original.items.map((item, idx) => (
-              <li key={idx} className="list-disc list-inside">
-                {(item.material?.name || item.custom_name || "Unknown")} – {item.quantity} {item.unit}
-              </li>
-            ))}
-          </ul>
-        </PopoverContent>
-      </Popover>
-    ),
+    cell: ({ row }) => {
+      const router = useRouter();
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => router.push(`/pages/employee/requests-history/${row.original.id}/items`)}
+        >
+          View Items
+        </Button>
+      );
+    },
   },
 ];

@@ -38,6 +38,12 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
         user = self.request.user
         role = user.role
 
+        # For detail view, allow requester or department members to see the request
+        if self.action == "retrieve":
+            return MaterialRequest.objects.filter(
+                Q(requester=user) | Q(department=role)
+            )
+
         if self.action == "my_requests":
             return MaterialRequest.objects.filter(requester=user).order_by("-created_at")
 
@@ -48,7 +54,7 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
                 department=role
             ).exclude(status="pending").order_by("-created_at")
 
-        # ✅ Main material-requests endpoint
+        # Main material-requests endpoint
         if role == "warehouse_staff":
             return MaterialRequest.objects.filter(
                 (

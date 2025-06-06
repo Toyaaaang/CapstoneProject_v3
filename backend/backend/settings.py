@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'material_requests',
     'inventory',
     'accountability',
+    'dashboard',
 ]
 
 REST_FRAMEWORK = {
