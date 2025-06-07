@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from inventory.models import Inventory
 from ..models import ChargeTicket
 from material_requests.serializers.charge import ChargeTicketSerializer
+from material_requests.serializers.charge import ChargeTicketPrintableSerializer
 from notification.utils import send_notification
 from authentication.models import User
 from accountability.models import Accountability, AccountabilityItem
@@ -230,3 +231,9 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
         )
 
         return Response({"message": "Ticket marked as released and accountability recorded."})
+
+    @action(detail=True, methods=["get"])
+    def printable(self, request, pk=None):
+        ticket = self.get_object()
+        serializer = ChargeTicketPrintableSerializer(ticket)
+        return Response(serializer.data)

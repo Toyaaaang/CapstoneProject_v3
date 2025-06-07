@@ -19,6 +19,7 @@ import EngOpFields from "./EngOpFields";
 import FinanceFields from "./FinanceFields";
 import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 import { useGooglePlacesReady } from "@/hooks/googleAPI/useGooglePlacesReady";
+import FormLoader from "@/components/Loaders/FormLoader";
 
 type Material = {
   id: number;
@@ -198,6 +199,10 @@ export default function RequestForm() {
       setSubmitting(false);
     }
   };
+
+  if (!userInfo && typeof window !== "undefined") {
+    return <FormLoader />;
+  }
 
   return (
     <Card className="p-6 w-full mx-auto space-y-4">

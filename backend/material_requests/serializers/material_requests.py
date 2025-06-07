@@ -74,3 +74,13 @@ class WorkOrderAssignmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = MaterialRequest
         fields = ['work_order_no', 'manpower', 'target_completion', 'actual_completion', 'duration']
+
+    def assign_work_order(self, request, pk):
+        request_obj = self.get_object(pk)
+        serializer = self.__class__(request_obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        request_obj.status = "won_assigned"
+        request_obj.work_order_assigned_by = request.user  # <-- Save who assigned
+        request_obj.save()
+        return request_obj

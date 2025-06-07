@@ -46,6 +46,9 @@ class MaterialRequest(models.Model):
     # Finance-only field
     requester_department = models.CharField(max_length=100, blank=True, null=True)
 
+    work_order_assigned_by = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="work_orders_assigned"
+    )
 
     def save(self, *args, **kwargs):
         if not self.work_order_no and self.department in ['engineering', 'operations_maintenance']:

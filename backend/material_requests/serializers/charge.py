@@ -45,3 +45,84 @@ class ChargeTicketSerializer(serializers.ModelSerializer):
             message=f"Your request #{ticket.material_request.id} has been issued as a Charge Ticket."
         )
         return ticket
+
+class ChargeTicketPrintableSerializer(serializers.ModelSerializer):
+    items = serializers.SerializerMethodField()
+    approvers = serializers.SerializerMethodField()
+    requester_name = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
+    work_order_no = serializers.SerializerMethodField()
+    issued_by_name = serializers.SerializerMethodField()
+    issued_by_signature = serializers.SerializerMethodField()
+    work_order_assigner = serializers.SerializerMethodField()
+    work_order_assigner_signature = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChargeTicket
+        fields = [
+            "id", "ic_no", "mc_no", "department", "purpose", "location", "created_at",
+            "work_order_no", "issued_by_name", "issued_by_signature",
+            "items", "approvers", "requester_name", "work_order_assigner", "work_order_assigner_signature",
+        ]
+
+    def get_items(self, obj):
+        return [
+            {
+                "name": item.material.name,
+                "unit": item.unit,
+                "quantity": float(item.quantity),
+            }
+            for item in obj.items.all()
+        ]
+
+    def get_approvers(self, obj):
+        approvers = []
+        if obj.approved_by:
+            approvers.append({
+                "full_name": obj.approved_by.get_full_name(),
+                "role": obj.approved_by.role,
+                "signature": obj.approved_by.signature.url if obj.approved_by.signature else None,
+            })
+        if obj.issued_by:
+            approvers.append({
+                "full_name": obj.issued_by.get_full_name(),
+                "role": obj.issued_by.role,
+                "signature": obj.issued_by.signature.url if obj.issued_by.signature else None,
+            })
+        return approvers
+
+    def get_requester_name(self, obj):
+        return obj.requester.get_full_name()
+
+    def get_location(self, obj):
+        # Adjust this if your related field is named differently
+        if obj.material_request:
+            return obj.material_request.location
+        return None
+
+    def get_issued_by_name(self, obj):
+        if obj.issued_by:
+            return obj.issued_by.get_full_name()
+        return None
+
+    def get_issued_by_signature(self, obj):
+        if obj.issued_by and obj.issued_by.signature:
+            return obj.issued_by.signature.url
+        return None
+
+    def get_work_order_no(self, obj):
+        if obj.material_request:
+            return obj.material_request.work_order_no
+        return None
+
+    def get_work_order_assigner(self, obj):
+        mr = obj.material_request
+        if mr and mr.work_order_assigned_by:
+            return mr.work_order_assigned_by.get_full_name()
+        return None
+
+    def get_work_order_assigner_signature(self, obj):
+        mr = obj.material_request
+        if mr and mr.work_order_assigned_by and mr.work_order_assigned_by.signature:
+            return mr.work_order_assigned_by.signature.url
+        return None
