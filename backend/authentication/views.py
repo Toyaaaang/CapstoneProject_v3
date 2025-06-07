@@ -26,6 +26,7 @@ from django.core.mail import send_mail
 from django.utils.http import urlsafe_base64_decode
 from django.contrib.auth.forms import SetPasswordForm
 from django.db.models import Q
+import cloudinary.uploader
 
 class RoleRequestPagination(PageNumberPagination):
     page_size = 10
@@ -170,28 +171,31 @@ class GetUserView(views.APIView):
             "is_role_confirmed": user.is_role_confirmed
         })
 
-# Save User Signature
 class SaveSignatureView(views.APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user = request.user
-        signature_file = request.FILES.get("signature")
+        signature_file = request.FILES.get("image")  # <-- updated here
 
         if not signature_file:
             return Response({"error": "Signature file is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            # Save the file to the media directory
-            signature_path = os.path.join("signatures", f"{user.id}_signature.png")
-            full_path = os.path.join(settings.MEDIA_ROOT, signature_path)
-            default_storage.save(full_path, ContentFile(signature_file.read()))
+            # Upload to Cloudinary
+            result = cloudinary.uploader.upload(
+                signature_file,
+                folder="signatures",
+                public_id=f"{user.username}_signature",
+                overwrite=True,
+                resource_type="image"
+            )
 
-            # Save the file path in the user's signature field
-            user.signature = signature_path
+            # Save URL to the user model
+            user.signature = result["secure_url"]
             user.save()
 
-            return Response({"message": "Signature saved successfully."}, status=status.HTTP_200_OK)
+            return Response({"message": "Signature uploaded successfully.", "url": user.signature}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

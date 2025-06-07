@@ -1,39 +1,85 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import SignatureCanvas from "react-signature-canvas";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Save, X } from "lucide-react";
 import { toast } from "sonner";
+import axios from "@/lib/axios";
 
 interface ESignatureRecorderProps {
   isOpen: boolean;
   onClose: () => void;
-  onSignatureFetched: () => void; // Callback to notify when the signature is fetched
+  onSignatureFetched: (url: string) => void; // Send Cloudinary URL
 }
 
-export default function ESignatureRecorder({ isOpen, onClose, onSignatureFetched }: ESignatureRecorderProps) {
+export default function ESignatureRecorder({
+  isOpen,
+  onClose,
+  onSignatureFetched,
+}: ESignatureRecorderProps) {
   const signaturePadRef = useRef<SignatureCanvas>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleClear = () => {
     signaturePadRef.current?.clear();
     toast.info("Signature cleared.");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (signaturePadRef.current?.isEmpty()) {
       toast.error("Please draw your signature first!");
       return;
     }
 
-    // Simulate saving the signature
-    const signatureDataUrl = signaturePadRef.current?.toDataURL("image/png");
-    console.log("Simulated saved signature:", signatureDataUrl); // Debugging
+    const dataUrl = signaturePadRef.current.toDataURL("image/png");
 
-    toast.success("Signature saved successfully!");
-    onSignatureFetched(); // Notify that the signature has been saved
-    onClose();
+    // Convert dataURL to Blob
+    function dataURLtoBlob(dataurl: string) {
+      const arr = dataurl.split(",");
+      const mime = arr[0].match(/:(.*?);/)![1];
+      const bstr = atob(arr[1]);
+      let n = bstr.length;
+      const u8arr = new Uint8Array(n);
+      while (n--) {
+        u8arr[n] = bstr.charCodeAt(n);
+      }
+      return new Blob([u8arr], { type: mime });
+    }
+
+    const blob = dataURLtoBlob(dataUrl);
+    const formData = new FormData();
+    formData.append("image", blob, "signature.png");
+
+    try {
+      setIsSaving(true);
+      const response = await axios.post(
+        "/authentication/save-signature/",
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+          withCredentials: true,
+        }
+      );
+
+      const signatureUrl = response.data.url;
+
+      toast.success("Signature uploaded successfully!");
+      onSignatureFetched(signatureUrl);
+      onClose();
+    } catch (error) {
+      console.error("Error uploading signature:", error);
+      toast.error("Failed to upload signature. Try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -57,13 +103,13 @@ export default function ESignatureRecorder({ isOpen, onClose, onSignatureFetched
           />
         </div>
         <DialogFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleClear}>
+          <Button variant="outline" onClick={handleClear} disabled={isSaving}>
             <X className="mr-1" />
             Clear
           </Button>
-          <Button onClick={handleSave} className="mr-4">
+          <Button onClick={handleSave} className="mr-4" disabled={isSaving}>
             <Save className="mr-1" />
-            Save
+            {isSaving ? "Saving..." : "Save"}
           </Button>
         </DialogFooter>
       </DialogContent>

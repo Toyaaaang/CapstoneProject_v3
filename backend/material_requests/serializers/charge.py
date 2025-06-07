@@ -81,13 +81,13 @@ class ChargeTicketPrintableSerializer(serializers.ModelSerializer):
             approvers.append({
                 "full_name": obj.approved_by.get_full_name(),
                 "role": obj.approved_by.role,
-                "signature": obj.approved_by.signature.url if obj.approved_by.signature else None,
+                "signature": obj.approved_by.signature if obj.approved_by.signature else None,
             })
         if obj.issued_by:
             approvers.append({
                 "full_name": obj.issued_by.get_full_name(),
                 "role": obj.issued_by.role,
-                "signature": obj.issued_by.signature.url if obj.issued_by.signature else None,
+                "signature": obj.issued_by.signature if obj.issued_by.signature else None,
             })
         return approvers
 
@@ -107,7 +107,7 @@ class ChargeTicketPrintableSerializer(serializers.ModelSerializer):
 
     def get_issued_by_signature(self, obj):
         if obj.issued_by and obj.issued_by.signature:
-            return obj.issued_by.signature.url
+            return obj.issued_by.signature
         return None
 
     def get_work_order_no(self, obj):
@@ -124,5 +124,5 @@ class ChargeTicketPrintableSerializer(serializers.ModelSerializer):
     def get_work_order_assigner_signature(self, obj):
         mr = obj.material_request
         if mr and mr.work_order_assigned_by and mr.work_order_assigned_by.signature:
-            return mr.work_order_assigned_by.signature.url
+            return mr.work_order_assigned_by.signature
         return None

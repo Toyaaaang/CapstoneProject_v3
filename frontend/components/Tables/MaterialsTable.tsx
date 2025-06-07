@@ -28,12 +28,20 @@ export default function MaterialsTable({
   columns = defaultMaterialColumns,
   fetchUrl = "/admin/materials/all/",
   loading: loadingProp,
+  page = 1,
+  setPage = () => {},
+  totalCount,
+  pageSize,
   ...props
 }: {
   data?: any[];
   columns?: ColumnDef<any>[];
   fetchUrl?: string;
   loading?: boolean;
+  page?: number;
+  setPage?: (page: number) => void;
+  totalCount?: number;
+  pageSize?: number;
   [key: string]: any;
 }) {
   const [materials, setMaterials] = useState<any[]>([]);
@@ -58,10 +66,10 @@ export default function MaterialsTable({
       title="Material Request"
       columns={columns}
       data={materials}
-      page={1}
-      setPage={() => {}}
-      totalCount={materials.length}
-      pageSize={materials.length}
+      page={page}
+      setPage={setPage}
+      totalCount={totalCount ?? materials.length}
+      pageSize={pageSize ?? materials.length}
       {...props}
     />
   );
