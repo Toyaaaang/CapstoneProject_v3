@@ -8,15 +8,21 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import DataTable from "@/components/Tables/DataTable";
 import { useAdminInventory } from "@/hooks/admin/useAdminInventory";
-import {
-  Command, CommandInput, CommandList, CommandItem, CommandEmpty
-} from "@/components/ui/command";
+import { toast } from "sonner";
+import { Combobox } from "@/components/ui/combobox";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 
 export default function BatchAddInventoryPage() {
   const router = useRouter();
   const { materials, addInventory } = useAdminInventory();
-  const [form, setForm] = useState({ material: "", materialName: "", quantity: 0, visible: true });
+
+  const [form, setForm] = useState({
+    material: "",
+    materialName: "",
+    quantity: 0,
+    visible: true,
+  });
+
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,15 +32,17 @@ export default function BatchAddInventoryPage() {
   };
 
   const handleAddToList = () => {
-    setItems([
-      ...items,
-      {
-        material: form.material,
-        materialName: form.materialName,
-        quantity: form.quantity,
-        visible: form.visible,
-      },
-    ]);
+    if (!form.material || !form.quantity) {
+      toast.warning("Please select a material and enter quantity.");
+      return;
+    }
+
+    if (items.some(item => item.material === form.material)) {
+      toast.warning("This material is already in the list.");
+      return;
+    }
+
+    setItems([...items, { ...form }]);
     setForm({ material: "", materialName: "", quantity: 0, visible: true });
   };
 
@@ -46,14 +54,23 @@ export default function BatchAddInventoryPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
     try {
-      // Submit all items in batch (adjust as needed for your backend)
       for (const item of items) {
         await addInventory(item);
       }
+      toast.success("All items added to inventory!");
       router.push("/pages/admin/inventory");
-    } catch {
-      setError("Failed to add inventory.");
+    } catch (err: any) {
+      if (
+        err?.response?.data?.non_field_errors &&
+        err.response.data.non_field_errors[0]?.includes("must make a unique set")
+      ) {
+        toast.error("One or more materials already exist in inventory.");
+      } else {
+        toast.error("Failed to add some items. Try again later.");
+        setError("Unexpected error occurred.");
+      }
     } finally {
       setLoading(false);
     }
@@ -62,7 +79,11 @@ export default function BatchAddInventoryPage() {
   const columns = [
     { header: "Material", accessorKey: "materialName" },
     { header: "Quantity", accessorKey: "quantity" },
-    { header: "Visible", accessorKey: "visible", cell: ({ row }: any) => (row.original.visible ? "Yes" : "No") },
+    {
+      header: "Visible",
+      accessorKey: "visible",
+      cell: ({ row }: any) => (row.original.visible ? "Yes" : "No"),
+    },
     {
       header: "",
       id: "actions",
@@ -82,7 +103,7 @@ export default function BatchAddInventoryPage() {
   return (
     <div className="w-full mx-auto p-6 max-w-6xl">
       <h1 className="text-2xl font-bold mb-6">Batch Add Inventory</h1>
-      <form onSubmit={handleSubmit}>
+      <div>
         <div className="flex flex-col md:flex-row gap-8">
           {/* Left: Add Material Form in a Card */}
           <div className="flex-1 min-w-[260px]">
@@ -91,49 +112,35 @@ export default function BatchAddInventoryPage() {
                 <CardTitle>Add Material</CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-4">
-                {/* Material Search */}
+                {/* Material Selector via Combobox */}
                 <div className="flex flex-col gap-1">
                   <Label htmlFor="material">Material</Label>
-                  <Command>
-                    <CommandInput
-                      placeholder="Search material..."
-                      value={form.materialName}
-                      onValueChange={val => handleChange("materialName", val)}
-                    />
-                    <CommandList>
-                      <CommandEmpty>No material found.</CommandEmpty>
-                      {materials
-                        .filter(mat =>
-                          mat.name.toLowerCase().includes(form.materialName.toLowerCase())
-                        )
-                        .map(mat => (
-                          <CommandItem
-                            key={mat.id}
-                            value={mat.name}
-                            onSelect={() => {
-                              handleChange("material", mat.id);
-                              handleChange("materialName", mat.name);
-                            }}
-                          >
-                            {mat.name}
-                          </CommandItem>
-                        ))}
-                    </CommandList>
-                  </Command>
+                  <Combobox
+                    options={materials.map((mat: any) => ({
+                      label: mat.name,
+                      value: mat.id.toString(),
+                    }))}
+                    value={form.material}
+                    onChange={(value) => {
+                      const mat = materials.find((m: any) => m.id.toString() === value);
+                      handleChange("material", value);
+                      handleChange("materialName", mat?.name ?? "");
+                    }}
+                    placeholder="Select a material..."
+                  />
                 </div>
-                {/* Quantity & Visible */}
+                {/* Quantity & Visibility */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                   <div className="flex flex-col gap-1">
                     <Label htmlFor="quantity">Quantity</Label>
                     <Input
                       id="quantity"
                       type="number"
-                      min={1}
                       placeholder="Quantity"
                       value={form.quantity}
                       onChange={e => handleChange("quantity", Number(e.target.value))}
-                      required
                     />
+
                   </div>
                   <div className="flex flex-col gap-1">
                     <Label htmlFor="visible">Visible</Label>
@@ -141,7 +148,9 @@ export default function BatchAddInventoryPage() {
                       <Checkbox
                         id="visible"
                         checked={form.visible}
-                        onCheckedChange={val => handleChange("visible", !!val)}
+                        onCheckedChange={val =>
+                          handleChange("visible", !!val)
+                        }
                       />
                       <span className="text-sm">Visible</span>
                     </div>
@@ -152,17 +161,15 @@ export default function BatchAddInventoryPage() {
                 <Button
                   type="button"
                   onClick={handleAddToList}
-                  disabled={!form.material || !form.quantity}
-                  variant="secondary"
                   className="w-full"
                 >
                   Add to List
                 </Button>
-
               </CardFooter>
             </Card>
           </div>
-          {/* Right: Items Table */}
+
+          {/* Right: Preview Table & Submit */}
           <div className="flex-1 min-w-[320px]">
             <DataTable
               title="Items to Add"
@@ -174,26 +181,27 @@ export default function BatchAddInventoryPage() {
               pageSize={items.length}
             />
             {error && <div className="text-red-500 mt-2">{error}</div>}
-                <div className="flex flex-col gap-4 mt-5 w-full">
-                  <Button
-                    type="submit"
-                    disabled={loading || items.length === 0}
-                    className="w-full"
-                  >
-                    {loading ? "Saving..." : "Add All"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => router.push("/pages/admin/inventory")}
-                    className="w-full"
-                  >
-                    Cancel
-                  </Button>
-                </div>
+            <div className="flex flex-col gap-4 mt-5 w-full">
+              <Button
+                type="button"
+                disabled={loading || items.length === 0}
+                onClick={handleSubmit}
+                className="w-full"
+              >
+                {loading ? "Saving..." : "Add All"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.push("/pages/admin/inventory")}
+                className="w-full"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   );
 }

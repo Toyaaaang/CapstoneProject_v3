@@ -20,6 +20,7 @@ import FinanceFields from "./FinanceFields";
 import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 import { useGooglePlacesReady } from "@/hooks/googleAPI/useGooglePlacesReady";
 import FormLoader from "@/components/Loaders/FormLoader";
+import { Combobox } from "@/components/ui/combobox"; // <-- use your reusable Combobox
 
 type Material = {
   id: number;
@@ -323,9 +324,22 @@ export default function RequestForm() {
                   </>
                 ) : (
                   <>
-                    <Select
-                      value={item.material_id !== undefined ? item.material_id.toString() : ""}
-                      onValueChange={(val) => {
+                    <Combobox
+                      options={[
+                        ...materials.map((mat) => ({
+                          value: mat.id.toString(),
+                          label: mat.name,
+                        })),
+                        { value: "custom", label: "➕ Custom / Not in List" },
+                      ]}
+                      value={
+                        item.is_custom
+                          ? "custom"
+                          : item.material_id !== undefined
+                          ? item.material_id.toString()
+                          : ""
+                      }
+                      onChange={(val) => {
                         if (val === "custom") {
                           updateItem(i, "is_custom", true);
                           updateItem(i, "material_id", undefined);
@@ -337,31 +351,15 @@ export default function RequestForm() {
                           updateItem(i, "unit", mat?.unit ?? "");
                         }
                       }}
-                    >
-                      <SelectTrigger className="w-64">
-                        <SelectValue placeholder="Select material" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {materials
-                          .filter((mat) => mat && mat.id !== undefined && mat.name !== undefined)
-                          .map((mat) => (
-                            <SelectItem key={mat.id} value={mat.id.toString()}>
-                              {mat.name}
-                            </SelectItem>
-                          ))}
-                        <SelectItem value="custom">
-                          ➕ Custom / Not in List
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
+                      placeholder="Select material"
+                      searchPlaceholder="Search material..."
+                      className="w-[280px]" // wider combobox
+                    />
                     <Input
                       placeholder="Unit"
-                      value={
-                        // Always show the correct unit for the selected material
-                        materials.find((m) => m.id === item.material_id)?.unit ?? ""
-                      }
+                      value={materials.find((m) => m.id === item.material_id)?.unit ?? ""}
                       disabled
-                      className="w-32"
+                      className="w-32 ml-6" // add margin-left to move unit further right
                     />
                   </>
                 )}
@@ -389,6 +387,13 @@ export default function RequestForm() {
           ))}
           <Button type="button" variant="outline" onClick={addItem}>
             + Add Item
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setItems([...items, { is_custom: true, quantity: 1, unit: "" }])}
+          >
+            + Add Custom Item
           </Button>
 
           <ConfirmActionDialog

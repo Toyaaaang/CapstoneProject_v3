@@ -68,7 +68,7 @@ export default function AdminInventoryPage() {
   return (
     <div>
       <div className="flex gap-2 mb-2 ml-5">
-        <AddInventoryDialog materials={materials} onAdd={handleAdd} />
+        <AddInventoryDialog materials={materials} onAdd={handleAdd} onSuccess={() => fetchInventory()} />
         <Button
           variant="outline"
           onClick={() => router.push("/pages/admin/inventory/batch-add")}

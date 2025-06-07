@@ -26,8 +26,9 @@ export function useAdminInventory() {
     try {
       await axios.patch(`/admin/inventory/${id}/`, data);
       await fetchInventory();
-    } catch (err) {
-      setError("Failed to update inventory.");
+    } catch (err: any) {
+      console.error("Update error:", err);
+      throw err; // Re-throw to handle in the component (e.g. show toast)
     }
   };
 
@@ -35,8 +36,9 @@ export function useAdminInventory() {
     try {
       await axios.post("/admin/inventory/", data);
       await fetchInventory();
-    } catch (err) {
-      setError("Failed to add inventory.");
+    } catch (err: any) {
+      console.error("Add error:", err);
+      throw err; // Re-throw so AddInventoryDialog can show a toast
     }
   };
 

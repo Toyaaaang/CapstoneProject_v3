@@ -6,18 +6,19 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Command, CommandInput, CommandList, CommandItem, CommandEmpty
-} from "@/components/ui/command";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Combobox } from "@/components/ui/combobox";
+import { toast } from "sonner";
 
 export default function AddInventoryDialog({
   materials,
   onAdd,
+  onSuccess,
 }: {
   materials: any[];
   onAdd: (item: any) => Promise<void>;
+  onSuccess?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -25,10 +26,9 @@ export default function AddInventoryDialog({
     materialName: "",
     quantity: 0,
     visible: true,
-    unit: "pcs", // <-- add this
+    unit: "pcs",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleChange = (field: string, value: any) => {
     setForm(f => ({ ...f, [field]: value }));
@@ -37,20 +37,28 @@ export default function AddInventoryDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
     try {
       await onAdd(form);
+      toast.success("Inventory added successfully.");
       setOpen(false);
+      onSuccess?.(); // Refresh the table
       setForm({ material: "", materialName: "", quantity: 0, visible: true, unit: "" });
-    } catch {
-      setError("Failed to add inventory.");
+    } catch (err: any) {
+      if (
+        err?.response?.data?.non_field_errors &&
+        err.response.data.non_field_errors[0]?.includes("must make a unique set")
+      ) {
+        toast.error("This material already exists in inventory. Please edit it instead.");
+      } else {
+        toast.error("Failed to add inventory.");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setOpen} modal={false}>
       <DialogTrigger asChild>
         <Button className="mb-4">+ Add Inventory</Button>
       </DialogTrigger>
@@ -61,33 +69,22 @@ export default function AddInventoryDialog({
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="flex flex-col gap-1 mb-4">
             <Label htmlFor="material">Material</Label>
-            <Command>
-              <CommandInput
-                placeholder="Search material..."
-                value={form.materialName}
-                onValueChange={val => handleChange("materialName", val)}
-              />
-              <CommandList>
-                <CommandEmpty>No material found.</CommandEmpty>
-                {materials
-                  .filter(mat =>
-                    mat.name.toLowerCase().includes(form.materialName.toLowerCase())
-                  )
-                  .map(mat => (
-                    <CommandItem
-                      key={mat.id}
-                      value={mat.name}
-                      onSelect={() => {
-                        handleChange("material", mat.id);
-                        handleChange("materialName", mat.name);
-                        handleChange("unit", mat.unit);
-                      }}
-                    >
-                      {mat.name}
-                    </CommandItem>
-                  ))}
-              </CommandList>
-            </Command>
+            <Combobox
+              options={materials.map(mat => ({
+                value: mat.id.toString(),
+                label: mat.name,
+              }))}
+              value={form.material ? form.material.toString() : ""}
+              onChange={val => {
+                const mat = materials.find(m => m.id.toString() === val);
+                handleChange("material", val);
+                handleChange("materialName", mat?.name ?? "");
+                handleChange("unit", mat?.unit ?? "");
+              }}
+              placeholder="Select material..."
+              searchPlaceholder="Search material..."
+              className="w-[280px]"
+            />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
             <div className="flex flex-col gap-1">
@@ -124,7 +121,6 @@ export default function AddInventoryDialog({
               className="bg-muted cursor-not-allowed"
             />
           </div>
-          {error && <div className="text-red-500">{error}</div>}
           <DialogFooter>
             <Button
               type="submit"
