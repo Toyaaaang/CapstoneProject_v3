@@ -78,6 +78,7 @@ export default function PrintableChargeForm({ data }: { data: any }) {
           <table className="w-full border">
             <thead>
               <tr>
+                <th className="border px-2 py-1 text-left w-8">No.</th>
                 <th className="border px-2 py-1 text-left">Material Name</th>
                 <th className="border px-2 py-1 text-left">Unit</th>
                 <th className="border px-2 py-1 text-left">Quantity</th>
@@ -86,6 +87,7 @@ export default function PrintableChargeForm({ data }: { data: any }) {
             <tbody>
               {data.items?.map((item: any, idx: number) => (
                 <tr key={idx}>
+                  <td className="border px-2 py-1 text-center">{idx + 1}</td>
                   <td className="border px-2 py-1">{item.name}</td>
                   <td className="border px-2 py-1">{item.unit}</td>
                   <td className="border px-2 py-1">{item.quantity}</td>

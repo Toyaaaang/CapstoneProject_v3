@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated # type: ignore
 from ..models import RequisitionVoucher
-from ..serializers import RequisitionVoucherSerializer, RequisitionVoucherApprovalSerializer
+from ..serializers import RequisitionVoucherSerializer, RequisitionVoucherApprovalSerializer, PrintableRequisitionVoucherSerializer
 from django.db.models import Q
 from notification.utils import send_notification
 # 
@@ -162,4 +162,10 @@ class RequisitionVoucherViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["get"], url_path="printable")
+    def printable(self, request, pk=None):
+        rv = self.get_object()
+        serializer = PrintableRequisitionVoucherSerializer(rv)
         return Response(serializer.data)

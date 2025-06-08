@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import axios from "@/lib/axios";
+import { XCircle } from "lucide-react";
 
 const REJECTION_REASONS = [
   "Insufficient budget allocation",
@@ -61,7 +62,7 @@ export function RejectRVDialog({ rvId, refreshData }: RejectRVDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="destructive">Reject</Button>
+        <Button size="sm" variant="destructive"><XCircle/>Reject</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>

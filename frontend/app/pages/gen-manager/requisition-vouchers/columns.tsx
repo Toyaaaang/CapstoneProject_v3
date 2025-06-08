@@ -6,8 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RejectRVDialog } from "@/components/dialogs/RejectRVDialog";
 import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
+import { Eye, CheckCircle2, X } from "lucide-react";
 
 interface RequisitionVoucher {
+  location: string;
+  purpose: any;
   id: number;
   rv_number: string;
   department: string;
@@ -71,10 +74,34 @@ export const columns: ColumnDef<RequisitionVoucher>[] = [
     ),
   },
   {
+    header: "Purpose",
+    accessorKey: "purpose",
+    cell: ({ row }) => (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className="max-w-[120px] truncate">
+            {row.original.purpose?.length > 20
+              ? row.original.purpose.slice(0, 20) + "..."
+              : row.original.purpose || "—"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="max-w-xs break-words">
+          <div className="text-sm text-zinc-700 dark:text-zinc-200 mb-2">
+            <span className="font-semibold">Purpose:</span>{" "}
+            {row.original.purpose || "No purpose provided."}
+          </div>
+          <div className="text-sm text-zinc-700 dark:text-zinc-200">
+            <span className="font-semibold">Location:</span>{" "}
+            {row.original.location || "No location provided."}
+          </div>
+        </PopoverContent>
+      </Popover>
+    ),
+  },
+  {
     header: "Items",
     cell: ({ row }) => {
-      const items = row.original.items;
-
+      const items = row.original.items || [];
       return (
         <Popover>
           <PopoverTrigger asChild>
@@ -91,7 +118,7 @@ export const columns: ColumnDef<RequisitionVoucher>[] = [
                   <span className="text-right">Unit</span>
                 </div>
                 <div className="grid grid-cols-1 gap-2">
-                  {items.map((item: any, index: number) => (
+                  {items.slice(0, 5).map((item: any, index: number) => (
                     <div
                       key={index}
                       className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30"
@@ -100,7 +127,7 @@ export const columns: ColumnDef<RequisitionVoucher>[] = [
                         {item.material_name ? (
                           item.material_name
                         ) : (
-                          <span className="italic text-muted-foreground">
+                          <span className="italic text-zinc-700 dark:text-zinc-200">
                             {item.custom_name || "Custom Item"}
                           </span>
                         )}
@@ -108,18 +135,31 @@ export const columns: ColumnDef<RequisitionVoucher>[] = [
                           <Badge variant="outline" className="ml-1 text-xs">Custom</Badge>
                         )}
                       </div>
-                      <div className="text-center text-muted-foreground text-xs">
+                      <div className="text-center text-zinc-700 dark:text-zinc-200 text-xs">
                         {item.quantity}
                       </div>
-                      <div className="text-right text-muted-foreground text-xs">
+                      <div className="text-right text-zinc-700 dark:text-zinc-200 text-xs">
                         {item.unit}
                       </div>
                     </div>
                   ))}
                 </div>
+                {items.length > 5 && (
+                  <div className="mt-2 text-xs text-center text-zinc-500 dark:text-zinc-400">
+                    +{items.length - 5} more...
+                  </div>
+                )}
+                <div className="mt-3 text-center">
+                  <a
+                    href={`/pages/gen-manager/requisition-vouchers/${row.original.id}/items`}
+                    className="text-xs text-blue-600 hover:underline cursor-pointer"
+                  >
+                    See Full Details
+                  </a>
+                </div>
               </div>
             ) : (
-              <div className="text-muted-foreground text-xs">No items</div>
+              <div className="text-zinc-500 dark:text-zinc-400 text-xs">No items</div>
             )}
           </PopoverContent>
         </Popover>
@@ -141,11 +181,20 @@ export const columns: ColumnDef<RequisitionVoucher>[] = [
         }
       };
 
+      const handlePreview = () => {
+        window.open(`/pages/gen-manager/requisition-vouchers/${rvId}/printable`, "_blank");
+      };
+
       return (
         <div className="flex gap-2">
+          <Button size="sm" variant="secondary" onClick={handlePreview}>
+            <Eye/>
+            Preview
+          </Button>
           <ConfirmActionDialog
             trigger={
               <Button size="sm">
+                <CheckCircle2 />
                 Approve
               </Button>
             }

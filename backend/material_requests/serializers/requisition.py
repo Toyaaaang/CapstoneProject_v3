@@ -57,6 +57,7 @@ class RequisitionVoucherSerializer(serializers.ModelSerializer):
     )
     requester = serializers.SerializerMethodField()
     purpose_display = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = RequisitionVoucher
@@ -72,6 +73,11 @@ class RequisitionVoucherSerializer(serializers.ModelSerializer):
 
     def get_purpose_display(self, obj):
         return "Restocking" if obj.is_restocking else f"Request #{obj.material_request.id if obj.material_request else 'N/A'}"
+
+    def get_location(self, obj):
+        if obj.material_request and hasattr(obj.material_request, "location"):
+            return obj.material_request.location
+        return None
 
     def validate(self, data):
         if not data.get("is_restocking") and not data.get("material_request"):
@@ -132,4 +138,85 @@ class RequisitionVoucherApprovalSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+class PrintableRequisitionVoucherSerializer(serializers.ModelSerializer):
+    items = RequisitionItemSerializer(many=True)
+    requester = serializers.SerializerMethodField()
+    department = serializers.CharField()
+    location = serializers.SerializerMethodField()
+    recommended_by = serializers.SerializerMethodField()
+    final_approved_by = serializers.SerializerMethodField()
+    recommended_by_signature = serializers.SerializerMethodField()
+    final_approved_by_signature = serializers.SerializerMethodField()
+    work_order_assigned_by = serializers.SerializerMethodField()
+    work_order_assigned_by_signature = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M", read_only=True)
+
+    class Meta:
+        model = RequisitionVoucher
+        fields = [
+            'id', 'rv_number', 'status', 'department', 'requester', 'purpose', 'location',
+            'created_at', 'items', 'recommended_by', 'final_approved_by',
+            'recommended_by_signature', 'final_approved_by_signature',
+            'work_order_assigned_by', 'work_order_assigned_by_signature'
+        ]
+
+    def get_requester(self, obj):
+        if obj.requester:
+            return {
+                "id": obj.requester.id,
+                "first_name": obj.requester.first_name,
+                "last_name": obj.requester.last_name,
+            }
+        return None
+
+    def get_location(self, obj):
+        if obj.material_request and hasattr(obj.material_request, "location"):
+            return obj.material_request.location
+        return None
+
+    def get_recommended_by(self, obj):
+        if obj.recommended_by:
+            return {
+                "id": obj.recommended_by.id,
+                "first_name": obj.recommended_by.first_name,
+                "last_name": obj.recommended_by.last_name,
+            }
+        return None
+
+    def get_final_approved_by(self, obj):
+        if obj.final_approved_by:
+            return {
+                "id": obj.final_approved_by.id,
+                "first_name": obj.final_approved_by.first_name,
+                "last_name": obj.final_approved_by.last_name,
+            }
+        return None
+
+    def get_recommended_by_signature(self, obj):
+        if obj.recommended_by and hasattr(obj.recommended_by, "signature") and obj.recommended_by.signature:
+            return obj.recommended_by.signature.url if hasattr(obj.recommended_by.signature, "url") else obj.recommended_by.signature
+        return None
+
+    def get_final_approved_by_signature(self, obj):
+        if obj.final_approved_by and hasattr(obj.final_approved_by, "signature") and obj.final_approved_by.signature:
+            return obj.final_approved_by.signature.url if hasattr(obj.final_approved_by.signature, "url") else obj.final_approved_by.signature
+        return None
+
+    def get_work_order_assigned_by(self, obj):
+        mr = getattr(obj, "material_request", None)
+        if mr and hasattr(mr, "work_order_assigned_by") and mr.work_order_assigned_by:
+            return {
+                "id": mr.work_order_assigned_by.id,
+                "first_name": mr.work_order_assigned_by.first_name,
+                "last_name": mr.work_order_assigned_by.last_name,
+            }
+        return None
+
+    def get_work_order_assigned_by_signature(self, obj):
+        mr = getattr(obj, "material_request", None)
+        user = getattr(mr, "work_order_assigned_by", None) if mr else None
+        if user and hasattr(user, "signature") and user.signature:
+            return user.signature.url if hasattr(user.signature, "url") else user.signature
+        return None
 

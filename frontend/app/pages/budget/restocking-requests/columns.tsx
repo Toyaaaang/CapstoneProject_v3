@@ -31,6 +31,31 @@ export const columns: ColumnDef<any>[] = [
       </Badge>
     ),
   },
+    {
+    header: "Purpose",
+    accessorKey: "purpose",
+    cell: ({ row }) => (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className="max-w-[120px] truncate">
+            {row.original.purpose?.length > 20
+              ? row.original.purpose.slice(0, 20) + "..."
+              : row.original.purpose || "—"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="max-w-xs break-words">
+          <div className="text-sm text-zinc-700 dark:text-zinc-200 mb-2">
+            <span className="font-semibold">Purpose:</span>{" "}
+            {row.original.purpose || "No purpose provided."}
+          </div>
+          <div className="text-sm text-zinc-700 dark:text-zinc-200">
+            <span className="font-semibold">Location:</span>{" "}
+            {row.original.location || "No location provided."}
+          </div>
+        </PopoverContent>
+      </Popover>
+    ),
+  },
   {
     header: "Created At",
     accessorKey: "created_at",
@@ -77,7 +102,7 @@ export const columns: ColumnDef<any>[] = [
                   <span className="text-right">Unit</span>
                 </div>
                 <div className="grid grid-cols-1 gap-2">
-                  {items.map((item: any, index: number) => (
+                  {items.slice(0, 5).map((item: any, index: number) => (
                     <div
                       key={index}
                       className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30"
@@ -88,25 +113,37 @@ export const columns: ColumnDef<any>[] = [
                           <Badge variant="outline" className="text-xs ml-1">Custom</Badge>
                         )}
                       </div>
-                      <div className="text-center text-muted-foreground text-xs">
+                      <div className="text-center text-zinc-700 dark:text-zinc-200 text-xs">
                         {item.quantity}
                       </div>
-                      <div className="text-right text-muted-foreground text-xs">
+                      <div className="text-right text-zinc-700 dark:text-zinc-200 text-xs">
                         {item.unit}
                       </div>
                     </div>
                   ))}
                 </div>
+                {items.length > 5 && (
+                  <div className="mt-2 text-xs text-center text-zinc-500 dark:text-zinc-400">
+                    +{items.length - 5} more...
+                  </div>
+                )}
+                <div className="mt-3 text-center">
+                  <a
+                    href={`/pages/budget/restocking-requests/${row.original.id}/items`}
+                    className="text-xs text-blue-600 hover:underline cursor-pointer"
+                  >
+                    See Full Details
+                  </a>
+                </div>
               </div>
             ) : (
-              <div className="text-muted-foreground text-xs">No items</div>
+              <div className="text-zinc-500 dark:text-zinc-400 text-xs">No items</div>
             )}
           </PopoverContent>
         </Popover>
       );
     },
   },
-
   {
     header: "Action",
     cell: ({ row, table }) => {
