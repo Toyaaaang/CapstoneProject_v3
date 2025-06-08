@@ -135,51 +135,64 @@ export default function EvaluateDialog({
       <DialogTrigger asChild>
         <Button size="sm">{triggerLabel}</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-xl select-none">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold">Evaluate Request</DialogTitle>
         </DialogHeader>
 
-        <ul className="space-y-2">
+        <div className="grid grid-cols-4 gap-2 font-semibold border-b pb-2 mb-2">
+          <div>Name</div>
+          <div>Quantity</div>
+          <div>Unit</div>
+          <div>Action</div>
+        </div>
+        <div className="divide-y">
           {items.map((item) => {
             const isCustom = !item.material?.id;
             const name = item.material?.name || item.custom_name || "Custom Item";
 
             return (
-              <li
+              <div
                 key={item.id}
-                className="flex justify-between items-center border p-2 rounded"
+                className="grid grid-cols-4 gap-2 items-center py-2"
               >
-                <span>
-                  {name} – {item.quantity} {item.unit}
+                <div>
+                  {name}
                   {isCustom && (
                     <span className="ml-2 px-2 py-1 text-xs bg-gray-200 text-gray-600 rounded">
                       Custom Item
                     </span>
                   )}
-                </span>
-
-                {!isCustom ? (
-                  <select
-                    className="border rounded p-1"
-                    value={decisions[item.id]}
-                    onChange={(e) =>
-                      setDecisions({
-                        ...decisions,
-                        [item.id]: e.target.value as "charge" | "requisition",
-                      })
-                    }
-                  >
-                    <option value="charge">Charge</option>
-                    <option value="requisition">Requisition</option>
-                  </select>
-                ) : (
-                  <span className="text-sm text-gray-500 italic">Requisition (Custom)</span>
-                )}
-              </li>
+                </div>
+                <div>{Number(item.quantity).toFixed(0)}</div>
+                <div>{item.unit}</div>
+                <div>
+                  {!isCustom ? (
+                    <Select
+                      value={decisions[item.id]}
+                      onValueChange={(value) =>
+                        setDecisions({
+                          ...decisions,
+                          [item.id]: value as "charge" | "requisition",
+                        })
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select action..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="charge">Charge</SelectItem>
+                        <SelectItem value="requisition">Requisition</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <span className="text-sm text-gray-500 italic">Requisition (Custom)</span>
+                  )}
+                </div>
+              </div>
             );
           })}
-        </ul>
+        </div>
 
         <DialogFooter className="flex justify-between pt-4">
           <div className="space-x-2">

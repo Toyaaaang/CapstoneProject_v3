@@ -13,6 +13,7 @@ export default function AccountPopover() {
   const [isSignatureDialogOpen, setSignatureDialogOpen] = useState(false);
   const [isEditAccountDialogOpen, setEditAccountDialogOpen] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
+  const [signatureUrl, setSignatureUrl] = useState<string | undefined>(undefined);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -38,14 +39,24 @@ export default function AccountPopover() {
     }
   }, [isEditAccountDialogOpen]);
 
+  // Fetch signature URL when opening signature dialog
+  useEffect(() => {
+    if (isSignatureDialogOpen) {
+      axios.get("/authentication/get-signature/").then((res) => {
+        setSignatureUrl(res.data.signature || undefined);
+        setHasSignature(!!res.data.signature);
+      });
+    }
+  }, [isSignatureDialogOpen]);
+
   return (
     <>
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="ghost" className="p-2 relative">
-            <UserCircle className="h-6 w-6" />
+            <UserCircle className="h-6 w-6" style={{ color: "lightblue" }} />
             {!hasSignature && (
-              <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full" />
+              <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full select-none" />
             )}
           </Button>
         </PopoverTrigger>
@@ -93,6 +104,7 @@ export default function AccountPopover() {
         isOpen={isSignatureDialogOpen}
         onClose={() => setSignatureDialogOpen(false)}
         onSignatureFetched={handleSignatureFetched}
+        existingSignatureUrl={signatureUrl} // Pass the fetched signature URL
       />
 
       {/* Edit Account Dialog */}

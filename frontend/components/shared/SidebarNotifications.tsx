@@ -39,9 +39,9 @@ export default function SidebarNotifications() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative">
-          <Bell className="h-10 w-10" />
+          <Bell className="h-10 w-10" style={{ color: "lightblue" }} />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5">
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full px-1.5 select-none">
               {unreadCount}
             </span>
           )}

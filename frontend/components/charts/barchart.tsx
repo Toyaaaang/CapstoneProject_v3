@@ -8,6 +8,7 @@ import {
   XAxis,
   LabelList,
   Cell,
+  YAxis,
 } from "recharts"
 
 import {
@@ -103,28 +104,40 @@ export default function StockBarChart({ data }: Props) {
     [data, activeCategory]
   )
 
+  // Find the max value for the current category
+  const maxValue = React.useMemo(
+    () => Math.max(0, ...chartData.map((item) => item.quantity)),
+    [chartData]
+  );
+
   const barWidth = 60
   const barSpacing = 30
   const chartWidth = chartData.length * (barWidth + barSpacing) + 100
 
   return (
-    <Card className="py-0 h-full flex flex-col">
+    <Card className="py-0 h-full flex flex-col select-none bg-white dark:bg-background text-zinc-900 dark:text-zinc-100"
+      style={{
+        background: "rgba(0, 17, 252, 0.04)",
+        boxShadow: "0 8px 32px 0 rgba(23,23,23,0.17)",
+        backdropFilter: "blur(90.5px)",
+        WebkitBackdropFilter: "blur(4.5px)",
+      }}>
       <CardHeader className="flex flex-col items-stretch border-b !p-0 sm:flex-row">
         <div className="flex flex-1 flex-col justify-center gap-1 px-6 pt-4 pb-3 sm:!py-0">
-          <CardTitle>Stock Levels per Material category</CardTitle>
+          <CardTitle className="text-zinc-900 dark:text-zinc-100">Stock Levels per Material category</CardTitle>
         </div>
         <div className="flex">
           {categories.map((cat, index) => (
             <button
               key={`cat-${cat}-${index}`}
               data-active={activeCategory === cat}
-              className="data-[active=true]:bg-muted/50 relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6"
+              className="data-[active=true]:bg-muted/50 relative z-30 flex flex-1 flex-col justify-center gap-1 border-t px-6 py-4 text-left even:border-l sm:border-t-0 sm:border-l sm:px-8 sm:py-6 text-zinc-700 dark:text-zinc-200"
               onClick={() => setActiveCategory(cat)}
             >
-              <span className="text-muted-foreground text-xs">
+               <span className="text-zinc-700 dark:text-zinc-400 text-xs">
                 {chartConfig[cat]?.label || cat}
               </span>
-              <span className="text-lg leading-none font-bold sm:text-3xl">
+              <span className="text-lg leading-none font-bold sm:text-3xl text-zinc-900 dark:text-zinc-100">
                 {totals[cat]?.toLocaleString() ?? 0}
               </span>
             </button>
@@ -136,7 +149,7 @@ export default function StockBarChart({ data }: Props) {
         <ChartContainer config={chartConfig} className="aspect-auto h-full w-full flex-1 flex flex-col">
           <BarChart
             data={chartData}
-            height={undefined} // Let it fill the parent
+            height={Math.max(220, chartData.length * 40)} // Optional: auto height based on items
             width={chartWidth}
             margin={{ left: 12, right: 12 }}
           >
@@ -147,7 +160,16 @@ export default function StockBarChart({ data }: Props) {
               axisLine={false}
               tickMargin={8}
               minTickGap={32}
-              tickFormatter={(value) => value.slice(0, 12)}
+              ticks={[chartData[Math.floor(chartData.length / 2)]?.name]}
+              tickFormatter={() => "Materials"}
+              tick={{
+                className: "text-base font-semibold text-zinc-700 dark:text-zinc-100",
+              }}
+            />
+            <YAxis
+              domain={[0, maxValue + 20]}
+              tick={{ className: "text-xs text-zinc-700 dark:text-zinc-200" }}
+              allowDecimals={false}
             />
             <ChartTooltip
               cursor={false}
@@ -161,7 +183,7 @@ export default function StockBarChart({ data }: Props) {
                 dataKey="quantity"
                 position="top"
                 offset={12}
-                className="fill-foreground"
+                className="fill-foreground text-zinc-900 dark:text-zinc-100"
                 fontSize={12}
               />
             </Bar>

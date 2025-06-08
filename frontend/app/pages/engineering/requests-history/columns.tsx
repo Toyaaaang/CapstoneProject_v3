@@ -3,7 +3,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
-import { DepartmentalRV } from "@/hooks/useDepartmentalRVHistory";
+import { DepartmentalRV } from "@/hooks/shared/useDepartmentalRVHistory";
 
 export const columns: ColumnDef<DepartmentalRV>[] = [
   {

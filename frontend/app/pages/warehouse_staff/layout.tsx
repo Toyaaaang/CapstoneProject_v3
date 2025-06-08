@@ -19,13 +19,11 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ModeToggle } from "@/components/themes/ModeToggle";
 
-
 export default function WarehouseStaffLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [pageName, setPageName] = useState("Overview");
 
   useEffect(() => {
-    // If at root, explicitly set "Overview"
     if (pathname === "/pages/warehouse_staff") {
       setPageName("Overview");
     } else {
@@ -34,40 +32,43 @@ export default function WarehouseStaffLayout({ children }: { children: React.Rea
   }, [pathname]);
 
   return (
-    <SidebarProvider>
-      <AppSidebar menuData={warehouseStaffMenu} />
-      <SidebarInset>
-        <div className="flex flex-col flex-1">
-          <header className="flex h-16 items-center gap-2 border-b px-4 justify-between">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/pages/warehouse_staff">
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="capitalize">
-                    {pageName}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          
-            {/* NotificationDropdown moved to the left of AccountPopover */}
-            <div className="flex items-center gap-4">
-              <ModeToggle />
-              <NotificationDropdown />
-              <AccountPopover />
+    <RoleLayout allowedRole="warehouse_staff">
+      <SidebarProvider>
+        <AppSidebar menuData={warehouseStaffMenu} />
+        <SidebarInset>
+          <div className="flex flex-col flex-1 min-h-screen bg-cover bg-center bg-[url('/bg-admin-light.svg')] dark:bg-[url('/bg-admin-dark.svg')]">
+            <div className="flex flex-col flex-1">
+              <header className="flex h-16 items-center gap-2 border-b px-4 justify-between">
+                <div className="flex items-center gap-2">
+                  <SidebarTrigger className="-ml-1" />
+                  <Separator orientation="vertical" className="mr-2 h-4" />
+                  <Breadcrumb>
+                    <BreadcrumbList>
+                      <BreadcrumbItem className="hidden md:block">
+                        <BreadcrumbLink href="/pages/warehouse_staff">
+                          Warehouse Staff
+                        </BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator className="hidden md:block" />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage className="capitalize">
+                          {pageName}
+                        </BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </div>
+                <div className="flex items-center gap-4">
+                  <ModeToggle />
+                  <NotificationDropdown />
+                  <AccountPopover />
+                </div>
+              </header>
+              <main className="p-4">{children}</main>
             </div>
-          </header>
-          <main className="p-4"><RoleLayout allowedRole="warehouse_staff">{children}</RoleLayout></main>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </RoleLayout>
   );
 }

@@ -206,8 +206,7 @@ class GetSignatureView(views.APIView):
     def get(self, request):
         user = request.user
         if user.signature:
-            signature_url = request.build_absolute_uri(user.signature.url)  # Use .url to get the file URL
-            return Response({"signature": signature_url}, status=status.HTTP_200_OK)
+            return Response({"signature": user.signature}, status=status.HTTP_200_OK)
         return Response({"signature": None}, status=status.HTTP_200_OK)
 
 # Account View to Get and Update User Details

@@ -25,8 +25,7 @@ export default function OperationsMaintainanceLayout({ children }: { children: R
   const [pageName, setPageName] = useState("Overview");
 
   useEffect(() => {
-    // If at root, explicitly set "Overview"
-    if (pathname === "/dashboard/Operations_Maintainance") {
+    if (pathname === "/dashboard/finance") {
       setPageName("Overview");
     } else {
       setPageName(pathname.split("/").pop()?.replace("-", " ") || "Overview");
@@ -34,40 +33,43 @@ export default function OperationsMaintainanceLayout({ children }: { children: R
   }, [pathname]);
 
   return (
-    <SidebarProvider>
-      <AppSidebar menuData={Menu} />
-      <SidebarInset>
-        <div className="flex flex-col flex-1">
-          <header className="flex h-16 items-center gap-2 border-b px-4 justify-between">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/pages/op&maintenance">
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="capitalize">
-                    {pageName}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          
-            {/* NotificationDropdown moved to the left of AccountPopover */}
-            <div className="flex items-center gap-4">
-              <ModeToggle />
-              <NotificationDropdown />
-              <AccountPopover />
+    <RoleLayout allowedRole="finance">
+      <SidebarProvider>
+        <AppSidebar menuData={Menu} />
+        <SidebarInset>
+          <div className="flex flex-col flex-1 min-h-screen bg-cover bg-center bg-[url('/bg-admin-light.svg')] dark:bg-[url('/bg-admin-dark.svg')]">
+            <div className="flex flex-col flex-1">
+              <header className="flex h-16 items-center gap-2 border-b px-4 justify-between">
+                <div className="flex items-center gap-2">
+                  <SidebarTrigger className="-ml-1" />
+                  <Separator orientation="vertical" className="mr-2 h-4" />
+                  <Breadcrumb>
+                    <BreadcrumbList>
+                      <BreadcrumbItem className="hidden md:block">
+                        <BreadcrumbLink href="/pages/finance">
+                          Finance
+                        </BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator className="hidden md:block" />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage className="capitalize">
+                          {pageName}
+                        </BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </div>
+                <div className="flex items-center gap-4">
+                  <ModeToggle />
+                  <NotificationDropdown />
+                  <AccountPopover />
+                </div>
+              </header>
+              <main className="p-4"><RoleLayout allowedRole="finance">{children}</RoleLayout></main>
             </div>
-          </header>
-          <main className="p-4"><RoleLayout allowedRole="finance">{children}</RoleLayout></main>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </RoleLayout>
   );
 }

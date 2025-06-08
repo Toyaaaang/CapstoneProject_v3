@@ -1,132 +1,207 @@
+"use client";
+
 import { ColumnDef } from "@tanstack/react-table";
-import EvaluateDialog from "@/components/dialogs/EvaluateDialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import axios from "@/lib/axios";
+import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
 
 export type MaterialRequest = {
   id: number;
-  department: string;
   purpose: string;
   status: string;
+  created_at: string;
   requester: {
-    id: number;
     first_name: string;
     last_name: string;
   };
-  items: {
-    custom_unit: string;
-    custom_name: string;
-    id: number;
-    material: { id: number; name: string };
-    quantity: number;
-    unit: string;
-  }[];
+  manpower?: string | null;
+  target_completion?: string | null;
+  work_order_no?: string;
+  actual_completion?: string | null;
+  duration?: string | null;
 };
 
-export const columns: ColumnDef<MaterialRequest>[] = [
-  {
-    header: "Request ID",
-    accessorKey: "id",
-    cell: ({ row }) => <span className="font-mono">MR-{row.original.id}</span>,
-  },
+// Map status to badge variant
+const getStatusVariant = (status: string) => {
+  switch (status) {
+    case "pending":
+      return "warning";
+    case "approved":
+      return "success";
+    case "rejected":
+      return "destructive";
+    case "completed":
+      return "info";
+    case "in_progress":
+      return "secondary";
+    default:
+      return "outline";
+  }
+};
+
+export const columns = (
+  refreshData: () => void
+): ColumnDef<MaterialRequest>[] => [
   {
     header: "Requested By",
-    accessorKey: "requester",
-    cell: ({ row }) => {
-      const { first_name, last_name } = row.original.requester || {};
-      return <span>{first_name} {last_name}</span>;
-
-    },
-  },
-
-  
-  {
-    header: "Department",
-    accessorKey: "department",
-    cell: ({ row }) => (
-      <Badge variant="secondary">
-        {row.original.department.replace(/_/g, " ").toUpperCase()}
-      </Badge>
-    ),
+    cell: ({ row }) =>
+      `${row.original.requester.first_name} ${row.original.requester.last_name}`,
   },
   {
     header: "Purpose",
     accessorKey: "purpose",
+  },
+  {
+    header: "Date",
+    accessorKey: "created_at",
+    cell: ({ row }) => formatDate(row.original.created_at),
+  },
+  {
+    header: "Status",
+    accessorKey: "status",
     cell: ({ row }) => (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button>{row.original.purpose || "No purpose provided"}</Button>
-
-        </PopoverTrigger>
-        <PopoverContent className="w-72">
-          <p className="text-sm">{row.original.purpose}</p>
-        </PopoverContent>
-      </Popover>
+      <Badge variant={getStatusVariant(row.original.status)} className="capitalize">
+        {row.original.status.replaceAll("_", " ")}
+      </Badge>
     ),
   },
   {
-    header: "Materials",
-    cell: ({ row }) => (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm">
-            View Items
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80 max-h-72 overflow-auto">
-          {row.original.items && row.original.items.length > 0 ? (
-            <div>
-              <div className="grid grid-cols-3 gap-2 font-semibold text-xs mb-2 px-1">
-                <span>Material</span>
-                <span className="text-center">Qty</span>
-                <span className="text-right">Unit</span>
-              </div>
-              <div className="space-y-2">
-                {row.original.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
-                  >
-                    <div className="font-medium truncate flex items-center gap-1">
-                      {item.material?.name
-                        ? item.material.name.charAt(0).toUpperCase() + item.material.name.slice(1)
-                        : (
-                          <span className="italic text-muted-foreground">
-                            {item.custom_name || "Custom Item"}
-                          </span>
-                        )}
-                      {!item.material?.id && (
-                        <Badge variant="outline" className="ml-1 text-[10px]">Custom</Badge>
-                      )}
-                    </div>
-                    <div className="text-center text-muted-foreground">
-                      {item.quantity}
-                    </div>
-                    <div className="text-right text-muted-foreground uppercase">
-                      {item.custom_unit || item.unit}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="text-muted-foreground text-xs italic py-4 text-center">No items</div>
-          )}
-        </PopoverContent>
-      </Popover>
-    ),
+    header: "Work Order No.",
+    accessorKey: "work_order_no",
+    cell: ({ row }) => row.original.work_order_no || "—",
   },
   {
     header: "Actions",
-    cell: ({ row, table }) => {
+    cell: ({ row }) => {
       const request = row.original;
+      const [open, setOpen] = useState(false);
+      const [workOrderNo, setWorkOrderNo] = useState(request.work_order_no || "");
+      const [actualCompletion, setActualCompletion] = useState(
+        request.actual_completion?.slice(0, 10) || ""
+      );
+      const [duration, setDuration] = useState(request.duration || "");
+
+      const handleSubmit = async () => {
+        try {
+          await axios.patch(
+            `/requests/material-requests/${request.id}/assign-work-order/`,
+            {
+              work_order_no: workOrderNo,
+              actual_completion: actualCompletion || null,
+              duration: duration || null,
+            }
+          );
+          toast.success("Work order updated.");
+          refreshData();
+          setOpen(false);
+        } catch (err) {
+          toast.error("Failed to assign work order.");
+          console.error(err);
+        }
+      };
+
       return (
-        <EvaluateDialog
-          requestId={request.id}
-          items={request.items}
-          refreshData={() => table.options.meta?.refreshData?.()}
-        />
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" variant="outline">
+              Assign/Update
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign Work Order</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-3 py-2">
+              {/* Display-only Fields */}
+              <div className="space-y-1">
+                <Label htmlFor={`manpower-${request.id}`}>Manpower</Label>
+                <Input
+                  id={`manpower-${request.id}`}
+                  value={request.manpower || "None"}
+                  readOnly
+                  className="opacity-70"
+                  placeholder="Manpower"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor={`target-completion-${request.id}`}>
+                  Target Date of Completion
+                </Label>
+                <Input
+                  id={`target-completion-${request.id}`}
+                  value={request.target_completion?.slice(0, 10) || "None"}
+                  readOnly
+                  className="opacity-70"
+                  placeholder="Target Completion"
+                />
+              </div>
+
+              {/* Editable Fields */}
+              <div className="space-y-1">
+                <Label htmlFor={`work-order-no-${request.id}`}>Work Order Number</Label>
+                <Input
+                  id={`work-order-no-${request.id}`}
+                  placeholder="Work Order Number"
+                  value={workOrderNo}
+                  onChange={(e) => setWorkOrderNo(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor={`actual-completion-${request.id}`}>Actual Completion Date</Label>
+                <Input
+                  id={`actual-completion-${request.id}`}
+                  type="date"
+                  value={actualCompletion}
+                  onChange={(e) => setActualCompletion(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor={`duration-${request.id}`}>Work Duration</Label>
+                <Input
+                  id={`duration-${request.id}`}
+                  placeholder="Duration (e.g., 3 days)"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <ConfirmActionDialog
+                trigger={<Button className="w-full">Save</Button>}
+                title="Save Work Order?"
+                description="Are you sure you want to save these changes? This action cannot be undone."
+                confirmLabel="Save"
+                cancelLabel="Cancel"
+                onConfirm={handleSubmit}
+                loading={false}
+              />
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       );
     },
   },

@@ -28,7 +28,6 @@ export default function ReleaseChargeTicketsPage() {
           setPage={setPage}
           totalCount={totalCount}
           refreshData={refetch}
-          meta={{ refreshData: refetch }}
         />
       )}
     </div>

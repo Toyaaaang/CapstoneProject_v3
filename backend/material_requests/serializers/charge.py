@@ -21,14 +21,20 @@ class ChargeTicketSerializer(serializers.ModelSerializer):
         queryset=MaterialRequest.objects.all(), required=True
     )
     requester = serializers.SerializerMethodField()
-     
+    location = serializers.SerializerMethodField()
+
     def get_requester(self, obj):
         return {
             "id": obj.requester.id,
             "first_name": obj.requester.first_name,
             "last_name": obj.requester.last_name,
         }
-    
+
+    def get_location(self, obj):
+        if obj.material_request:
+            return obj.material_request.location
+        return None
+
     class Meta:
         model = ChargeTicket
         fields = '__all__'

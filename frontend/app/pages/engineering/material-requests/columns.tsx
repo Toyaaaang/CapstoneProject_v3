@@ -16,6 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import axios from "@/lib/axios";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { useRouter } from "next/navigation";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -27,6 +30,7 @@ const formatDate = (dateString: string) => {
 };
 
 export type MaterialRequest = {
+  location: any;
   id: number;
   purpose: string;
   status: string;
@@ -71,6 +75,29 @@ export const columns = (
   {
     header: "Purpose",
     accessorKey: "purpose",
+    cell: ({ row }) => (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button className="max-w-[180px] truncate">
+            {row.original.purpose || "No purpose provided"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 space-y-2">
+          <div>
+            <span className="font-semibold text-sm">Purpose:</span>
+            <span className="ml-1 text-sm">{row.original.purpose}</span>
+          </div>
+          <div>
+            <span className="font-semibold text-sm">Location of Work:</span>
+            <span className="ml-1 text-sm">
+              {row.original.location || (
+                <span className="italic text-muted-foreground">No location</span>
+              )}
+            </span>
+          </div>
+        </PopoverContent>
+      </Popover>
+    ),
   },
   {
     header: "Date",
@@ -90,6 +117,21 @@ export const columns = (
     header: "Work Order No.",
     accessorKey: "work_order_no",
     cell: ({ row }) => row.original.work_order_no || "—",
+  },
+  {
+    header: "Items",
+    cell: ({ row }) => {
+      const router = useRouter();
+      return (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => router.push(`/pages/engineering/material-requests/${row.original.id}/items`)}
+        >
+          View Items
+        </Button>
+      );
+    },
   },
   {
     header: "Actions",
@@ -189,7 +231,15 @@ export const columns = (
             </div>
 
             <DialogFooter>
-              <Button className="w-full" onClick={handleSubmit}>Save</Button>
+              <ConfirmActionDialog
+                trigger={<Button className="w-full">Save</Button>}
+                title="Save Work Order?"
+                description="Are you sure you want to save these changes? This action cannot be undone."
+                confirmLabel="Save"
+                cancelLabel="Cancel"
+                onConfirm={handleSubmit}
+                loading={false}
+              />
             </DialogFooter>
           </DialogContent>
         </Dialog>

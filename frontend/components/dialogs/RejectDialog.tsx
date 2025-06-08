@@ -13,6 +13,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import axios from "@/lib/axios";
+import { X } from "lucide-react";
 
 const REJECTION_REASONS = [
   "Incomplete request details",
@@ -25,9 +26,11 @@ const REJECTION_REASONS = [
 
 export function RejectDialog({
   ticketId,
+  itemId,
   refreshData,
 }: {
   ticketId: number;
+  itemId?: number;
   refreshData: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -40,21 +43,24 @@ export function RejectDialog({
     }
 
     try {
-      await axios.post(`/requests/charge-tickets/${ticketId}/reject/`, { reason });
-      toast.success("Charge Ticket rejected.");
+      const url = itemId
+        ? `/requests/charge-tickets/${ticketId}/items/${itemId}/reject/`
+        : `/requests/charge-tickets/${ticketId}/reject/`;
+      await axios.post(url, { reason });
+      toast.success(itemId ? "Item rejected." : "Charge Ticket rejected.");
       refreshData();
       setOpen(false);
     } catch (err) {
-      toast.error("Failed to reject ticket.");
+      toast.error("Failed to reject.");
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="destructive">Reject</Button>
+        <Button variant="destructive"><X/> Reject</Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="select-none">
         <DialogHeader>
           <DialogTitle>Select Rejection Reason</DialogTitle>
         </DialogHeader>
@@ -71,7 +77,7 @@ export function RejectDialog({
         </Select>
 
         <DialogFooter className="pt-4">
-          <Button onClick={handleReject} disabled={!reason}>
+          <Button className="w-full" onClick={handleReject} disabled={!reason}>
             Confirm Rejection
           </Button>
         </DialogFooter>

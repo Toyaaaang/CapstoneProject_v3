@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import {
   Dialog,
@@ -17,20 +17,29 @@ import axios from "@/lib/axios";
 interface ESignatureRecorderProps {
   isOpen: boolean;
   onClose: () => void;
-  onSignatureFetched: (url: string) => void; // Send Cloudinary URL
+  onSignatureFetched: (url: string) => void;
+  existingSignatureUrl?: string; // <-- add this
 }
 
 export default function ESignatureRecorder({
   isOpen,
   onClose,
   onSignatureFetched,
+  existingSignatureUrl, // <-- add this
 }: ESignatureRecorderProps) {
   const signaturePadRef = useRef<SignatureCanvas>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Load existing signature when dialog opens
+  useEffect(() => {
+    if (isOpen) setIsEditing(false);
+  }, [isOpen]);
 
   const handleClear = () => {
     signaturePadRef.current?.clear();
-    toast.info("Signature cleared.");
+    setIsEditing(true);
+    toast.info("Signature cleared. You can now draw a new one.");
   };
 
   const handleSave = async () => {
@@ -87,27 +96,52 @@ export default function ESignatureRecorder({
       <DialogContent className="max-w-2xl w-full h-auto">
         <DialogHeader>
           <DialogTitle>E-Signature Recorder</DialogTitle>
-          <p className="text-sm text-gray-500">
-            Please draw your signature below. You can save or clear it as needed.
-          </p>
         </DialogHeader>
-        <div className="p-4">
-          <SignatureCanvas
-            ref={signaturePadRef}
-            penColor="black"
-            canvasProps={{
-              width: 420,
-              height: 300,
-              className: "border border-gray-300 rounded",
-            }}
-          />
+        <div className="p-4 flex flex-col items-center">
+          {existingSignatureUrl && !isEditing ? (
+            <>
+              <img
+                src={existingSignatureUrl}
+                alt="Current signature"
+                className="border border-gray-300 rounded mb-4"
+                style={{ width: 420, height: 300, objectFit: "contain" }}
+              />
+              <Button
+                variant="outline"
+                onClick={() => setIsEditing(true)}
+                className="mb-4"
+              >
+                <X className="mr-1" />
+                Clear to Edit
+              </Button>
+            </>
+          ) : (
+            <>
+              <SignatureCanvas
+                ref={signaturePadRef}
+                penColor="black"
+                canvasProps={{
+                  width: 420,
+                  height: 300,
+                  className: "border border-gray-300 rounded mb-4",
+                }}
+              />
+              <Button
+                variant="outline"
+                onClick={() => signaturePadRef.current?.clear()}
+                className="mb-4"
+              >
+                <X className="mr-1" />
+                Clear
+              </Button>
+            </>
+          )}
         </div>
-        <DialogFooter className="flex justify-between">
-          <Button variant="outline" onClick={handleClear} disabled={isSaving}>
-            <X className="mr-1" />
-            Clear
-          </Button>
-          <Button onClick={handleSave} className="mr-4" disabled={isSaving}>
+        <DialogFooter>
+          <Button
+            onClick={handleSave}
+            disabled={isSaving || (!isEditing && !!existingSignatureUrl)}
+          >
             <Save className="mr-1" />
             {isSaving ? "Saving..." : "Save"}
           </Button>

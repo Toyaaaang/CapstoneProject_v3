@@ -8,7 +8,6 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar } from "@/components/shared/app-sidebar";
 import { Menu } from "@/components/sidebar-contents/audit";
 import RoleLayout from "@/components/guards/RoleLayout";
-
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,13 +19,11 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { ModeToggle } from "@/components/themes/ModeToggle";
 
-
 export default function AuditLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [pageName, setPageName] = useState("Overview");
 
   useEffect(() => {
-    // If at root, explicitly set "Overview"
     if (pathname === "/dashboard/audit") {
       setPageName("Overview");
     } else {
@@ -35,40 +32,51 @@ export default function AuditLayout({ children }: { children: React.ReactNode })
   }, [pathname]);
 
   return (
-    <SidebarProvider>
-      <AppSidebar menuData={Menu} />
-      <SidebarInset>
-        <div className="flex flex-col flex-1">
-          <header className="flex h-16 items-center gap-2 border-b px-4 justify-between">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/pages/audit">
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="capitalize">
-                    {pageName}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          
-            {/* NotificationDropdown moved to the left of AccountPopover */}
-            <div className="flex items-center gap-4">
-              <ModeToggle />
-              <NotificationDropdown />
-              <AccountPopover />
+    <RoleLayout allowedRole="audit">
+      <SidebarProvider>
+        <AppSidebar menuData={Menu} />
+        <SidebarInset>
+          <div className="flex flex-col flex-1 min-h-screen bg-cover bg-center bg-[url('/bg-admin-light.svg')] dark:bg-[url('/bg-admin-dark.svg')]">
+            <div className="flex flex-col flex-1">
+              <header
+                className="flex h-16 items-center gap-2 border-b px-4 justify-between"
+                style={{
+                  background: "rgba(0, 17, 252, 0.04)",
+                  boxShadow: "0 8px 32px 0 rgba(23,23,23,0.17)",
+                  backdropFilter: "blur(4.5px)",
+                  WebkitBackdropFilter: "blur(4.5px)",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <SidebarTrigger className="-ml-1" />
+                  <Separator orientation="vertical" className="mr-2 h-4" />
+                  <Breadcrumb>
+                    <BreadcrumbList>
+                      <BreadcrumbItem className="hidden md:block">
+                        <BreadcrumbLink href="/pages/audit">
+                          Audit
+                        </BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator className="hidden md:block" />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage className="capitalize">
+                          {pageName}
+                        </BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </div>
+                <div className="flex items-center gap-4">
+                  <ModeToggle />
+                  <NotificationDropdown />
+                  <AccountPopover />
+                </div>
+              </header>
+              <main className="p-4">{children}</main>
             </div>
-          </header>
-          <main className="p-4"><RoleLayout allowedRole="audit">{children}</RoleLayout></main>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    </RoleLayout>
   );
 }
