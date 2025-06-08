@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 
 admin.site.site_header = "Warehouse Management System Admin"
 admin.site.site_title = "Warehouse Operations Management System"
-admin.site.index_title = "Welcome to Warehouse Management System  Portal"
+admin.site.index_title = "Warehouse Management System  Portal"
 
 
 urlpatterns = [
