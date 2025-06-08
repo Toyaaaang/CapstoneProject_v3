@@ -71,16 +71,31 @@ class MaterialRequestSerializer(serializers.ModelSerializer):
         return instance
 
 class WorkOrderAssignmentSerializer(serializers.ModelSerializer):
+    work_order_assigned_by = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = MaterialRequest
-        fields = ['work_order_no', 'manpower', 'target_completion', 'actual_completion', 'duration']
+        fields = ['work_order_no', 'manpower', 'target_completion', 'actual_completion', 'duration', 'work_order_assigned_by']
+
+    def get_work_order_assigned_by(self, obj):
+        if obj.work_order_assigned_by:
+            return {
+                "id": obj.work_order_assigned_by.id,
+                "first_name": obj.work_order_assigned_by.first_name,
+                "last_name": obj.work_order_assigned_by.last_name,
+            }
+        return None
 
     def assign_work_order(self, request, pk):
         request_obj = self.get_object(pk)
+        prev_status = request_obj.status  # Save previous status
         serializer = self.__class__(request_obj, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        request_obj.status = "won_assigned"
-        request_obj.work_order_assigned_by = request.user  # <-- Save who assigned
+        # Only set status if it was pending before
+        if prev_status == "pending":
+            request_obj.status = "won_assigned"
+        # Always set who assigned
+        request_obj.work_order_assigned_by = request.user
         request_obj.save()
         return request_obj

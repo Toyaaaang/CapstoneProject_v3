@@ -49,12 +49,20 @@ export default function AccountPopover() {
     }
   }, [isSignatureDialogOpen]);
 
+  useEffect(() => {
+    // Fetch signature status on mount
+    axios.get("/authentication/get-signature/").then((res) => {
+      setSignatureUrl(res.data.signature || undefined);
+      setHasSignature(!!res.data.signature);
+    });
+  }, []);
+
   return (
     <>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="ghost" className="p-2 relative">
-            <UserCircle className="h-6 w-6" style={{ color: "lightblue" }} />
+          <Button variant="ghost" className="p-2 relative group">
+            <UserCircle className="h-6 w-6 text-blue-300 transition-colors duration-200 group-hover:text-black" />
             {!hasSignature && (
               <span className="absolute top-0 right-0 h-2 w-2 bg-red-500 rounded-full select-none" />
             )}

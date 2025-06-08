@@ -360,6 +360,9 @@ export function RegisterForm({
                     required
                     className="text-white placeholder-white bg-transparent border-white"
                   />
+                  <span className="text-xs text-white/80 -mt-2 mb-1">
+                    Please take a picture of your ID for role verification.
+                  </span>
                 </div>
                 {/* Buttons */}
                 <div className="md:col-span-2 flex flex-col gap-2">

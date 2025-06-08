@@ -194,10 +194,15 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
         if request.user.role not in ["engineering", "operations_maintenance"]:
             return Response({"error": "Not authorized to assign work order."}, status=403)
 
+        prev_status = request_obj.status
         serializer = WorkOrderAssignmentSerializer(request_obj, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-            request_obj.status = "won_assigned"
+            # Only set status if it was pending before
+            if prev_status == "pending":
+                request_obj.status = "won_assigned"
+            # Always set who assigned
+            request_obj.work_order_assigned_by = request.user
             request_obj.save()
             send_notification(
                 user=request_obj.requester,

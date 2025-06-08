@@ -63,7 +63,7 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
             # ✅ Notify requester
             send_notification(
                 user=ticket.requester,
-                message=f"Your charge ticket ({get_ticket_code(ticket)}) has been fully approved and is ready for release."
+                message=f"Your charge ticket ({get_ticket_code(ticket)}) has been fully approved and is ready for release. You can now Print/Download the Charge Ticket."
             )
 
             # ✅ Notify Warehouse Staff
