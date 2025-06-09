@@ -11,12 +11,27 @@ import {
 } from "@/components/ui/popover";
 import React from "react";
 import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
+import { useRouter } from "next/navigation";
 
 // Extend TableMeta to include refreshData
 declare module '@tanstack/react-table' {
   interface TableMeta<TData extends unknown> {
     refreshData?: () => void;
   }
+}
+
+// Helper to fetch estimates for a PO's items
+async function fetchEstimates(items: any[]) {
+  if (!items?.length) return {};
+  const res = await axios.post("/requests/purchase-orders/estimate/", {
+    items: items
+      .filter((item: any) => item.material?.id)
+      .map((item: any) => ({
+        material_id: item.material.id,
+        unit: item.unit,
+      })),
+  });
+  return res.data;
 }
 
 export const columns: ColumnDef<any>[] = [
@@ -31,13 +46,18 @@ export const columns: ColumnDef<any>[] = [
     header: "Supplier",
     accessorKey: "supplier",
     cell: ({ row }) => {
-      const supplier = row.original.supplier;
+      // Prefer supplier_name if available
+      const name = row.original.supplier_name;
+      if (name) {
+        return (
+          <span className="font-semibold">
+            {name.charAt(0).toUpperCase() + name.slice(1)}
+          </span>
+        );
+      }
+      // Fallback: show N/A if supplier is just an ID
       return (
-        <span className="font-semibold">
-          {supplier
-            ? supplier.charAt(0).toUpperCase() + supplier.slice(1)
-            : <span className="italic text-muted-foreground">N/A</span>}
-        </span>
+        <span className="italic text-gray-800 dark:text-gray-400">N/A</span>
       );
     },
   },
@@ -71,10 +91,44 @@ export const columns: ColumnDef<any>[] = [
     ),
   },
   {
-    header: "Total",
+    id: "estimatedAmount",
+    header: (
+      <>
+        Estimated Amount
+        <br />
+        <span className="text-xs text-gray-800 dark:text-gray-400">(Historical Avg)</span>
+      </>
+    ) as any,
+    cell: ({ row }) => {
+      const [estimate, setEstimate] = React.useState<number | null>(null);
+
+      React.useEffect(() => {
+        let mounted = true;
+        fetchEstimates(row.original.items).then((estimates) => {
+          if (!mounted) return;
+          let total = 0;
+          row.original.items.forEach((item: any) => {
+            const est = estimates[item.material?.id];
+            if (est && est.average) {
+              total += est.average * item.quantity;
+            }
+          });
+          setEstimate(total || null);
+        });
+        return () => { mounted = false; };
+      }, [row.original.items]);
+
+      return estimate !== null
+        ? <span className="font-mono text-blue-700 dark:text-blue-400">₱{estimate.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+        : <span className="italic text-gray-800 dark:text-gray-400">No estimate</span>;
+    },
+    meta: { align: "right" },
+  },
+  {
+    header: "Actual Amount",
     accessorKey: "grand_total",
     cell: ({ row }) => (
-      <span className="font-mono font-semibold text-green-700 dark:text-green-400">
+      <span className="font-mono font-semibold">
         ₱
         {parseFloat(row.original.grand_total).toLocaleString("en-PH", {
           minimumFractionDigits: 2,
@@ -82,6 +136,45 @@ export const columns: ColumnDef<any>[] = [
         })}
       </span>
     ),
+    meta: { align: "right" },
+  },
+  {
+    id: "variance",
+    header: (
+      <>
+        Variance
+        <br />
+        <span className="text-xs text-gray-800 dark:text-gray-400">(Actual - Estimate)</span>
+      </>
+    ) as any,
+    cell: ({ row }) => {
+      const [estimate, setEstimate] = React.useState<number | null>(null);
+
+      React.useEffect(() => {
+        let mounted = true;
+        fetchEstimates(row.original.items).then((estimates) => {
+          if (!mounted) return;
+          let total = 0;
+          row.original.items.forEach((item: any) => {
+            const est = estimates[item.material?.id];
+            if (est && est.average) {
+              total += est.average * item.quantity;
+            }
+          });
+          setEstimate(total || null);
+        });
+        return () => { mounted = false; };
+      }, [row.original.items]);
+
+      const actual = parseFloat(row.original.grand_total);
+      return estimate !== null
+        ? (
+          <span className={`font-mono ${actual - estimate > 0 ? "text-red-600" : "text-green-600"}`}>
+            ₱{(actual - estimate).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+          </span>
+        )
+        : <span className="italic text-gray-800 dark:text-gray-400">N/A</span>
+    },
     meta: { align: "right" },
   },
   {
@@ -94,6 +187,11 @@ export const columns: ColumnDef<any>[] = [
       const subtotal = grandTotal - vatAmount;
 
       const [open, setOpen] = React.useState(false);
+      const router = useRouter();
+
+      // Show only first 5 items
+      const previewItems = items.slice(0, 5);
+      const hasMore = items.length > 5;
 
       return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -108,7 +206,7 @@ export const columns: ColumnDef<any>[] = [
               <span className="text-right">Total</span>
             </div>
             <div className="max-h-56 overflow-auto flex flex-col gap-2 pr-1">
-              {items.map((item: any, i: number) => (
+              {previewItems.map((item: any, i: number) => (
                 <div
                   key={i}
                   className="grid grid-cols-4 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
@@ -134,6 +232,17 @@ export const columns: ColumnDef<any>[] = [
               <div>VAT ({vatRate}%): ₱{vatAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</div>
               <div className="font-bold">Grand Total: ₱{grandTotal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</div>
             </div>
+            <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2 text-xs text-blue-700 dark:text-blue-400 flex justify-center w-full"
+                onClick={() => {
+                  setOpen(false);
+                  router.push(`/pages/audit/purchase-orders/${row.original.id}/items`);
+                }}
+              >
+                Show Full Details
+            </Button>
           </PopoverContent>
         </Popover>
       );
@@ -141,7 +250,7 @@ export const columns: ColumnDef<any>[] = [
   },
   {
     header: () => (
-      <div className="text-right w-full pr-2">Action</div>
+      <div className=" w-full pr-2">Actions</div>
     ),
     id: "actions",
     cell: ({ row, table }) => {
@@ -165,7 +274,7 @@ export const columns: ColumnDef<any>[] = [
       };
 
       return (
-        <div className="flex gap-2 justify-end">
+        <div className="flex gap-2">
           <ConfirmActionDialog
             trigger={
               <Button size="sm" disabled={loading}>

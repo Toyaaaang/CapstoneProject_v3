@@ -2,6 +2,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Eye } from "lucide-react";
 
 export const columns: ColumnDef<any>[] = [
 	{
@@ -139,5 +140,21 @@ export const columns: ColumnDef<any>[] = [
 		header: "Rejection Reason",
 		accessorFn: (row) => (row.status === "rejected" ? row.rejection_reason || "-" : "-"),
 	},
-	
+	{
+		header: "Action",
+		cell: ({ row }) => {
+			const rvId = row.original.id;
+			const handlePreview = () => {
+				window.location.href = (`/pages/budget/requests-history/${rvId}/printable`);
+			};
+			return (
+				<div className="flex gap-2">
+					<Button size="sm" variant="secondary" onClick={handlePreview}>
+						<Eye className="w-4 h-4 mr-1" />
+						Preview
+					</Button>
+				</div>
+			);
+		},
+	},
 ];

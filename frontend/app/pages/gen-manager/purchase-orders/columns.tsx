@@ -11,17 +11,35 @@ import {
 } from "@/components/ui/popover";
 import React from "react";
 import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
+import { useRouter } from "next/navigation";
+
+// Helper to fetch estimates for a PO's items
+async function fetchEstimates(items: any[]) {
+  if (!items?.length) return {};
+  const res = await axios.post("/requests/purchase-orders/estimate/", {
+    items: items
+      .filter((item: any) => item.material?.id)
+      .map((item: any) => ({
+        material_id: item.material.id,
+        unit: item.unit,
+      })),
+  });
+  return res.data;
+}
 
 export const columns: ColumnDef<any>[] = [
   {
     header: "PO No.",
     accessorKey: "po_number",
+    cell: ({ getValue }) => (
+      <span className="font-mono">{getValue()}</span>
+    ),
   },
   {
     header: "Supplier",
     accessorKey: "supplier",
     cell: ({ row }) => {
-      const supplier = row.original.supplier;
+      const supplier = row.original.supplier_name || row.original.supplier;
       return (
         <span className="font-semibold">
           {supplier
@@ -57,10 +75,44 @@ export const columns: ColumnDef<any>[] = [
     ),
   },
   {
-    header: "Total",
+    id: "estimatedAmount",
+    header: (
+      <>
+        Estimated Amount
+        <br />
+        <span className="text-xs text-gray-800 dark:text-gray-400">(Historical Avg)</span>
+      </>
+    ) as any,
+    cell: ({ row }) => {
+      const [estimate, setEstimate] = React.useState<number | null>(null);
+
+      React.useEffect(() => {
+        let mounted = true;
+        fetchEstimates(row.original.items).then((estimates) => {
+          if (!mounted) return;
+          let total = 0;
+          row.original.items.forEach((item: any) => {
+            const est = estimates[item.material?.id];
+            if (est && est.average) {
+              total += est.average * item.quantity;
+            }
+          });
+          setEstimate(total || null);
+        });
+        return () => { mounted = false; };
+      }, [row.original.items]);
+
+      return estimate !== null
+        ? <span className="font-mono text-blue-700 dark:text-blue-400">₱{estimate.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+        : <span className="italic text-gray-800 dark:text-gray-400">No estimate</span>;
+    },
+    meta: { align: "right" },
+  },
+  {
+    header: "Actual Amount",
     accessorKey: "grand_total",
     cell: ({ row }) => (
-      <span className="font-mono font-semibold text-green-700 dark:text-green-400">
+      <span className="font-mono font-semibold">
         ₱
         {parseFloat(row.original.grand_total).toLocaleString("en-PH", {
           minimumFractionDigits: 2,
@@ -68,6 +120,46 @@ export const columns: ColumnDef<any>[] = [
         })}
       </span>
     ),
+    meta: { align: "right" },
+  },
+  {
+    id: "variance",
+    header: (
+      <>
+        Variance
+        <br />
+        <span className="text-xs text-gray-800 dark:text-gray-400">(Actual - Estimate)</span>
+      </>
+    ) as any,
+    cell: ({ row }) => {
+      const [estimate, setEstimate] = React.useState<number | null>(null);
+
+      React.useEffect(() => {
+        let mounted = true;
+        fetchEstimates(row.original.items).then((estimates) => {
+          if (!mounted) return;
+          let total = 0;
+          row.original.items.forEach((item: any) => {
+            const est = estimates[item.material?.id];
+            if (est && est.average) {
+              total += est.average * item.quantity;
+            }
+          });
+          setEstimate(total || null);
+        });
+        return () => { mounted = false; };
+      }, [row.original.items]);
+
+      const actual = parseFloat(row.original.grand_total);
+      return estimate !== null
+        ? (
+          <span className={`font-mono ${actual - estimate > 0 ? "text-red-600" : "text-green-600"}`}>
+            ₱{(actual - estimate).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+          </span>
+        )
+        : <span className="italic text-gray-800 dark:text-gray-400">N/A</span>
+    },
+    meta: { align: "right" },
   },
   {
     header: "Review",
@@ -79,6 +171,8 @@ export const columns: ColumnDef<any>[] = [
       const subtotal = grandTotal - vatAmount;
 
       const [open, setOpen] = React.useState(false);
+      const previewItems = items.slice(0, 5); // Only first 5 items
+      const router = useRouter();
 
       return (
         <Popover open={open} onOpenChange={setOpen}>
@@ -93,7 +187,7 @@ export const columns: ColumnDef<any>[] = [
               <span className="text-right">Total</span>
             </div>
             <div className="max-h-56 overflow-auto flex flex-col gap-2 pr-1">
-              {items.map((item: any, i: number) => (
+              {previewItems.map((item: any, i: number) => (
                 <div
                   key={i}
                   className="grid grid-cols-4 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
@@ -112,6 +206,11 @@ export const columns: ColumnDef<any>[] = [
                   </div>
                 </div>
               ))}
+              {items.length > 5 && (
+                <div className="text-xs text-muted-foreground text-center mt-2">
+                  ...and {items.length - 5} more items
+                </div>
+              )}
             </div>
 
             <div className="text-right mt-4 space-y-1 text-sm">
@@ -119,6 +218,17 @@ export const columns: ColumnDef<any>[] = [
               <div>VAT ({vatRate}%): ₱{vatAmount.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</div>
               <div className="font-bold">Grand Total: ₱{grandTotal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2 text-xs text-blue-700 dark:text-blue-400 flex justify-center w-full"
+              onClick={() => {
+                setOpen(false);
+                router.push(`/pages/gen-manager/purchase-orders/${row.original.id}/items`);
+              }}
+            >
+              Show Full Details
+            </Button>
           </PopoverContent>
         </Popover>
       );

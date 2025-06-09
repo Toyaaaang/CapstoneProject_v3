@@ -10,6 +10,11 @@ export const columns: ColumnDef<any>[] = [
 		accessorKey: "rv_number",
 	},
 	{
+		header: "Requester",
+		accessorFn: (row) =>
+			`${row.requester?.first_name || ""} ${row.requester?.last_name || ""}`,
+	},
+	{
 		header: "Department",
 		accessorKey: "department",
 		cell: ({ row }) => (
@@ -18,6 +23,26 @@ export const columns: ColumnDef<any>[] = [
 					? row.original.department.replace(/_/g, " ").toUpperCase()
 					: ""}
 			</Badge>
+		),
+	},
+	{
+		header: "Purpose / Location",
+		cell: ({ row }) => (
+			<Popover>
+				<PopoverTrigger asChild>
+					<Button variant="default" size="sm" className="text-left font-normal max-w-[180px] truncate">
+						{row.original.purpose}
+					</Button>
+				</PopoverTrigger>
+				<PopoverContent className="w-72">
+					<div>
+						<div className="font-semibold mb-1">Purpose: </div>
+						<div className="mb-2">{row.original.purpose || <span className="italic text-muted-foreground">No purpose</span>}</div>
+						<div className="font-semibold mb-1">Location: </div>
+						<div>{row.original.location || <span className="italic text-muted-foreground">No location</span>}</div>
+					</div>
+				</PopoverContent>
+			</Popover>
 		),
 	},
 	{
@@ -97,6 +122,10 @@ export const columns: ColumnDef<any>[] = [
 				</Popover>
 			);
 		},
+	},
+	{
+		header: "Rejection Reason",
+		accessorFn: (row) => (row.status === "rejected" ? row.rejection_reason || "-" : "-"),
 	},
 	{
 		header: "Action",

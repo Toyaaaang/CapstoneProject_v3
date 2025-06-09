@@ -8,6 +8,7 @@ from material_requests.views.po import PurchaseOrderViewSet
 from material_requests.views.qc import QualityCheckViewSet
 from material_requests.views.cert import CertificationViewSet
 from material_requests.views.rr import ReceivingReportViewSet
+from .views.supplier import SupplierListView
 
 router = DefaultRouter()
 router.register(r"material-requests", MaterialRequestViewSet, basename="material-requests")
@@ -20,5 +21,6 @@ router.register(r"receiving-reports", ReceivingReportViewSet, basename="receivin
 router.register(r'employee/requests-history', MaterialRequestViewSet, basename='employee-requests-history')
 
 urlpatterns = [
-    # ...other urls...
+    # ... other endpoints ...
+    path('suppliers/', SupplierListView.as_view(), name='supplier-list'),
 ] + router.urls

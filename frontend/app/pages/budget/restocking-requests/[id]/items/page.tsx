@@ -20,6 +20,7 @@ export default function RestockingRequestItemsPage() {
   const [createdAt, setCreatedAt] = useState("");
   const [page, setPage] = useState(1);
   const pageSize = 10;
+  const [estimates, setEstimates] = useState<{ [material_id: number]: any }>({});
 
   useEffect(() => {
     type RestockingItem = {
@@ -44,6 +45,7 @@ export default function RestockingRequestItemsPage() {
         const data = res.data as RestockingRequestData;
         setItems(
           data.items.map((item: any) => ({
+            material_id: item.material?.id ?? null,
             name: item.material?.name || item.custom_name || "Unknown",
             category: item.material?.category
               ? item.material.category.charAt(0).toUpperCase() + item.material.category.slice(1)
@@ -71,6 +73,22 @@ export default function RestockingRequestItemsPage() {
     fetchData();
   }, [id]);
 
+  useEffect(() => {
+    if (items.length > 0) {
+      const materialItems = items
+        .filter(item => item.material_id)
+        .map(item => ({
+          material_id: item.material_id,
+          unit: item.unit,
+        }));
+
+      if (materialItems.length > 0) {
+        axios.post("/requests/purchase-orders/estimate/", { items: materialItems })
+          .then(res => setEstimates(res.data as { [material_id: number]: any }));
+      }
+    }
+  }, [items]);
+
   // Slice items for current page
   const pagedItems = items.slice((page - 1) * pageSize, page * pageSize);
 
@@ -93,6 +111,24 @@ export default function RestockingRequestItemsPage() {
           { header: "Name", accessorKey: "name" },
           { header: "Quantity", accessorKey: "quantity" },
           { header: "Unit", accessorKey: "unit" },
+          {
+            id: "estimatedAmount",
+            header: (
+              <>
+                Estimated Amount
+                <br />
+                <span className="text-sm text-gray-800 dark:text-gray-400 font-medium">
+                  (Based on Historical Purchases)
+                </span>
+              </>
+            ) as any,
+            cell: ({ row }) => {
+              const estimate = estimates[row.original.material_id];
+              return estimate
+                ? `₱${(estimate.average * row.original.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                : <span className="italic text-muted-foreground">No estimate</span>;
+            }
+          }
         ]}
         loading={loading}
         page={page}

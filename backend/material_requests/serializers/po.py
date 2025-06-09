@@ -34,16 +34,18 @@ class PurchaseOrderItemSerializer(serializers.ModelSerializer):
 
           
 class PurchaseOrderSerializer(serializers.ModelSerializer):
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True)
     items = PurchaseOrderItemSerializer(many=True,)
     rv_id = serializers.PrimaryKeyRelatedField(
         queryset=RequisitionVoucher.objects.all(),
         source='requisition_voucher'
     )
     requisition_voucher = serializers.SerializerMethodField()
-    # ✅ Add these two:
+    purpose = serializers.SerializerMethodField()  # <-- Add this line
     vat_rate = serializers.DecimalField(max_digits=5, decimal_places=2)
     vat_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     deliveries = DeliveryRecordSerializer(many=True, read_only=True)
+    signatories = serializers.SerializerMethodField()  # <-- Add this line
     
     class Meta:
         model = PurchaseOrder
@@ -63,6 +65,9 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
             'grand_total',
             'items',
             'deliveries',     
+            'supplier_name',
+            'purpose',  # <-- Add this line
+            'signatories',  # <-- Add this line
         ]
 
     def get_requisition_voucher(self, obj):
@@ -74,12 +79,23 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
                 "department": rv.department
             }
         return None
+
+    def get_purpose(self, obj):
+        # Get the related MaterialRequest's purpose via the RV
+        rv = obj.requisition_voucher
+        if rv and hasattr(rv, "material_request") and rv.material_request:
+            return rv.material_request.purpose
+        return None
     
     def create(self, validated_data):
+        request = self.context.get("request")
         items_data = validated_data.pop('items')
         vat_rate = validated_data.get('vat_rate', 0)
 
-        po = PurchaseOrder.objects.create(**validated_data)
+        po = PurchaseOrder.objects.create(
+            **validated_data,
+            created_by=request.user if request else None
+        )
 
         subtotal = 0
         for item_data in items_data:
@@ -106,6 +122,35 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         po.save()
 
         return po
+
+    def get_signatories(self, obj):
+        signatories = []
+
+        # 1. Budget Analyst (creator)
+        if obj.created_by:
+            signatories.append({
+                "role": "Budget Analyst",
+                "full_name": obj.created_by.get_full_name() or obj.created_by.username,
+                "signature": getattr(obj.created_by, "signature", None),
+            })
+
+        # 2. Auditor (recommender)
+        if obj.recommended_by:
+            signatories.append({
+                "role": "Auditor",
+                "full_name": obj.recommended_by.get_full_name() or obj.recommended_by.username,
+                "signature": getattr(obj.recommended_by, "signature", None),
+            })
+
+        # 3. General Manager (final approver)
+        if obj.final_approved_by:
+            signatories.append({
+                "role": "General Manager",
+                "full_name": obj.final_approved_by.get_full_name() or obj.final_approved_by.username,
+                "signature": getattr(obj.final_approved_by, "signature", None),
+            })
+
+        return signatories
 
 
 
@@ -134,3 +179,51 @@ class PurchaseOrderApprovalSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+class PurchaseOrderVarianceItemSerializer(serializers.ModelSerializer):
+    material_name = serializers.CharField(source="material.name", read_only=True)
+    estimate = serializers.SerializerMethodField()
+    variance = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PurchaseOrderItem
+        fields = [
+            "id", "material_name", "custom_name", "quantity", "unit", "unit_price", "total",
+            "estimate", "variance"
+        ]
+
+    def get_estimate(self, obj):
+        # Example: get historical average for this material/unit
+        qs = PurchaseOrderItem.objects.filter(material=obj.material, unit=obj.unit)
+        prices = list(qs.values_list("unit_price", flat=True))
+        if prices:
+            return round(sum(prices) / len(prices), 2)
+        return None
+
+    def get_variance(self, obj):
+        estimate = self.get_estimate(obj)
+        if estimate is not None:
+            # Ensure both are Decimal before subtracting
+            return float(Decimal(obj.unit_price) - Decimal(str(estimate)))
+        return None
+
+class PurchaseOrderVarianceReportSerializer(serializers.ModelSerializer):
+    items = PurchaseOrderVarianceItemSerializer(many=True, read_only=True)
+    supplier_name = serializers.CharField(source="supplier.name", read_only=True)
+    requisition_voucher = serializers.SerializerMethodField()  # <-- Add this line
+
+    class Meta:
+        model = PurchaseOrder
+        fields = [
+            "id", "po_number", "supplier_name", "created_at", "requisition_voucher", "items", "grand_total"
+        ]
+
+    def get_requisition_voucher(self, obj):
+        rv = obj.requisition_voucher
+        if rv:
+            return {
+                "id": rv.id,
+                "rv_number": rv.rv_number,
+                "department": rv.department
+            }
+        return None

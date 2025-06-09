@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import axios from "@/lib/axios";
+import { Save } from "lucide-react";
 
 interface EditNameDialogProps {
   open: boolean;
@@ -76,7 +77,8 @@ export default function EditNameDialog({
           />
         </div>
         <DialogFooter>
-          <Button onClick={handleSubmit} disabled={loading}>
+          <Button className="w-full" onClick={handleSubmit} disabled={loading}>
+            <Save/>
             {loading ? "Saving..." : "Save"}
           </Button>
         </DialogFooter>

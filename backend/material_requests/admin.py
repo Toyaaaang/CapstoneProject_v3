@@ -15,6 +15,7 @@ from .models import (
     CertifiedItem,
     ReceivingReport,
     ReceivingReportItem,
+    Supplier,  
 )
 
 # Inline for MaterialRequestItem
@@ -139,4 +140,11 @@ class ReceivingReportAdmin(admin.ModelAdmin):
 class ReceivingReportItemAdmin(admin.ModelAdmin):
     list_display = ('receiving_report', 'material', 'quantity', 'unit')
     search_fields = ('receiving_report__purchase_order__po_number', 'material__name')
+
+# Admin for Supplier
+@admin.register(Supplier)
+class SupplierAdmin(admin.ModelAdmin):
+    list_display = ('name', 'address', 'contact_number', 'email', 'is_active')
+    search_fields = ('name', 'address', 'contact_number', 'email')
+    list_filter = ('is_active',)
 

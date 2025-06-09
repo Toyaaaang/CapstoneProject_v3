@@ -1,8 +1,8 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from ..models import PurchaseOrder, DeliveryRecord
-from ..serializers.po import PurchaseOrderSerializer, PurchaseOrderApprovalSerializer
+from ..models import PurchaseOrder, DeliveryRecord, PurchaseOrderItem
+from ..serializers.po import PurchaseOrderSerializer, PurchaseOrderApprovalSerializer, PurchaseOrderVarianceReportSerializer
 from ..serializers.delivery import DeliveryRecordSerializer
 
 class PurchaseOrderViewSet(viewsets.ModelViewSet):
@@ -144,3 +144,45 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         # 🚧 Future: append purchase return records here as well
 
         return Response(data)
+
+    @action(detail=False, methods=["post"], url_path="estimate")
+    def estimate(self, request):
+        """
+        Expects: { "items": [{ "material_id": 1, "unit": "pcs" }, ...] }
+        Returns: { material_id: { "average": 123.45, "last": 120.00, ... }, ... }
+        """
+        items = request.data.get("items", [])
+        result = {}
+
+        for item in items:
+            material_id = item.get("material_id")
+            unit = item.get("unit")
+            if not material_id:
+                continue
+
+            qs = PurchaseOrderItem.objects.filter(material_id=material_id, unit=unit)
+            prices = list(qs.values_list("unit_price", flat=True).order_by("-id"))
+            if prices:
+                result[material_id] = {
+                    "average": round(sum(prices) / len(prices), 2),
+                    "last": float(prices[0]),
+                    "min": float(min(prices)),
+                    "max": float(max(prices)),
+                    "count": len(prices),
+                }
+            else:
+                result[material_id] = None
+
+        return Response(result)
+
+    @action(detail=True, methods=["get"], url_path="printable")
+    def printable(self, request, pk=None):
+        po = self.get_object()
+        serializer = self.get_serializer(po)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["get"], url_path="variance-report")
+    def variance_report(self, request, pk=None):
+        po = self.get_object()
+        serializer = PurchaseOrderVarianceReportSerializer(po)
+        return Response(serializer.data)

@@ -184,10 +184,20 @@ class RequisitionItem(models.Model):
             f"{self.custom_name} (custom) (x{self.quantity})"
         )
 
+class Supplier(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    address = models.TextField(blank=True, null=True)
+    contact_number = models.CharField(max_length=50, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
 class PurchaseOrder(models.Model):
     po_number = models.CharField(max_length=50, unique=True, blank=True)
     requisition_voucher = models.ForeignKey(RequisitionVoucher, on_delete=models.CASCADE, related_name='purchase_order')
-    supplier = models.CharField(max_length=255)
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT)
     supplier_address = models.TextField()
     received_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,blank=True, related_name='received_pos')
     delivery_date = models.DateField(null=True, blank=True)
@@ -210,6 +220,9 @@ class PurchaseOrder(models.Model):
     recommended_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='recommended_pos')
     final_approved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='approved_pos')
     rejection_reason = models.TextField(blank=True, null=True)
+    created_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_pos'
+    )
     
     def save(self, *args, **kwargs):
         if not self.po_number:

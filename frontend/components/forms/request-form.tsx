@@ -206,7 +206,11 @@ export default function RequestForm() {
   }
 
   return (
-    <Card className="p-6 w-full mx-auto space-y-4">
+    <Card
+      className="p-6 w-full mx-auto space-y-4
+        bg-white/40 dark:bg-zinc-900/60
+        shadow-lg backdrop-blur-[4.5px]"
+    >
       <h1 className="text-xl font-bold">New Material Request</h1>
       <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
         {/* Department Dropdown (only for ED/OMD employee or sub_office) */}

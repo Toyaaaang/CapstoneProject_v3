@@ -50,11 +50,14 @@ class RequisitionItemSerializer(serializers.ModelSerializer):
 
 
     
+class MaterialRequestShortSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MaterialRequest
+        fields = ['id', 'work_order_no', 'purpose', 'requester'] 
+
 class RequisitionVoucherSerializer(serializers.ModelSerializer):
     items = RequisitionItemSerializer(many=True)
-    material_request = serializers.PrimaryKeyRelatedField(
-        queryset=MaterialRequest.objects.all(), required=False, allow_null=True
-    )
+    material_request = MaterialRequestShortSerializer(read_only=True)
     requester = serializers.SerializerMethodField()
     purpose_display = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField(read_only=True)

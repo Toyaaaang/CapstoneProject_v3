@@ -109,7 +109,7 @@ export default function ESignatureRecorder({
               <Button
                 variant="outline"
                 onClick={() => setIsEditing(true)}
-                className="mb-4"
+                className="w-full"
               >
                 <X className="mr-1" />
                 Clear to Edit
@@ -129,7 +129,7 @@ export default function ESignatureRecorder({
               <Button
                 variant="outline"
                 onClick={() => signaturePadRef.current?.clear()}
-                className="mb-4"
+                className="w-full"
               >
                 <X className="mr-1" />
                 Clear
@@ -139,6 +139,7 @@ export default function ESignatureRecorder({
         </div>
         <DialogFooter>
           <Button
+            className="w-full"
             onClick={handleSave}
             disabled={isSaving || (!isEditing && !!existingSignatureUrl)}
           >

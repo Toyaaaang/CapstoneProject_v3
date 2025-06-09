@@ -29,7 +29,7 @@ const PrintableRVForm: React.FC<PrintableRVFormProps> = ({ data }) => {
         </Button>
       </div>
 
-      <Card className="p-6">
+      <Card className="p-6 bg-white">
         {/* Header with logo and company info */}
         <div className="flex ml-28 items-center gap-4 mb-2">
           <img
@@ -51,7 +51,7 @@ const PrintableRVForm: React.FC<PrintableRVFormProps> = ({ data }) => {
         </div>
         {/* Description */}
         <div className="text-left text-sm text-muted-foreground">
-            Request Approval to procure the following materials/ supplies for:
+          Request Approval to procure the following materials/ supplies for:
         </div>
         {/* Info Grid */}
         <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs mb-2">
@@ -186,6 +186,8 @@ const PrintableRVForm: React.FC<PrintableRVFormProps> = ({ data }) => {
         @media print {
           .print\\:hidden { display: none !important; }
           body { background: white !important; }
+          .bg-white, .dark\\:bg-zinc-900\\/80, .dark\\:bg-zinc-900\\/60, .dark\\:bg-zinc-900 { background: white !important; }
+          .text-muted-foreground { color: #6b7280 !important; }
         }
       `}</style>
     </div>
