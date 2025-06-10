@@ -96,7 +96,7 @@ export const columns: ColumnDef<any>[] = [
       <>
         Estimated Amount
         <br />
-        <span className="text-xs text-gray-800 dark:text-gray-400">(Historical Avg)</span>
+        <span className="text-xs text-gray-800 dark:text-gray-400">(Historical Avg + VAT)</span>
       </>
     ) as any,
     cell: ({ row }) => {
@@ -118,8 +118,12 @@ export const columns: ColumnDef<any>[] = [
         return () => { mounted = false; };
       }, [row.original.items]);
 
-      return estimate !== null
-        ? <span className="font-mono text-blue-700 dark:text-blue-400">₱{estimate.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
+      // Include VAT in estimate
+      const vatRate = parseFloat(row.original.vat_rate) || 0;
+      const estimateWithVat = estimate !== null ? estimate * (1 + vatRate / 100) : null;
+
+      return estimateWithVat !== null
+        ? <span className="font-mono text-blue-700 dark:text-blue-400">₱{estimateWithVat.toLocaleString("en-PH", { minimumFractionDigits: 2 })}</span>
         : <span className="italic text-gray-800 dark:text-gray-400">No estimate</span>;
     },
     meta: { align: "right" },
@@ -167,10 +171,13 @@ export const columns: ColumnDef<any>[] = [
       }, [row.original.items]);
 
       const actual = parseFloat(row.original.grand_total);
-      return estimate !== null
+      const vatRate = parseFloat(row.original.vat_rate) || 0;
+      const estimateWithVat = estimate !== null ? estimate * (1 + vatRate / 100) : null;
+
+      return estimateWithVat !== null
         ? (
-          <span className={`font-mono ${actual - estimate > 0 ? "text-red-600" : "text-green-600"}`}>
-            ₱{(actual - estimate).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+          <span className={`font-mono ${actual - estimateWithVat > 0 ? "text-red-600" : "text-green-800"}`}>
+            ₱{(actual - estimateWithVat).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
           </span>
         )
         : <span className="italic text-gray-800 dark:text-gray-400">N/A</span>

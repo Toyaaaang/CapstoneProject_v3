@@ -21,6 +21,7 @@ export default function RestockingRequestItemsPage() {
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const [estimates, setEstimates] = useState<{ [material_id: number]: any }>({});
+  const [vatRate, setVatRate] = useState<number>(0);
 
   useEffect(() => {
     type RestockingItem = {
@@ -63,6 +64,7 @@ export default function RestockingRequestItemsPage() {
           month: "long",
           day: "numeric",
         }) : "");
+        setVatRate(parseFloat(data.vat_rate) || 0);
       } catch (error) {
         toast.error("Failed to fetch items.");
       } finally {
@@ -118,14 +120,18 @@ export default function RestockingRequestItemsPage() {
                 Estimated Amount
                 <br />
                 <span className="text-sm text-gray-800 dark:text-gray-400 font-medium">
-                  (Based on Historical Purchases)
+                  (Historical + VAT)
                 </span>
               </>
             ) as any,
             cell: ({ row }) => {
               const estimate = estimates[row.original.material_id];
-              return estimate
-                ? `₱${(estimate.average * row.original.quantity).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+              const estimateWithVat =
+                estimate
+                  ? estimate.average * row.original.quantity * (1 + vatRate / 100)
+                  : null;
+              return estimateWithVat !== null
+                ? `₱${estimateWithVat.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
                 : <span className="italic text-muted-foreground">No estimate</span>;
             }
           }

@@ -1,7 +1,10 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation"; // or "next/router" if using older Next.js
+import { Fragment } from "react";
 
 export type MaterialRequest = {
   work_order_no: string;
@@ -103,14 +106,47 @@ export const columns: ColumnDef<MaterialRequest>[] = [
     header: "Items",
     cell: ({ row }) => {
       const router = useRouter();
+      const items = row.original.items || [];
       return (
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => router.push(`/pages/employee/requests-history/${row.original.id}/items`)}
-        >
-          View Items
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="outline">
+              View Items
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-96">
+            <div className="grid grid-cols-3 gap-2 text-xs font-semibold border-b pb-1">
+              <span>Name</span>
+              <span>Quantity</span>
+              <span>Unit</span>
+            </div>
+            {items.length === 0 && (
+              <div className="text-xs text-muted-foreground mt-2">No items</div>
+            )}
+            {items.slice(0, 5).map((item, idx) => (
+              <div key={idx} className="grid grid-cols-3 gap-2 text-sm py-1 border-b last:border-b-0">
+                <span>{item.custom_name || item.material?.name || "—"}</span>
+                <span className="ml-4">{Math.floor(item.quantity)}</span>
+                <span>{item.unit}</span>
+              </div>
+            ))}
+            {items.length > 5 && (
+              <div className="text-xs text-muted-foreground mt-2">
+                +{items.length - 5} more item{items.length - 5 > 1 ? "s" : ""}
+              </div>
+            )}
+            <Button
+              className="mt-4 w-full"
+              size="sm"
+              variant="secondary"
+              onClick={() =>
+                router.push(`/employee/requests-history/${row.original.id}/items`)
+              }
+            >
+              See Full Details <ChevronRight className="ml-1 h-4 w-4" />
+            </Button>
+          </PopoverContent>
+        </Popover>
       );
     },
   },

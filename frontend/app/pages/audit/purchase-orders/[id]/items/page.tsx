@@ -127,14 +127,14 @@ export default function PurchaseOrderItemsPage() {
         </Button>
         <Button
           variant="outline"
-          onClick={() => router.push(`/audit/purchase-orders/${id}/printable`)}
+          onClick={() => router.push(`/pages/audit/purchase-orders/${id}/printable`)}
         >
           <Download />
           Download/Print PO Form
         </Button>
         <Button
           variant="outline"
-          onClick={() => router.push(`/audit/purchase-orders/${id}/variance-report`)}
+          onClick={() => router.push(`/pages/audit/purchase-orders/${id}/variance-report`)}
         >
           <FileBarChart2 />
           Variance Report

@@ -108,36 +108,46 @@ export default function VarianceReportPage() {
               </tr>
             </thead>
             <tbody>
-              {data.items?.map((item: any, idx: number) => (
-                <tr key={idx}>
-                  <td className="border px-2 py-1 text-center">{idx + 1}</td>
-                  <td className="border px-2 py-1">{item.material_name || item.custom_name || item.name}</td>
-                  <td className="border px-2 py-1">{item.unit}</td>
-                  <td className="border px-2 py-1 text-right">{item.quantity}</td>
-                  <td className="border px-2 py-1 text-right">
-                    {item.estimate !== null && item.estimate !== undefined
-                      ? `₱${parseFloat(item.estimate).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
-                      : <span className="italic text-gray-800 dark:text-gray-400">N/A</span>
-                    }
-                  </td>
-                  <td className="border px-2 py-1 text-right">
-                    {item.unit_price !== null && item.unit_price !== undefined
-                      ? `₱${parseFloat(item.unit_price).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
-                      : <span className="italic text-gray-800 dark:text-gray-400">N/A</span>
-                    }
-                  </td>
-                  <td className="border px-2 py-1 text-right">
-                    {item.variance !== null && item.variance !== undefined
-                      ? (
-                        <span className={item.variance > 0 ? "text-red-600 font-mono" : "text-green-600 font-mono"}>
-                          ₱{parseFloat(item.variance).toLocaleString("en-PH", { minimumFractionDigits: 2 })}
-                        </span>
-                      )
-                      : <span className="italic text-gray-800 dark:text-gray-400">N/A</span>
-                    }
-                  </td>
-                </tr>
-              ))}
+              {data.items?.map((item: any, idx: number) => {
+                const vat = parseFloat(data.vat_rate) || 0;
+                const quantity = Number(item.quantity) || 0;
+                const estimateUnit = Number(item.estimate) || 0;
+                const actualUnit = Number(item.unit_price) || 0;
+                const estimateTotal = estimateUnit * quantity * (1 + vat / 100);
+                const actualTotal = actualUnit * quantity * (1 + vat / 100);
+                const variance = actualTotal - estimateTotal;
+
+                return (
+                  <tr key={idx}>
+                    <td className="border px-2 py-1 text-center">{idx + 1}</td>
+                    <td className="border px-2 py-1">{item.material_name || item.custom_name || item.name}</td>
+                    <td className="border px-2 py-1">{item.unit}</td>
+                    <td className="border px-2 py-1 text-right">{quantity}</td>
+                    <td className="border px-2 py-1 text-right">
+                      {estimateUnit
+                        ? `₱${estimateTotal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
+                        : <span className="italic text-gray-800 dark:text-gray-400">N/A</span>
+                      }
+                    </td>
+                    <td className="border px-2 py-1 text-right">
+                      {actualUnit
+                        ? `₱${actualTotal.toLocaleString("en-PH", { minimumFractionDigits: 2 })}`
+                        : <span className="italic text-gray-800 dark:text-gray-400">N/A</span>
+                      }
+                    </td>
+                    <td className="border px-2 py-1 text-right">
+                      {estimateUnit && actualUnit
+                        ? (
+                          <span className={variance > 0 ? "text-red-600 font-mono" : "text-green-600 font-mono"}>
+                            ₱{variance.toLocaleString("en-PH", { minimumFractionDigits: 2 })}
+                          </span>
+                        )
+                        : <span className="italic text-gray-800 dark:text-gray-400">N/A</span>
+                      }
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

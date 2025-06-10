@@ -389,7 +389,7 @@ export default function RequestForm() {
               </div>
             </div>
           ))}
-          <Button type="button" variant="outline" onClick={addItem}>
+          <Button type="button" variant="outline" onClick={addItem} className="mr-3">
             + Add Item
           </Button>
           <Button

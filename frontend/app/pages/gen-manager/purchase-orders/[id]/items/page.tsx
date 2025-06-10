@@ -27,6 +27,7 @@ export default function PurchaseOrderItemsPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
   const [estimates, setEstimates] = useState<Record<number, Estimate>>({});
+  const [vatRate, setVatRate] = useState<number>(0); // <-- Add VAT state
   const pageSize = 10;
   const [page, setPage] = useState(1);
 
@@ -35,14 +36,18 @@ export default function PurchaseOrderItemsPage() {
     axios
       .get(`/requests/purchase-orders/${id}/`)
       .then(async (res) => {
+        const vat = parseFloat(res.data.vat_rate) || 0;
         const mapped: Item[] = (res.data.items || []).map((item: any) => ({
           material_id: item.material?.id ?? null,
           name: item.material?.name || item.custom_name || "Unknown",
           quantity: Math.round(item.quantity),
           unit: item.unit,
-          actual: item.unit_price ? Number(item.unit_price) : 0,
+          actual: item.unit_price
+            ? Number(item.unit_price) * Math.round(item.quantity) * (1 + vat / 100)
+            : 0,
         }));
         setItems(mapped);
+        setVatRate(vat); // <-- Set VAT rate
 
         // Fetch estimates for all items
         const estimateRes = await axios.post("/requests/purchase-orders/estimate/", {
@@ -85,13 +90,17 @@ export default function PurchaseOrderItemsPage() {
               <>
                 Estimate
                 <br />
-                <span className="text-xs text-gray-800 dark:text-gray-400">(Historical Avg)</span>
+                <span className="text-xs text-gray-800 dark:text-gray-400">(Historical Avg + VAT)</span>
               </>
             ),
             cell: ({ row }: { row: { original: Item } }) => {
               const est = row.original.material_id ? estimates[row.original.material_id] : undefined;
-              return est
-                ? `₱${est.average.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+              const estimateWithVat =
+                est
+                  ? est.average * row.original.quantity * (1 + vatRate / 100)
+                  : null;
+              return estimateWithVat !== null
+                ? <span className="font-mono text-blue-700 dark:text-blue-400">₱{estimateWithVat.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 : <span className="italic text-gray-800 dark:text-gray-400">No estimate</span>;
             }
           },
@@ -100,7 +109,7 @@ export default function PurchaseOrderItemsPage() {
             header: "Actual Cost",
             cell: ({ row }: { row: { original: Item } }) =>
               row.original.actual
-                ? `₱${row.original.actual.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                ? <span className="font-mono font-semibold">₱{row.original.actual.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 : <span className="italic text-gray-800 dark:text-gray-400">N/A</span>
           },
           {
@@ -115,8 +124,12 @@ export default function PurchaseOrderItemsPage() {
             cell: ({ row }: { row: { original: Item } }) => {
               const est = row.original.material_id ? estimates[row.original.material_id] : undefined;
               const actual = row.original.actual;
-              if (est && est.average) {
-                const variance = actual - est.average;
+              const estimateWithVat =
+                est
+                  ? est.average * row.original.quantity * (1 + vatRate / 100)
+                  : null;
+              if (estimateWithVat !== null) {
+                const variance = actual - estimateWithVat;
                 return (
                   <span className={variance > 0 ? "text-red-600 font-mono" : "text-green-600 font-mono"}>
                     ₱{variance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
