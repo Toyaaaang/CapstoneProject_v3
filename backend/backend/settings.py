@@ -245,3 +245,5 @@ CLOUDINARY_STORAGE = {
     'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
     'API_SECRET': os.environ.get('CLOUDINARY_API_SECRET'),
 }
+
+LOCATIONIQ_API_KEY = "pk.8e5ac7da0c927fe19d6d2f1fbd26e732"

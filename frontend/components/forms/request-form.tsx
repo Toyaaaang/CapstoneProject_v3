@@ -427,58 +427,50 @@ function LocationInput({
   value,
   onChange,
   setCoordinates,
-  coordinates, // <-- add this
+  coordinates,
 }: {
   value: string;
   onChange: (val: string) => void;
   setCoordinates: (coords: { lat: number; lng: number } | null) => void;
-  coordinates: { lat: number; lng: number } | null; // <-- add this
+  coordinates: { lat: number; lng: number } | null;
 }) {
-  const ready = useGooglePlacesReady();
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(false);
+  const LOCATIONIQ_API_KEY = "pk.8e5ac7da0c927fe19d6d2f1fbd26e732";
 
-  useEffect(() => {
-    if (ready && inputRef.current) {
-      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
-        types: ["geocode"],
-        componentRestrictions: { country: "ph" },
-        fields: ["formatted_address", "geometry"],
-      });
-
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        onChange(place.formatted_address || inputRef.current!.value);
-        if (place.geometry && place.geometry.location) {
-          setCoordinates({
-            lat: place.geometry.location.lat(),
-            lng: place.geometry.location.lng(),
-          });
-        } else {
-          setCoordinates(null);
-        }
-      });
+  // Forward geocode on blur
+  const handleBlur = async () => {
+    if (!value) return;
+    setLoading(true);
+    try {
+      const res = await axios.get(
+        `/requests/geocode/?q=${encodeURIComponent(value)}`
+      );
+      if (res.data?.length > 0) {
+        const best = res.data[0];
+        setCoordinates({ lat: parseFloat(best.lat), lng: parseFloat(best.lon) });
+      } else {
+        setCoordinates(null);
+      }
+    } catch {
+      setCoordinates(null);
+    } finally {
+      setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  };
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1 relative">
       <Input
-        ref={inputRef}
-        placeholder={ready ? "Enter location" : "Type location manually"}
+        placeholder="Enter location"
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
-          if (!ready) setCoordinates(null); // fallback: no coords
+          setCoordinates(null);
         }}
-        disabled={false} // ✅ Always editable
+        onBlur={handleBlur}
+        autoComplete="off"
       />
-      {ready === false && (
-        <p className="text-xs text-muted-foreground italic">
-          Google Autocomplete not available. Manual input enabled.
-        </p>
-      )}
-      {/* Optionally show coordinates if available */}
+      {loading && <div className="text-xs text-muted-foreground">Searching...</div>}
       {coordinates && (
         <p className="text-sm text-muted-foreground">
           📍 Lat: {coordinates.lat.toFixed(5)}, Lng: {coordinates.lng.toFixed(5)}

@@ -9,6 +9,7 @@ from material_requests.views.qc import QualityCheckViewSet
 from material_requests.views.cert import CertificationViewSet
 from material_requests.views.rr import ReceivingReportViewSet
 from .views.supplier import SupplierListView
+from .views.geocode import locationiq_geocode
 
 router = DefaultRouter()
 router.register(r"material-requests", MaterialRequestViewSet, basename="material-requests")
@@ -23,4 +24,5 @@ router.register(r'employee/requests-history', MaterialRequestViewSet, basename='
 urlpatterns = [
     # ... other endpoints ...
     path('suppliers/', SupplierListView.as_view(), name='supplier-list'),
+    path("geocode/", locationiq_geocode, name="locationiq_geocode"),
 ] + router.urls
