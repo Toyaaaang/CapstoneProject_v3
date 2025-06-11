@@ -1,4 +1,6 @@
 from rest_framework import serializers
+
+from notification.utils import send_notification
 from ..models import PurchaseOrderItem, Material, PurchaseOrder, RequisitionVoucher
 from authentication.models import User  # if needed
 from inventory.serializers import MaterialSerializer
@@ -96,6 +98,11 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
             **validated_data,
             created_by=request.user if request else None
         )
+        send_notification(
+            role="audit",
+            message=f"Purchase order ({po.po_number}) has been created and is awaiting for your recommendation.",
+            link=f"/pages/audit/purchase-orders/"
+        )
 
         subtotal = 0
         for item_data in items_data:
@@ -120,6 +127,7 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         po.vat_amount = vat_amount
         po.grand_total = subtotal + vat_amount
         po.save()
+
 
         return po
 

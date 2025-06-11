@@ -51,7 +51,7 @@ class InventorySummaryViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         base_qs = Inventory.objects.select_related("material").order_by("material__name")
 
-        if user.role in ["engineering", "operations_maintenance", "warehouse_admin", "manager"]:
+        if user.role in ["engineering", "operations_maintenance", "warehouse_admin", "manager", "warehouse_staff"]:
             # Include everything except office supplies (includes uncategorized)
             return base_qs.exclude(material__category="office_supply")
         elif user.role == "finance":
@@ -68,7 +68,7 @@ class InventorySummaryNoPageView(APIView):
         user = request.user
         base_qs = Inventory.objects.select_related("material").order_by("material__name")
 
-        if user.role in ["engineering", "operations_maintenance", "warehouse_admin", "manager"]:
+        if user.role in ["engineering", "operations_maintenance", "warehouse_admin", "manager", "warehouse_staff"]:
             queryset = base_qs.exclude(material__category="office_supply")
         elif user.role == "finance":
             queryset = base_qs.filter(material__category="office_supply")

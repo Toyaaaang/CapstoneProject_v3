@@ -5,6 +5,7 @@ from ..models import PurchaseOrder, DeliveryRecord, PurchaseOrderItem
 from ..serializers.po import PurchaseOrderSerializer, PurchaseOrderApprovalSerializer, PurchaseOrderVarianceReportSerializer
 from ..serializers.delivery import DeliveryRecordSerializer
 from decimal import Decimal
+from notification.utils import send_notification
 
 class PurchaseOrderViewSet(viewsets.ModelViewSet):
     queryset = PurchaseOrder.objects.all().order_by("-created_at")
@@ -52,6 +53,16 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        # Notify requester
+        send_notification(
+            user=po.requisition_voucher.material_request.requester,
+            message=f"Your purchase order ({po.po_number}) has been recommended."
+        )
+        # Notify budget analyst (or next handler)
+        send_notification(
+            role="manager",
+            message=f"Purchase order ({po.po_number}) has been recommended and is awaiting for your approval."
+        )
         return Response({"message": "PO recommended by Audit."}, status=200)
 
     @action(detail=True, methods=["patch"], url_path="approve")
@@ -65,6 +76,16 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        # Notify requester
+        send_notification(
+            user=po.requisition_voucher.material_request.requester,
+            message=f"Your purchase order ({po.po_number}) has been approved by General Manager."
+        )
+        # Notify purchasing
+        send_notification(
+            role="warehouse_staff",
+            message=f"Purchase order ({po.po_number}) has been approved and is ready for delivery receiving."
+        )
         return Response({"message": "PO approved by GM."}, status=200)
 
     @action(detail=True, methods=["patch"], url_path="reject")
@@ -79,6 +100,10 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        send_notification(
+            user=po.requisition_voucher.material_request.requester,
+            message=f"Your purchase order ({po.po_number}) has been rejected. Reason: {reason}"
+        )
         return Response({"message": "PO rejected."}, status=200)
 
     
@@ -138,6 +163,21 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         DeliveryRecord.objects.bulk_create(validated_records)
         po.status = "delivered"
         po.save()
+        
+        department = po.requisition_voucher.department.lower()
+
+        # Notify requester
+        send_notification(
+            user=po.requisition_voucher.material_request.requester,
+            message=f"Delivery for purchase order ({po.po_number}) has been recorded."
+        )
+
+        # Only notify warehouse staff for Engineering and Operations
+        if department in ["engineering", "operations_maintenance"]:
+            send_notification(
+                role="warehouse_staff",
+                message=f"Delivery for purchase order ({po.po_number}) is ready for quality checking."
+            )
 
         return Response({"message": "Delivery recorded successfully."}, status=201)
 
@@ -172,10 +212,6 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="estimate")
     def estimate(self, request):
-        """
-        Expects: { "items": [{ "material_id": 1, "unit": "pcs" }, ...] }
-        Returns: { material_id: { "average": 123.45, "last": 120.00, ... }, ... }
-        """
         items = request.data.get("items", [])
         result = {}
 

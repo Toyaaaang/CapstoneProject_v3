@@ -91,7 +91,11 @@ class RequisitionVoucherViewSet(viewsets.ModelViewSet):
             user=rv.material_request.requester,
             message=f"Your requisition voucher ({get_rv_code(rv)}) has been approved and is now queued for purchase order creation."
         )
-
+        # Notify budget analyst role
+        send_notification(
+            role="budget_analyst",
+            message=f"Requisition voucher ({get_rv_code(rv)}) has been approved and is ready for PO creation."
+        )
         return Response({"message": "RV approved."}, status=200)
 
     @action(detail=True, methods=['patch'], url_path='reject')
