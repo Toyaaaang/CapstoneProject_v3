@@ -127,7 +127,7 @@ export const columns: ColumnDef<any>[] = [
                     size="sm"
                     className="text-blue-600"
                     onClick={() => {
-                      router.push(`/warehouse_staff/check-delivery/${row.original.id}/items`);
+                      router.push(`/pages/warehouse_staff/check-delivery/${row.original.id}/items`);
                     }}
                   >
                     See full details
@@ -143,7 +143,7 @@ export const columns: ColumnDef<any>[] = [
                     size="sm"
                     className="text-blue-600 w-full"
                     onClick={() => {
-                      router.push(`/pages/warehouse_staff/check-delivery/${row.original.id}/items`);
+                      router.push(`/warehouse_staff/check-delivery/${row.original.id}/items`);
                     }}
                   >
                     See full details

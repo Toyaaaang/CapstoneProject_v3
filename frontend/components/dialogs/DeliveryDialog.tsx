@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
+
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+  DrawerFooter,
+} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,16 @@ import axios from "@/lib/axios";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
+import DataTable from "@/components/Tables/DataTable";
+import { ColumnDef } from "@tanstack/react-table";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { PackageCheck, TruckElectric } from 'lucide-react';
 
 type ValidateDeliveryDialogProps = {
   po: any;
@@ -26,8 +37,11 @@ export default function ValidateDeliveryDialog({ po, refreshData }: ValidateDeli
   const [open, setOpen] = useState(false);
   const [deliveryDate, setDeliveryDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  const [items, setItems] = useState(
+  // Only initialize items once, when po changes
+  const [items, setItems] = useState(() =>
     po.items.map((item: any) => ({
       material_id: item.material?.id ?? null,
       custom_name: item.material?.id ? undefined : item.custom_name || item.name,
@@ -36,15 +50,104 @@ export default function ValidateDeliveryDialog({ po, refreshData }: ValidateDeli
       unit: item.unit || "pcs",
       delivered_quantity: item.quantity,
       delivery_status: "complete",
-      remarks: "",
+      remarks: "Good",
     }))
   );
 
-  const updateItem = (index: number, field: string, value: any) => {
-    const updated = [...items];
-    updated[index][field] = value;
-    setItems(updated);
-  };
+  // Paginate items for the current page
+  const paginatedItems = useMemo(
+    () => items.slice((page - 1) * pageSize, page * pageSize),
+    [items, page, pageSize]
+  );
+
+  // Memoize updateItem
+  const updateItem = useCallback((index: number, field: string, value: any) => {
+    setItems((prev) => {
+      const updated = [...prev];
+      updated[index][field] = value;
+      return updated;
+    });
+  }, []);
+
+  // Memoize columns
+  const columns = useMemo<ColumnDef<any>[]>(() => [
+    {
+      header: "Material",
+      accessorKey: "name",
+      cell: ({ row }) => row.original.name,
+    },
+    {
+      header: "Ordered",
+      accessorKey: "quantity",
+      cell: ({ row }) => parseInt(row.original.quantity, 10),
+    },
+    {
+      header: "Unit",
+      accessorKey: "unit",
+      cell: ({ row, table }) =>
+        row.original.material_id ? (
+          row.original.unit
+        ) : (
+          <Input
+            type="text"
+            className="w-16"
+            value={row.original.unit}
+            onChange={(e) => {
+              updateItem(row.index, "unit", e.target.value);
+              table.options.meta?.updateData?.(row.index, "unit", e.target.value);
+            }}
+          />
+        ),
+    },
+    {
+      header: "Delivered",
+      accessorKey: "delivered_quantity",
+      cell: ({ row, table }) => (
+        <Input
+          type="number"
+          min={0}
+          step="1"
+          className="w-20"
+          value={parseInt(row.original.delivered_quantity, 10)}
+          onChange={(e) => {
+            updateItem(row.index, "delivered_quantity", Math.max(0, parseInt(e.target.value, 10) || 0));
+            table.options.meta?.updateData?.(row.index, "delivered_quantity", e.target.value);
+          }}
+        />
+      ),
+    },
+    {
+      header: "Remarks",
+      accessorKey: "remarks",
+      cell: ({ row, table }) => (
+        <Select
+          value={row.original.remarks}
+          onValueChange={(value) => {
+            updateItem(row.index, "remarks", value);
+            table.options.meta?.updateData?.(row.index, "remarks", value);
+          }}
+        >
+          <SelectTrigger className="w-32 h-8 px-2 py-1 text-xs" aria-label="Remarks">
+            <SelectValue placeholder="Select remarks" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Good">Good</SelectItem>
+            <SelectItem value="Damaged">Damaged</SelectItem>
+            <SelectItem value="Missing">Missing</SelectItem>
+            <SelectItem value="Wrong Item">Wrong Item</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+      ),
+    },
+  ], [updateItem]);
+
+  // Memoize tableMeta
+  const tableMeta = useMemo(() => ({
+    updateData: (rowIndex: number, columnId: string, value: any) => {
+      updateItem(rowIndex, columnId, value);
+    },
+  }), [updateItem]);
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -59,7 +162,6 @@ export default function ValidateDeliveryDialog({ po, refreshData }: ValidateDeli
                 custom_unit: item.unit,
               }),
           delivered_quantity: item.delivered_quantity,
-          delivery_status: item.delivery_status,
           remarks: item.remarks,
         })),
       });
@@ -75,91 +177,35 @@ export default function ValidateDeliveryDialog({ po, refreshData }: ValidateDeli
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm">Validate Delivery</Button>
-      </DialogTrigger>
+  const Content = (
+    <>
+      <div className="p-10">
+        <DataTable
+          title="Delivery Items"
+          columns={columns}
+          data={paginatedItems}
+          meta={tableMeta}
+          page={page}
+          setPage={setPage}
+          totalCount={items.length}
+          pageSize={pageSize}
+        />
 
-      <DialogContent className="max-w-4xl">
-        <DialogHeader>
-          <DialogTitle>Validate Delivery for {po.po_number}</DialogTitle>
-        </DialogHeader>
-
-        <div className="mb-2 space-y-2">
-          <Label className="pl-1">Delivery Date</Label>
-          <Input
-            type="date"
-            value={deliveryDate}
-            onChange={(e) => setDeliveryDate(e.target.value)}
-          />
-        </div>
-
-        <div className="max-h-72 overflow-y-auto mt-2 pr-1 space-y-2">
-          {items.map((item, index) => (
-            <div key={index} className="border rounded-md p-3 text-sm space-y-1">
-              <div className="font-medium">{item.name}</div>
-              <div className="text-muted-foreground">
-                Ordered: {item.quantity} {item.unit}
-              </div>
-
-              <div className="flex gap-2 mt-2 flex-wrap items-end">
-                <div className="flex flex-col">
-                  <Label className="text-xs pl-1">Delivered Qty</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    className="w-32"
-                    value={item.delivered_quantity}
-                    onChange={(e) =>
-                      updateItem(index, "delivered_quantity", Math.max(0, parseFloat(e.target.value) || 0))
-                    }
-                  />
-                </div>
-
-                {!item.material_id && (
-                  <div className="flex flex-col">
-                    <Label className="text-xs pl-1">Unit</Label>
-                    <Input
-                      type="text"
-                      className="w-24"
-                      value={item.unit}
-                      onChange={(e) => updateItem(index, "unit", e.target.value)}
-                    />
-                  </div>
-                )}
-
-                <div className="flex flex-col">
-                  <Label className="text-xs pl-1">Status</Label>
-                  <select
-                    className="border rounded px-2 py-1 text-sm"
-                    value={item.delivery_status}
-                    onChange={(e) => updateItem(index, "delivery_status", e.target.value)}
-                  >
-                    <option value="complete">Complete</option>
-                    <option value="partial">Partial</option>
-                    <option value="shortage">Shortage</option>
-                  </select>
-                </div>
-
-                <div className="flex flex-col flex-1">
-                  <Label className="text-xs pl-1">Remarks</Label>
-                  <Input
-                    placeholder="Optional remarks..."
-                    value={item.remarks}
-                    onChange={(e) => updateItem(index, "remarks", e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <DialogFooter className="pt-4">
+        <div className="pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="delivery-date" className="pl-1">Delivery Date</Label>
+            <Input
+              id="delivery-date"
+              type="date"
+              value={deliveryDate}
+              onChange={(e) => setDeliveryDate(e.target.value)}
+              className="w-40"
+            />
+          </div>
           <ConfirmActionDialog
             trigger={
               <Button disabled={loading}>
+                <PackageCheck/>
                 {loading ? "Submitting..." : "Submit Delivery"}
               </Button>
             }
@@ -170,8 +216,23 @@ export default function ValidateDeliveryDialog({ po, refreshData }: ValidateDeli
             onConfirm={handleSubmit}
             loading={loading}
           />
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <Drawer open={open} onOpenChange={setOpen}>
+      <DrawerTrigger asChild>
+        <Button size="sm"><TruckElectric/>Validate Delivery</Button>
+      </DrawerTrigger>
+      <DrawerContent className="h-screen w-screen p-0">
+        <DrawerHeader>
+          <DrawerTitle>Validate Delivery for {po.po_number}</DrawerTitle>
+        </DrawerHeader>
+        {Content}
+        <DrawerFooter />
+      </DrawerContent>
+    </Drawer>
   );
 }

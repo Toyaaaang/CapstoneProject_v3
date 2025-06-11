@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from ..models import PurchaseOrder, DeliveryRecord, PurchaseOrderItem
 from ..serializers.po import PurchaseOrderSerializer, PurchaseOrderApprovalSerializer, PurchaseOrderVarianceReportSerializer
 from ..serializers.delivery import DeliveryRecordSerializer
+from decimal import Decimal
 
 class PurchaseOrderViewSet(viewsets.ModelViewSet):
     queryset = PurchaseOrder.objects.all().order_by("-created_at")
@@ -20,17 +21,19 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(status=status_filter)
 
         if delivered == "true":
-            # Only delivered POs
             queryset = queryset.filter(deliveries__isnull=False)
-
-            # Only POs from this department's RV
             if department:
                 queryset = queryset.filter(
                     requisition_voucher__department__iexact=department
                 )
-
-            # Exclude POs that already have QC (any dept)
-            queryset = queryset.exclude(quality_checks__isnull=False)
+                # Department-specific logic:
+                if department.lower() in ["engineering", "operations"]:
+                    # Exclude POs that already have QC/certification
+                    queryset = queryset.exclude(quality_checks__isnull=False)
+                # For finance, do NOT exclude those with QC/certification
+            else:
+                # If no department, keep old logic (optional)
+                queryset = queryset.exclude(quality_checks__isnull=False)
 
         elif delivered == "false":
             queryset = queryset.filter(deliveries__isnull=True)
@@ -97,14 +100,36 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
             if not item.get("material") and not item.get("custom_name"):
                 return Response({"detail": "Each item must have a material or custom name."}, status=400)
 
+            # Find the ordered quantity for this item
+            if item.get("material"):
+                po_item = PurchaseOrderItem.objects.get(purchase_order=po, material_id=item["material"])
+                ordered_qty = po_item.quantity
+            else:
+                # For custom items, you may need to match by name/unit
+                po_item = PurchaseOrderItem.objects.get(purchase_order=po, custom_name=item["custom_name"])
+                ordered_qty = po_item.quantity
+
+            delivered_qty = item["delivered_quantity"]
+
+            # Set status automatically
+            if Decimal(delivered_qty) == Decimal(ordered_qty):
+                status = "complete"
+            elif Decimal(delivered_qty) == 0:
+                status = "shortage"
+            elif Decimal(delivered_qty) < Decimal(ordered_qty):
+                status = "partial"
+            else:
+                # Optionally handle over-delivery
+                status = "over"
+
             validated_records.append(
                 DeliveryRecord(
                     purchase_order=po,
-                    material_id=item.get("material"),  # can be None
+                    material_id=item.get("material"),
                     custom_name=item.get("custom_name"),
                     custom_unit=item.get("custom_unit"),
-                    delivered_quantity=item["delivered_quantity"],
-                    delivery_status=item["delivery_status"],
+                    delivered_quantity=delivered_qty,
+                    delivery_status=status,  # <-- Set here
                     delivery_date=delivery_date,
                     remarks=item.get("remarks", "")
                 )

@@ -17,11 +17,11 @@ export const columns: ColumnDef<any>[] = [
   {
     header: "Supplier",
     accessorFn: (row) =>
-      row.supplier
-        ? row.supplier.charAt(0).toUpperCase() + row.supplier.slice(1)
+      row.supplier_name
+        ? row.supplier_name.charAt(0).toUpperCase() + row.supplier_name.slice(1)
         : "N/A",
     cell: ({ row }) => {
-      const supplier = row.original.supplier;
+      const supplier = row.original.supplier_name;
       return (
         <span className="font-semibold">
           {supplier
