@@ -15,6 +15,34 @@ export const columns: ColumnDef<any>[] = [
     accessorKey: "po_number",
   },
   {
+    header: "RV Number",
+    accessorFn: (row) => row.requisition_voucher?.rv_number || "N/A",
+    cell: ({ row }) => {
+      const rvNumber = row.original.requisition_voucher?.rv_number;
+      return (
+        <span className="font-semibold">
+          {rvNumber || <span className="italic text-muted-foreground">N/A</span>}
+        </span>
+      );
+    },
+  },
+  {
+    header: "Delivery Date",
+    accessorFn: (row) => row.purchase_order?.delivery_date || "N/A",
+    cell: ({ row }) => {
+      const deliveryDate = row.original.purchase_order?.delivery_date;
+      return deliveryDate ? (
+        new Date(deliveryDate).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      ) : (
+        <span className="italic text-muted-foreground">N/A</span>
+      );
+    },
+  },
+  {
     header: "Supplier",
     accessorFn: (row) =>
       row.supplier_name
@@ -72,6 +100,9 @@ export const columns: ColumnDef<any>[] = [
     header: "Items",
     cell: ({ row }) => {
       const items = row.original.items || [];
+      const previewItems = items.slice(0, 5);
+      const poId = row.original.id;
+
       return (
         <Popover>
           <PopoverTrigger asChild>
@@ -88,7 +119,7 @@ export const columns: ColumnDef<any>[] = [
                   <span className="text-right">Unit</span>
                 </div>
                 <div className="grid grid-cols-1 gap-2">
-                  {items.map((item: any, idx: number) => (
+                  {previewItems.map((item: any, idx: number) => (
                     <div
                       key={idx}
                       className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
@@ -108,6 +139,16 @@ export const columns: ColumnDef<any>[] = [
                       </div>
                     </div>
                   ))}
+                </div>
+                {/* Always show Full details button */}
+                <div className="flex justify-center pt-2">
+                  <Button
+                    variant="ghost"
+                    className="w-full text-xs"
+                    onClick={() => window.location.href = `/pages/engineering/quality-check/${poId}/items`}
+                  >
+                    Full details
+                  </Button>
                 </div>
               </div>
             ) : (

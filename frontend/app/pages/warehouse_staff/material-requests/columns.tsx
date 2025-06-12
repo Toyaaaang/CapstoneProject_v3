@@ -3,8 +3,10 @@ import EvaluateDialog from "@/components/dialogs/EvaluateDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import DrawerTable from "@/components/dialogs/DrawerTable";
 
 export type MaterialRequest = {
+  location: string;
   id: number;
   department: string;
   purpose: string;
@@ -56,66 +58,109 @@ export const columns: ColumnDef<MaterialRequest>[] = [
     cell: ({ row }) => (
       <Popover>
         <PopoverTrigger asChild>
-          <Button>{row.original.purpose || "No purpose provided"}</Button>
-
+          <Button>
+            {row.original.purpose || "No purpose provided"}
+          </Button>
         </PopoverTrigger>
         <PopoverContent className="w-72">
-          <p className="text-sm">{row.original.purpose}</p>
+          <div className="mb-2">
+            <span className="font-semibold">Purpose:</span>
+            <span className="ml-1">{row.original.purpose || "No purpose provided"}</span>
+          </div>
+          <div>
+            <span className="font-semibold">Location:</span>
+            <span className="ml-1">{row.original.location || "No location provided"}</span>
+          </div>
         </PopoverContent>
       </Popover>
     ),
   },
   {
     header: "Materials",
-    cell: ({ row }) => (
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm">
-            View Items
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80 max-h-72 overflow-auto">
-          {row.original.items && row.original.items.length > 0 ? (
-            <div>
-              <div className="grid grid-cols-3 gap-2 font-semibold text-xs mb-2 px-1">
-                <span>Material</span>
-                <span className="text-center">Qty</span>
-                <span className="text-right">Unit</span>
-              </div>
-              <div className="space-y-2">
-                {row.original.items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
-                  >
-                    <div className="font-medium truncate flex items-center gap-1">
-                      {item.material?.name
-                        ? item.material.name.charAt(0).toUpperCase() + item.material.name.slice(1)
-                        : (
-                          <span className="italic text-muted-foreground">
-                            {item.custom_name || "Custom Item"}
-                          </span>
+    cell: ({ row }) => {
+      const items = row.original.items || [];
+      const previewItems = items.slice(0, 5);
+
+      // Define columns for the drawer table
+      const drawerColumns = [
+        { header: "Material", accessorKey: "material_name" },
+        { header: "Quantity", accessorKey: "quantity" },
+        { header: "Unit", accessorKey: "unit" },
+      ];
+
+      // Prepare data for the drawer table
+      const drawerData = items.map((item) => ({
+        material_name: item.material?.name || item.custom_name || "Custom Item",
+        quantity: item.quantity,
+        unit: item.custom_unit || item.unit,
+      }));
+
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm">
+              View Items
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 max-h-72 overflow-auto">
+            {items.length > 0 ? (
+              <div>
+                <div className="grid grid-cols-3 gap-2 font-semibold text-xs mb-2 px-1">
+                  <span>Material</span>
+                  <span className="text-center">Qty</span>
+                  <span className="text-right">Unit</span>
+                </div>
+                <div className="space-y-2">
+                  {previewItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
+                    >
+                      <div className="font-medium truncate flex items-center gap-1">
+                        {item.material?.name
+                          ? item.material.name.charAt(0).toUpperCase() + item.material.name.slice(1)
+                          : (
+                            <span className="italic text-muted-foreground">
+                              {item.custom_name || "Custom Item"}
+                            </span>
+                          )}
+                        {!item.material?.id && (
+                          <Badge variant="outline" className="ml-1 text-[10px]">Custom</Badge>
                         )}
-                      {!item.material?.id && (
-                        <Badge variant="outline" className="ml-1 text-[10px]">Custom</Badge>
-                      )}
+                      </div>
+                      <div className="text-center text-muted-foreground">
+                        {item.quantity}
+                      </div>
+                      <div className="text-right text-muted-foreground uppercase">
+                        {item.custom_unit || item.unit}
+                      </div>
                     </div>
-                    <div className="text-center text-muted-foreground">
-                      {item.quantity}
-                    </div>
-                    <div className="text-right text-muted-foreground uppercase">
-                      {item.custom_unit || item.unit}
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                {/* Always show Full details trigger button centered below */}
+                <div className="flex justify-center pt-2">
+                  <DrawerTable
+                    triggerLabel="Full details"
+                    title={`All Materials for MR-${row.original.id}`}
+                    columns={drawerColumns}
+                    data={drawerData}
+                  >
+                    <EvaluateDialog
+                      requestId={row.original.id}
+                      items={row.original.items}
+                      refreshData={() => table?.options.meta?.refreshData?.()}
+                    />
+                  </DrawerTable>
+                  
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="text-muted-foreground text-xs italic py-4 text-center">No items</div>
-          )}
-        </PopoverContent>
-      </Popover>
-    ),
+            ) : (
+              <div className="text-muted-foreground text-xs italic py-4 text-center">No items</div>
+            )}
+          </PopoverContent>
+        </Popover>
+      );
+    },
   },
   {
     header: "Actions",

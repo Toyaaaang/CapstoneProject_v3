@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 import { RejectRVDialog } from "@/components/dialogs/RejectRVDialog";
 import { toast } from "sonner";
+import { CheckCircle } from "lucide-react";
 
 export default function RestockingRequestItemsPage() {
   const { id } = useParams();
@@ -149,6 +150,7 @@ export default function RestockingRequestItemsPage() {
         <ConfirmActionDialog
           trigger={
             <Button size="sm">
+              <CheckCircle />
               Recommend
             </Button>
           }

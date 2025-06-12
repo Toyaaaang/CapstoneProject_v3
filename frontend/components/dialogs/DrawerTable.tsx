@@ -15,18 +15,20 @@ export default function DrawerTable({
   columns,
   data,
   triggerLabel = "",
+  children,
 }: {
   title: string;
   columns: any[];
   data: any[];
   triggerLabel?: string;
+  children?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
-        <Button variant="ghost" size="sm" className="mt-2 w-full">{triggerLabel}</Button>
+        <Button variant="default" size="sm" className="mt-2 w-full">{triggerLabel}</Button>
       </DrawerTrigger>
       <DrawerContent className="h-screen w-screen p-0">
         <DrawerHeader>
@@ -43,7 +45,9 @@ export default function DrawerTable({
             pageSize={data.length}
           />
         </div>
-        <DrawerFooter />
+        <DrawerFooter className="flex justify-between p-6">
+          {children}
+        </DrawerFooter>
       </DrawerContent>
     </Drawer>
   );

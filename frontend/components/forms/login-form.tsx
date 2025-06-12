@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import useLogin from "@/hooks/useLogin";
-import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -23,6 +23,7 @@ export function LoginForm({
     identifier: "", // Can be username or email
     password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -77,7 +78,7 @@ export function LoginForm({
                     className="text-white placeholder-white bg-transparent border-white"
                   />
                 </div>
-                <div className="grid gap-2">
+                <div className="grid gap-2 relative">
                   <div className="flex items-center">
                     <Label htmlFor="password" className="text-white">
                       Password
@@ -89,16 +90,27 @@ export function LoginForm({
                       Forgot your password?
                     </a>
                   </div>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    placeholder="Enter your password..."
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                    className="text-white placeholder-white bg-transparent border-white"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password..."
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      className="text-white placeholder-white bg-transparent border-white pr-10"
+                    />
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-white/80 hover:text-white"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                 </div>
                 <button
                   type="submit"

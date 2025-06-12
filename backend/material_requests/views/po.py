@@ -1,6 +1,8 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+
+from authentication.models import User
 from ..models import PurchaseOrder, DeliveryRecord, PurchaseOrderItem
 from ..serializers.po import PurchaseOrderSerializer, PurchaseOrderApprovalSerializer, PurchaseOrderVarianceReportSerializer
 from ..serializers.delivery import DeliveryRecordSerializer
@@ -55,14 +57,16 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         serializer.save()
         # Notify requester
         send_notification(
-            user=po.requisition_voucher.material_request.requester,
+            user=po.created_by,
             message=f"Your purchase order ({po.po_number}) has been recommended."
         )
-        # Notify budget analyst (or next handler)
-        send_notification(
-            role="manager",
-            message=f"Purchase order ({po.po_number}) has been recommended and is awaiting for your approval."
-        )
+        # Notify all managers individually
+        manager_users = User.objects.filter(role="manager")
+        for manager in manager_users:
+            send_notification(
+                user=manager,
+                message=f"Purchase order ({po.po_number}) has been recommended and is awaiting for your approval."
+            )
         return Response({"message": "PO recommended by Audit."}, status=200)
 
     @action(detail=True, methods=["patch"], url_path="approve")
@@ -78,14 +82,16 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         serializer.save()
         # Notify requester
         send_notification(
-            user=po.requisition_voucher.material_request.requester,
-            message=f"Your purchase order ({po.po_number}) has been approved by General Manager."
+            user=po.created_by,
+            message=f"Purchase order ({po.po_number}) has been approved by General Manager."
         )
-        # Notify purchasing
-        send_notification(
-            role="warehouse_staff",
-            message=f"Purchase order ({po.po_number}) has been approved and is ready for delivery receiving."
-        )
+        # Notify all warehouse staff individually
+        warehouse_staff = User.objects.filter(role="warehouse_staff")
+        for staff in warehouse_staff:
+            send_notification(
+                user=staff,
+                message=f"Purchase order ({po.po_number}) has been approved and is ready for delivery receiving."
+            )
         return Response({"message": "PO approved by GM."}, status=200)
 
     @action(detail=True, methods=["patch"], url_path="reject")
@@ -174,10 +180,12 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
 
         # Only notify warehouse staff for Engineering and Operations
         if department in ["engineering", "operations_maintenance"]:
-            send_notification(
-                role="warehouse_staff",
-                message=f"Delivery for purchase order ({po.po_number}) is ready for quality checking."
-            )
+            warehouse_staff = User.objects.filter(role="warehouse_staff")
+            for staff in warehouse_staff:
+                send_notification(
+                    user=staff,
+                    message=f"Delivery for purchase order ({po.po_number}) is ready for quality checking."
+                )
 
         return Response({"message": "Delivery recorded successfully."}, status=201)
 
@@ -247,3 +255,17 @@ class PurchaseOrderViewSet(viewsets.ModelViewSet):
         po = self.get_object()
         serializer = PurchaseOrderVarianceReportSerializer(po)
         return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        po_id = response.data.get("id")
+        if po_id:
+            po = PurchaseOrder.objects.get(pk=po_id)
+            audit_users = User.objects.filter(role="audit")
+            for user in audit_users:
+                send_notification(
+                    user=user,
+                    message=f"Purchase order ({po.po_number}) has been created and is awaiting for your recommendation.",
+                    link=f"/pages/audit/purchase-orders/"
+                )
+        return response

@@ -10,6 +10,7 @@ import {
 import { Bell, Trash2, CheckCircle2 } from "lucide-react";
 import { useNotifications } from "@/components/providers/NotificationProvider"; // ✅ from context
 import { formatDistanceToNow } from "date-fns";
+import { useRouter } from "next/navigation";
 
 export default function SidebarNotifications() {
   const {
@@ -22,6 +23,8 @@ export default function SidebarNotifications() {
     clearAllNotifications,
     markAllAsRead,
   } = useNotifications();
+
+  const router = useRouter();
 
   if (isAuthenticated === false) {
     // Not authenticated, don't show notifications
@@ -72,7 +75,12 @@ export default function SidebarNotifications() {
               >
                 <div
                   className="flex items-center space-x-2 flex-grow cursor-pointer"
-                  onClick={() => markAsRead(notification.id)}
+                  onClick={() => {
+                    markAsRead(notification.id);
+                    if (notification.link) {
+                      router.push(notification.link);
+                    }
+                  }}
                 >
                   {!notification.is_read && (
                     <span className="h-2 w-2 bg-red-500 rounded-full flex-shrink-0"></span>

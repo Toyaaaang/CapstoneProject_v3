@@ -38,7 +38,7 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
             # ✅ Notify requester
             send_notification(
                 user=ticket.requester,
-                message=f"Your charge ticket ({get_ticket_code(ticket)}) has been approved by the General Manager and is awaiting final approval."
+                message=f"Your charge ticket ({get_ticket_code(ticket)}) has been approved by the General Manager and is awaiting final approval.",
             )
 
             # ✅ Notify Warehouse Admin(s)
@@ -46,7 +46,8 @@ class ChargeTicketViewSet(viewsets.ModelViewSet):
             for wh in wh_admins:
                 send_notification(
                     user=wh,
-                    message=f"Charge ticket ({get_ticket_code(ticket)}) from {ticket.department.title()} is ready for your approval."
+                    message=f"Charge ticket ({get_ticket_code(ticket)}) from {ticket.department.title()} is ready for your approval.",
+                    link=f"/pages/admin/charge-tickets"
                 )
 
         elif ticket.approval_count == 2 and role == "warehouse_admin":

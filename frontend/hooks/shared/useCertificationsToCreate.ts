@@ -1,29 +1,30 @@
 import { useState, useEffect } from "react";
 import axios from "@/lib/axios";
 
-export interface CertifiableItem {
+export interface CertifiableBatch {
   id: number;
-  delivery_record_id: number;
-  po_item: {
-    custom_name: string;
+  purchase_order: {
+    po_number: string;
+    delivery_date: string | null;
+  };
+  requisition_voucher: {
+    rv_number: string;
+    department: string;
+  };
+  items: Array<{
     id: number;
-    material: {
-      name: string;
+    po_item: {
+      custom_name: string;
+      id: number;
+      material: { name: string } | null;
+      quantity: number;
+      unit: string;
     };
-    quantity: number;
-    unit: string;
-  };
-  quality_check: {
-    purchase_order: {
-      po_number: string;
-      delivery_date: string;
-    };
-    requisition_voucher: {
-      rv_number: string;
-      department: string;
-    };
-  };
-  remarks: string | null;
+    remarks: string | null;
+    requires_certification: boolean;
+    delivery_record_id: number;
+    delivery_date: string | null;
+  }>;
 }
 
 interface UseCertificationsToCreateProps {
@@ -32,12 +33,23 @@ interface UseCertificationsToCreateProps {
 }
 
 export default function useCertificationsToCreate({ page, pageSize }: UseCertificationsToCreateProps) {
-  const [data, setData] = useState<CertifiableItem[]>([]);
+  const [data, setData] = useState<CertifiableBatch[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [role, setRole] = useState<string | null>(null);
 
-  const role = typeof window !== "undefined" ? localStorage.getItem("role")?.toLowerCase() : null;
+  useEffect(() => {
+    const fetchRole = async () => {
+      try {
+        const res = await axios.get("/authentication/me/");
+        setRole(res.data?.role?.toLowerCase() || null);
+      } catch (err) {
+        setRole(null);
+      }
+    };
+    fetchRole();
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -48,12 +60,11 @@ export default function useCertificationsToCreate({ page, pageSize }: UseCertifi
         page_size: pageSize,
       };
 
-      // Only filter if user is department-scoped
       if (role === "engineering" || role === "operations_maintenance") {
         params.department = role;
       }
 
-      const res = await axios.get("/requests/quality-checks/certifiable-items/", { params });
+      const res = await axios.get("/requests/quality-checks/certifiable-batches/", { params });
 
       setData(res.data.results || []);
       setTotalCount(res.data.count || 0);
@@ -66,6 +77,7 @@ export default function useCertificationsToCreate({ page, pageSize }: UseCertifi
 
   useEffect(() => {
     if (role) fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, role]);
 
   return {

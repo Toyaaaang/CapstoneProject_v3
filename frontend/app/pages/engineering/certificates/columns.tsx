@@ -3,117 +3,182 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CertifiableItem } from "@/hooks/shared/useCertificationsToCreate";
+import { CertifiableBatch } from "@/hooks/shared/useCertificationsToCreate";
 import { startCertification } from "@/hooks/shared/useStartCertification";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 
-export const columns: ColumnDef<CertifiableItem>[] = [
-	{
-		header: "PO No.",
-		accessorFn: (row) => row.quality_check.purchase_order.po_number,
-		cell: ({ row }) => (
-			<span className="font-mono text-xs bg-muted/60 px-2 py-1 rounded">
-				{row.original.quality_check.purchase_order.po_number}
-			</span>
-		),
-	},
-	{
-		header: "RV No.",
-		accessorFn: (row) => row.quality_check.requisition_voucher.rv_number,
-		cell: ({ row }) => (
-			<span className="font-mono text-xs bg-muted/60 px-2 py-1 rounded">
-				{row.original.quality_check.requisition_voucher.rv_number}
-			</span>
-		),
-	},
-	{
-		header: "Department",
-		accessorFn: (row) => row.quality_check.requisition_voucher.department,
-		cell: ({ row }) => (
-			<Badge>
-				{row.original.quality_check.requisition_voucher.department
-					? row.original.quality_check.requisition_voucher.department.replace(/_/g, " ").toUpperCase()
-					: <span className="italic text-muted-foreground">N/A</span>}
-			</Badge>
-		),
-	},
-	{
-		header: "Material",
-		accessorFn: (row) =>
-			row.po_item?.material?.name ??
-			row.po_item?.custom_name ??
-			"Custom Item",
-		cell: ({ row }) => (
-			<span className="font-semibold">
-				{row.original.po_item?.material?.name ||
-					<span className="italic text-muted-foreground">
-						{row.original.po_item?.custom_name || "Custom Item"}
-					</span>
-				}
-			</span>
-		),
-	},
-	{
-		header: "Quantity",
-		accessorFn: (row) => `${row.po_item.quantity} ${row.po_item.unit}`,
-		cell: ({ row }) => (
-			<span className="font-mono">
-				{row.original.po_item.quantity} {row.original.po_item.unit}
-			</span>
-		),
-	},
-	{
-		header: "Delivery Date",
-		accessorFn: (row) => row.quality_check.purchase_order.delivery_date,
-		cell: ({ row }) =>
-			row.original.quality_check.purchase_order.delivery_date
-				? new Date(row.original.quality_check.purchase_order.delivery_date).toLocaleDateString("en-US", {
-					year: "numeric",
-					month: "long",
-					day: "numeric",
-				})
-				: <span className="italic text-muted-foreground">N/A</span>,
-	},
-	{
-		header: "Actions",
-		cell: ({ table, row }) => {
-			const item = row.original;
-			const rows = table.getRowModel().rows;
-			const currentDeliveryId = item.delivery_record_id;
-			const isFirstForDelivery =
-				rows.findIndex((r) => r.original.delivery_record_id === currentDeliveryId) === row.index;
 
-			const handleStartCertification = async () => {
-				try {
-					await startCertification(item.delivery_record_id);
-					toast.success("Certification started successfully");
-					table.options.meta?.refreshData?.();
-				} catch (err: any) {
-					console.error(err);
-					toast.error("Failed to start certification");
-				}
-			};
+export const columns: ColumnDef<CertifiableBatch>[] = [
+  {
+    header: "PO No.",
+    accessorKey: "po_number",
+    cell: ({ row }) => {
+      const poNumber =
+		row.original.items?.[0]?.quality_check?.purchase_order?.po_number ??
+		row.original.po_number;
 
-			return (
-				<div className="space-x-2">
-					{isFirstForDelivery && (
-						<ConfirmActionDialog
-							trigger={
-								<Button size="sm" variant="default">
-									Start Certification
-								</Button>
-							}
-							title="Start Certification?"
-							description="Do you want to continue with this action? This cannot be undone."
-							confirmLabel="Start"
-							cancelLabel="Cancel"
-							onConfirm={handleStartCertification}
-						/>
-					)}
-				</div>
-			);
-		},
-	},
+      return (
+        <span className="font-mono text-xs bg-muted/60 px-2 py-1 rounded">
+			{poNumber || <span className="italic text-muted-foreground">N/A</span>}
+        </span>
+      );
+    },
+  },
+  {
+    header: "RV No.",
+    accessorKey: "rv_number",
+    cell: ({ row }) => {
+      const rvNumber =
+        row.original.items?.[0]?.quality_check?.requisition_voucher?.rv_number;
+
+      return (
+        <span className="font-mono text-xs bg-muted/60 px-2 py-1 rounded">
+			{rvNumber || <span className="italic text-muted-foreground">N/A</span>}
+        </span>
+      );
+    },
+  },
+  {
+    header: "Department",
+    accessorKey: "department",
+    cell: ({ row }) => {
+      const department =
+        row.original.items?.[0]?.quality_check?.requisition_voucher?.department ??
+        row.original.department;
+
+      return (
+        <Badge>
+			{department
+				? department.replace(/_/g, " ").toUpperCase()
+				: <span className="italic text-muted-foreground">N/A</span>}
+        </Badge>
+      );
+    },
+  },
+  {
+    header: "Items Needing Cert",
+    cell: ({ row }) => {
+      // Only items that require certification
+      const items = Array.isArray(row.original.items)
+        ? row.original.items.filter((i) => i.requires_certification)
+        : [];
+      const previewItems = items.slice(0, 5);
+      const batchId = row.original.id;
+
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm">
+              View Items
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 max-h-64 overflow-y-auto">
+            {items.length > 0 ? (
+              <div>
+                <div className="grid grid-cols-3 gap-2 font-semibold text-xs mb-2 px-1">
+                  <span>Material</span>
+                  <span className="text-center">Quantity</span>
+                  <span className="text-right">Unit</span>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {previewItems.map((item: any, idx: number) => (
+                    <div
+                      key={item.id ?? idx}
+                      className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
+                    >
+                      <div className="font-medium truncate">
+                        {item.po_item?.material?.name ||
+                          item.po_item?.custom_name ||
+                          <span className="italic text-muted-foreground">
+                            Unnamed Item
+                          </span>}
+                      </div>
+                      <div className="text-center text-muted-foreground">
+                        {item.po_item?.quantity}
+                      </div>
+                      <div className="text-right text-muted-foreground">
+                        {item.po_item?.unit}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {items.length > 5 && (
+                  <div className="italic text-muted-foreground text-xs mt-2">
+                    ...and {items.length - 5} more
+                  </div>
+                )}
+                <div className="flex justify-center pt-2">
+                  <Button
+                    variant="ghost"
+                    className="w-full text-xs"
+                    onClick={() =>
+                      window.location.href = `/pages/engineering/certificates/${batchId}/items`
+                    }
+                  >
+                    Full details
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-muted-foreground text-xs">No items</div>
+            )}
+          </PopoverContent>
+        </Popover>
+      );
+    },
+  },
+  {
+    header: "Delivery Date",
+    accessorKey: "delivery_date",
+    cell: ({ row }) => {
+      const date =
+        row.original.items?.[0]?.quality_check?.purchase_order?.delivery_date ??
+        row.original.items?.[0]?.delivery_date;
+
+      return date ? (
+        new Date(date).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      ) : (
+        <span className="italic text-muted-foreground">N/A</span>
+      );
+    },
+  },
+  {
+    header: "Actions",
+    cell: ({ row, table }) => {
+      const batch = row.original;
+
+      const handleStartCertification = async () => {
+        try {
+          await startCertification(batch.id);
+          toast.success("Certification started successfully");
+          table.options.meta?.refreshData?.();
+        } catch (err: any) {
+          console.error(err);
+          toast.error("Failed to start certification");
+        }
+      };
+
+      return (
+        <ConfirmActionDialog
+          trigger={
+            <Button size="sm" variant="default">
+              Start Certification
+            </Button>
+          }
+          title="Start Certification?"
+          description="Do you want to continue with this action? This cannot be undone."
+          confirmLabel="Start"
+          cancelLabel="Cancel"
+          onConfirm={handleStartCertification}
+        />
+      );
+    },
+  },
 ];
+

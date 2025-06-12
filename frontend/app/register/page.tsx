@@ -8,9 +8,7 @@ export default function Page() {
         backgroundImage: "url('/bg-warehouse.jpg')",
       }}
     >
-      <div
-        className="w-full max-w-sm m-20"
-      >
+      <div className=" max-w-2xl p-2 mt-4">
         <RegisterForm />
       </div>
     </div>

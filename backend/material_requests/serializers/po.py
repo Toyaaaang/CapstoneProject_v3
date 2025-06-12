@@ -98,12 +98,6 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
             **validated_data,
             created_by=request.user if request else None
         )
-        send_notification(
-            role="audit",
-            message=f"Purchase order ({po.po_number}) has been created and is awaiting for your recommendation.",
-            link=f"/pages/audit/purchase-orders/"
-        )
-
         subtotal = 0
         for item_data in items_data:
             quantity = item_data["quantity"]

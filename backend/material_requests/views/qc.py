@@ -49,35 +49,33 @@ class QualityCheckViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
     
-    @action(detail=False, methods=["get"], url_path="certifiable-items")
-    def certifiable_items(self, request):
+    @action(detail=False, methods=["get"], url_path="certifiable-batches")
+    def certifiable_batches(self, request):
         user = request.user
         user_department = user.role.lower() if user.role else None
 
-        certified_delivery_ids = Certification.objects.values_list("delivery_record_id", flat=True)
-
-        items = QualityCheckItem.objects.filter(
-            requires_certification=True,
-            certifieditem__isnull=True,
-        ).exclude(
-            quality_check__purchase_order__deliveries__id__in=certified_delivery_ids
-        )
-
-        # ✅ Restrict to department only if they're ops or eng
-        if user_department in ["engineering", "operations_maintenance"]:
-            items = items.filter(quality_check__department__iexact=user_department)
-
-        items = items.select_related(
-            "po_item__material",
-            "po_item",
-            "quality_check__purchase_order",
-            "quality_check__purchase_order__requisition_voucher"
+        # Only include QCs with at least one item requiring certification and not yet certified
+        qcs = QualityCheck.objects.filter(
+            items__requires_certification=True,
+            items__certifieditem__isnull=True,
         ).distinct()
 
-        page = self.paginate_queryset(items)
+        # Restrict to department if needed
+        if user_department in ["engineering", "operations_maintenance"]:
+            qcs = qcs.filter(department__iexact=user_department)
+
+        qcs = qcs.prefetch_related(
+            "items__po_item__material",
+            "items__po_item",
+            "purchase_order",
+            "purchase_order__requisition_voucher"
+        )
+
+        # Paginate QCs
+        page = self.paginate_queryset(qcs)
         if page is not None:
-            serializer = QualityCheckItemSerializer(page, many=True)
+            serializer = QualityCheckSerializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
-        serializer = QualityCheckItemSerializer(items, many=True)
+        serializer = QualityCheckSerializer(qcs, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

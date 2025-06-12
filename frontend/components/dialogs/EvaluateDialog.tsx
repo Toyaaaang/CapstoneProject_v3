@@ -20,6 +20,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { ClipboardCheck } from "lucide-react";
 
 type Item = {
   id: number;
@@ -133,7 +134,7 @@ export default function EvaluateDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">{triggerLabel}</Button>
+        <Button size="sm"><ClipboardCheck/>{triggerLabel}</Button>
       </DialogTrigger>
       <DialogContent className="max-w-xl select-none">
         <DialogHeader>

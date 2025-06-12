@@ -6,6 +6,7 @@ from ..models import RequisitionVoucher
 from ..serializers import RequisitionVoucherSerializer, RequisitionVoucherApprovalSerializer, PrintableRequisitionVoucherSerializer
 from django.db.models import Q
 from notification.utils import send_notification
+from authentication.models import User
 # 
 def get_rv_code(rv: RequisitionVoucher) -> str:
     return rv.rv_number or f"RV #{rv.id}"
@@ -92,10 +93,12 @@ class RequisitionVoucherViewSet(viewsets.ModelViewSet):
             message=f"Your requisition voucher ({get_rv_code(rv)}) has been approved and is now queued for purchase order creation."
         )
         # Notify budget analyst role
-        send_notification(
-            role="budget_analyst",
-            message=f"Requisition voucher ({get_rv_code(rv)}) has been approved and is ready for PO creation."
-        )
+        budget_analysts = User.objects.filter(role="budget_analyst")
+        for analyst in budget_analysts:
+            send_notification(
+                user=analyst,
+                message=f"Requisition voucher ({get_rv_code(rv)}) has been approved and is ready for PO creation."
+            )
         return Response({"message": "RV approved."}, status=200)
 
     @action(detail=True, methods=['patch'], url_path='reject')

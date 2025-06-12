@@ -140,7 +140,7 @@ export const columns: ColumnDef<MaterialRequest>[] = [
               size="sm"
               variant="secondary"
               onClick={() =>
-                router.push(`/employee/requests-history/${row.original.id}/items`)
+                router.push(`/pages/employee/requests-history/${row.original.id}/items`)
               }
             >
               See Full Details <ChevronRight className="ml-1 h-4 w-4" />
