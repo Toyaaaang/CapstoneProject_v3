@@ -2,8 +2,10 @@ import { ColumnDef } from "@tanstack/react-table";
 import { CertificationRecord } from "@/hooks/shared/useCertificationMonitoring";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download } from "lucide-react";
+import { Printer } from "lucide-react";
 import axios from "@/lib/axios";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Info } from "lucide-react";
 
 export const columns: ColumnDef<CertificationRecord>[] = [
 	{
@@ -55,30 +57,94 @@ export const columns: ColumnDef<CertificationRecord>[] = [
 		header: "Actions",
 		cell: ({ row }) => {
 			const cert = row.original;
-			const handleDownload = async () => {
-				const res = await axios.get(
-					`/requests/certifications/${cert.id}/download/`,
-					{
-						responseType: "blob",
-					}
-				);
-				const url = window.URL.createObjectURL(new Blob([res.data]));
-				const link = document.createElement("a");
-				link.href = url;
-				link.setAttribute("download", `CERT-${cert.purchase_order.po_number}.pdf`);
-				document.body.appendChild(link);
-				link.click();
-				link.remove();
+
+			const handlePrintableRedirect = () => {
+				window.location.href = `/pages/engineering/track-certificates/${cert.id}/printable`;
 			};
 
 			return cert.is_finalized ? (
-				<Button variant="outline" size="sm" onClick={handleDownload}>
-					<Download className="w-4 h-4 mr-1" /> Download
+				<Button variant="outline" size="sm" onClick={handlePrintableRedirect}>
+					<Printer className="w-4 h-4 mr-1" /> Printable
 				</Button>
 			) : (
-				<span className="text-muted-foreground text-sm">
-					Waiting for approvals
-				</span>
+				<Button
+					variant="outline"
+					size="sm"
+					disabled
+					onClick={handlePrintableRedirect}
+					style={{ pointerEvents: "auto" }} // allow click even when disabled
+					tabIndex={0}
+				>
+					Ongoing
+				</Button>
+			);
+		},
+	},
+	{
+		header: "Items",
+		cell: ({ row }) => {
+			const items = row.original.items || [];
+			const previewItems = items.slice(0, 5);
+			const certId = row.original.id;
+
+			return (
+				<Popover>
+					<PopoverTrigger asChild>
+						<Button variant="outline" size="sm">
+							<Info/>View Items 
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent className="w-80 max-h-64 overflow-y-auto">
+						{items.length > 0 ? (
+							<div>
+								<div className="grid grid-cols-3 gap-2 font-semibold text-xs mb-2 px-1">
+									<span>Material</span>
+									<span className="text-center">Qty</span>
+									<span className="text-right">Unit</span>
+								</div>
+								<div className="grid grid-cols-1 gap-2">
+									{previewItems.map((item, idx) => (
+										<div
+											key={item.id ?? idx}
+											className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
+										>
+											<div className="font-medium truncate">
+												{item.material_name ||
+													<span className="italic text-muted-foreground">
+														{item.custom_name || "Unnamed Item"}
+													</span>}
+											</div>
+											<div className="text-center text-muted-foreground">
+												{parseInt(item.quantity, 10)}
+											</div>
+											<div className="text-right text-muted-foreground">
+												{item.unit}
+											</div>
+										</div>
+									))}
+								</div>
+								{items.length > 5 && (
+									<div className="italic text-muted-foreground text-xs mt-2">
+										...and {items.length - 5} more
+									</div>
+								)}
+								<div className="flex justify-center pt-2">
+									<Button
+										variant="ghost"
+										className="w-full text-xs"
+										onClick={() =>
+											window.location.href = `/pages/engineering/track-certificates/${certId}/items`
+										}
+									>
+										Full details
+									</Button>
+								</div>
+							</div>
+						) : (
+							<div className="text-muted-foreground text-xs">No items</div>
+						)}
+					</PopoverContent>
+				</Popover>
 			);
 		},
 	},

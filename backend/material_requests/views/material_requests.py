@@ -31,7 +31,7 @@ class MaterialRequestViewSet(viewsets.ModelViewSet):
             send_notification(
                 user=user,
                 message=f"{self.request.user.get_full_name()} submitted a new material request for evaluation.",
-                link=f"/material-requests/{material_request.id}"
+                link=f"/pages/{material_request.department}/material-requests/{material_request.id}"
             )
 
     def get_queryset(self):

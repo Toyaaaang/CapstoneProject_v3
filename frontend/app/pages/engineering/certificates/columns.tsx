@@ -8,7 +8,15 @@ import { startCertification } from "@/hooks/shared/useStartCertification";
 import { toast } from "sonner";
 import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { useState } from "react";
+import DrawerTable from "@/components/dialogs/DrawerTable"; // adjust import as needed
 
+const remarksOptions = [
+  "Compliant",
+  "With Defect",
+  "For Replacement",
+  "Others"
+];
 
 export const columns: ColumnDef<CertifiableBatch>[] = [
   {
@@ -65,7 +73,7 @@ export const columns: ColumnDef<CertifiableBatch>[] = [
         ? row.original.items.filter((i) => i.requires_certification)
         : [];
       const previewItems = items.slice(0, 5);
-      const batchId = row.original.id;
+      const batchId = row.original.purchase_order_id;
 
       return (
         <Popover>
@@ -152,31 +160,97 @@ export const columns: ColumnDef<CertifiableBatch>[] = [
     header: "Actions",
     cell: ({ row, table }) => {
       const batch = row.original;
+      const [drawerOpen, setDrawerOpen] = useState(false);
+      const [itemRemarks, setItemRemarks] = useState(
+        (batch.items || []).map(item => ({
+          id: item.id,
+          remarks: item.remarks || ""
+        }))
+      );
+      const [confirmOpen, setConfirmOpen] = useState(false);
 
-      const handleStartCertification = async () => {
+      const handleRemarkChange = (id, value) => {
+        setItemRemarks(prev =>
+          prev.map(r => (r.id === id ? { ...r, remarks: value } : r))
+        );
+      };
+
+      // Called when user clicks "Start Signatory Process" in the drawer
+      const handleStartSignatory = () => {
+        setConfirmOpen(true);
+      };
+
+      // Called when user confirms in the dialog
+      const handleConfirm = async () => {
         try {
-          await startCertification(batch.id);
+          const deliveryRecordId = batch.items?.[0]?.delivery_record_id;
+          if (!deliveryRecordId) {
+            toast.error("No delivery record ID found.");
+            return;
+          }
+          // Send itemRemarks to backend here!
+          await startCertification(deliveryRecordId, itemRemarks.map(r => ({
+            id: r.id,
+            remarks: r.remarks
+          })));
           toast.success("Certification started successfully");
           table.options.meta?.refreshData?.();
         } catch (err: any) {
           console.error(err);
           toast.error("Failed to start certification");
         }
+        setConfirmOpen(false);
+        setDrawerOpen(false);
       };
 
+      // Drawer columns
+      const drawerColumns = [
+        { header: "Material", accessorKey: "material_name" },
+        { header: "Quantity", accessorKey: "quantity" },
+        { header: "Unit", accessorKey: "unit" },
+        {
+          header: "Remarks",
+          cell: ({ row }) => (
+            <select
+              className="border rounded px-2 py-1 text-xs"
+              value={itemRemarks.find(r => r.id === row.original.id)?.remarks || ""}
+              onChange={e => handleRemarkChange(row.original.id, e.target.value)}
+            >
+              <option value="">Select</option>
+              {remarksOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          ),
+        },
+      ];
+
       return (
-        <ConfirmActionDialog
-          trigger={
-            <Button size="sm" variant="default">
-              Start Certification
-            </Button>
-          }
-          title="Start Certification?"
-          description="Do you want to continue with this action? This cannot be undone."
-          confirmLabel="Start"
-          cancelLabel="Cancel"
-          onConfirm={handleStartCertification}
-        />
+        <>
+          <DrawerTable
+            title="Set Remarks for Certificate Items"
+            columns={drawerColumns}
+            data={batch.items}
+            triggerLabel="Start Certification"
+          >
+            <ConfirmActionDialog
+              trigger={
+                <Button
+                  disabled={itemRemarks.some(r => !r.remarks)}
+                  className="w-full mt-4"
+                >
+                  Start Signatory Process
+                </Button>
+              }
+              title="Start Certification?"
+              description="Do you want to continue with this action? This cannot be undone."
+              confirmLabel="Start"
+              cancelLabel="Cancel"
+              onConfirm={handleConfirm}
+            />
+          </DrawerTable>
+
+        </>
       );
     },
   },

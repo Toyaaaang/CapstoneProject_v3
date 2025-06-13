@@ -1,6 +1,6 @@
 import axios from "@/lib/axios";
 
-export async function startCertification(deliveryRecordId: number) {
+export async function startCertification(deliveryRecordId: number, itemRemarks: { id: number; remarks: string; }[]) {
   try {
     const res = await axios.post("/requests/certifications/start/", {
       delivery_record_id: deliveryRecordId,

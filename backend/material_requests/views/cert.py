@@ -8,7 +8,7 @@ from io import BytesIO
 from xhtml2pdf import pisa
 
 from ..models import Certification, DeliveryRecord, CertifiedItem
-from ..serializers.cert import CertificationSerializer
+from ..serializers.cert import CertificationSerializer, CertificationPrintableSerializer
 
 class CertificationViewSet(viewsets.ModelViewSet):
     queryset = Certification.objects.all().order_by("-created_at")
@@ -26,10 +26,12 @@ class CertificationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["post"], url_path="start")
     def start_certification(self, request):
-        if request.user.role not in ["warehouse_admin", "audit","engineering", "operations_maintenance"]:
+        if request.user.role not in ["warehouse_admin", "audit", "engineering", "operations_maintenance"]:
             return Response({"detail": "Not authorized."}, status=403)
 
         delivery_id = request.data.get("delivery_record_id")
+        item_remarks = request.data.get("item_remarks", [])
+
         if not delivery_id:
             return Response({"detail": "delivery_record_id is required."}, status=400)
 
@@ -53,6 +55,9 @@ class CertificationViewSet(viewsets.ModelViewSet):
             status="started"
         )
 
+        # Map po_item_id to remarks for quick lookup
+        remarks_map = {str(r["po_item_id"]): r["remarks"] for r in item_remarks if "po_item_id" in r}
+
         items_to_certify = qc.items.filter(
             requires_certification=True,
             certifieditem__isnull=True
@@ -61,7 +66,8 @@ class CertificationViewSet(viewsets.ModelViewSet):
             CertifiedItem.objects.create(
                 certification=cert,
                 po_item=item.po_item,
-                quality_check_item=item
+                quality_check_item=item,
+                remarks=remarks_map.get(str(item.po_item.id), "")
             )
 
         return Response({"id": cert.id}, status=201)
@@ -182,3 +188,9 @@ class CertificationViewSet(viewsets.ModelViewSet):
 
         cert.save()
         return Response({"detail": "Certification approved successfully."}, status=200)
+
+    @action(detail=True, methods=["get"], url_path="printable")
+    def printable(self, request, pk=None):
+        cert = self.get_object()
+        serializer = CertificationPrintableSerializer(cert)
+        return Response(serializer.data)
