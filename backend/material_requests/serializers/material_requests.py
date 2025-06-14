@@ -36,6 +36,7 @@ class MaterialRequestItemSerializer(serializers.ModelSerializer):
 class MaterialRequestSerializer(serializers.ModelSerializer):
     items = MaterialRequestItemSerializer(many=True)
     requester = serializers.SerializerMethodField()
+    charge_ticket_id = serializers.SerializerMethodField()  # <-- Add this line
 
     # Add these fields
     location = serializers.CharField(required=True)
@@ -47,8 +48,8 @@ class MaterialRequestSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'status', 'requester', 'department', 'purpose', 'created_at',
             'work_order_no', 'manpower', 'target_completion', 'actual_completion',
-            'duration', 'requester_department', 'items','location', 'latitude',
-            'longitude' 
+            'duration', 'requester_department', 'items', 'location', 'latitude',
+            'longitude', 'charge_ticket_id'  
         ]
 
     def create(self, validated_data):
@@ -69,6 +70,26 @@ class MaterialRequestSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
+
+    def get_charge_ticket_id(self, obj):
+        # If it's a reverse relation (one-to-many or one-to-one)
+        # Try to get the first related charge ticket
+        if hasattr(obj, "charge_ticket"):
+            # If it's a RelatedManager (many), use .first()
+            related = getattr(obj, "charge_ticket")
+            if hasattr(related, "all"):
+                ct = related.all().first()
+                if ct:
+                    return ct.id
+            # If it's a single object (one-to-one), just return its id
+            elif hasattr(related, "id"):
+                return related.id
+        # Or if it's a reverse relation with default related_name
+        if hasattr(obj, "chargeticket_set"):
+            ct = obj.chargeticket_set.first()
+            if ct:
+                return ct.id
+        return None
 
 class WorkOrderAssignmentSerializer(serializers.ModelSerializer):
     work_order_assigned_by = serializers.SerializerMethodField(read_only=True)

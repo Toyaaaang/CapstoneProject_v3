@@ -14,6 +14,7 @@ export default function RequestItemsPage() {
   const [status, setStatus] = useState<string>("");
   const [page, setPage] = useState(1);
   const pageSize = 10; // or any number you want
+  const [chargeTicketId, setChargeTicketId] = useState<number | null>(null);
 
   useEffect(() => {
     axios.get(`/requests/employee/requests-history/${id}/`)
@@ -29,6 +30,7 @@ export default function RequestItemsPage() {
           }))
         );
         setStatus(res.data.status);
+        setChargeTicketId(res.data.charge_ticket_id);
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -55,11 +57,11 @@ export default function RequestItemsPage() {
       <Button variant="outline" className="m-4" onClick={() => router.back()}>
         ← Back
       </Button>
-      {status === "ready_for_release" && (
+      {status === "ready_for_release" && chargeTicketId && (
         <Button
           variant="outline"
           className="mt-2 mb-4"
-          onClick={() => window.open(`/pages/employee/requests-history/${id}/printable`, "_blank")}
+          onClick={() => router.push(`/pages/employee/requests-history/${chargeTicketId}/printable`)}
         >
           <Download className="mr-2" />
           Download/Print Charge Form
