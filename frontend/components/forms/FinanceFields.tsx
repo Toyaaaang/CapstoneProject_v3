@@ -1,10 +1,12 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
 
 type Props = {
   values: any;
   onChange: (field: string, value: any) => void;
+  userInfo: { role?: string };
 };
 
 // Purposes specific for finance/office supplies
@@ -16,19 +18,23 @@ const FINANCE_PURPOSE_OPTIONS = [
   { value: "Other Office Needs", label: "Other Office Needs – Miscellaneous" },
 ];
 
-export default function FinanceFields({ values, onChange }: Props) {
+export default function FinanceFields({ values, onChange, userInfo }: Props) {
+  const [requesterDepartment, setRequesterDepartment] = useState("");
+
   return (
     <div className="space-y-4">
       {/* Requester's Department */}
-      <div>
-        <Label className="p-2">Requester's Department</Label>
-        <Input
-          value={values.requester_department}
-          onChange={(e) => onChange("requester_department", e.target.value)}
-          required
-          className="w-full"
-        />
-      </div>
+      {userInfo?.role !== "sub_office" && (
+        <div>
+          <Label className="p-2">Requester Department</Label>
+          <Input
+            value={requesterDepartment}
+            onChange={(e) => setRequesterDepartment(e.target.value)}
+            placeholder="Enter requester department"
+            className="w-80"
+          />
+        </div>
+      )}
 
       {/* Purpose */}
       <div>

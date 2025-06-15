@@ -82,7 +82,7 @@ export const columns: ColumnDef<any>[] = [
                           )}
                         </div>
                         <div className="text-center text-muted-foreground">
-                          {item.po_item?.quantity} {item.po_item?.unit}
+                          {Math.round(item.po_item?.quantity || 0)} {item.po_item?.unit?.toLowerCase() || ""}
                         </div>
                         <div className="text-center">
                           <Badge variant={item.requires_certification ? "default" : "outline"}>

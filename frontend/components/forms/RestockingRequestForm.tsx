@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, Plus } from "lucide-react";
-import useRestockingRequest from "@/hooks/useRestockingRequest";
+import useRestockingRequest from "@/hooks/engineering/useRestockingRequest";
 
 export default function RestockingRequestForm() {
   const {

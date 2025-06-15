@@ -17,6 +17,8 @@ import axios from "@/lib/axios";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { useRouter } from "next/navigation";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -28,6 +30,7 @@ const formatDate = (dateString: string) => {
 };
 
 export type MaterialRequest = {
+  location: any;
   id: number;
   purpose: string;
   status: string;
@@ -72,6 +75,29 @@ export const columns = (
   {
     header: "Purpose",
     accessorKey: "purpose",
+    cell: ({ row }) => (
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button className="max-w-[180px] truncate">
+            {row.original.purpose || "No purpose provided"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-72 space-y-2">
+          <div>
+            <span className="font-semibold text-sm">Purpose:</span>
+            <span className="ml-1 text-sm">{row.original.purpose}</span>
+          </div>
+          <div>
+            <span className="font-semibold text-sm">Location of Work:</span>
+            <span className="ml-1 text-sm">
+              {row.original.location || (
+                <span className="italic text-muted-foreground">No location</span>
+              )}
+            </span>
+          </div>
+        </PopoverContent>
+      </Popover>
+    ),
   },
   {
     header: "Date",
@@ -91,6 +117,82 @@ export const columns = (
     header: "Work Order No.",
     accessorKey: "work_order_no",
     cell: ({ row }) => row.original.work_order_no || "—",
+  },
+  {
+    header: "Items",
+    cell: ({ row }) => {
+      const router = useRouter();
+      const items = row.original.items || [];
+      const previewItems = items.slice(0, 5);
+      const reqId = row.original.id;
+
+      return (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size="sm" variant="outline">
+              View Items
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80 max-h-72 overflow-auto">
+            {items.length > 0 ? (
+              <div>
+                <div className="grid grid-cols-3 gap-2 font-semibold text-xs mb-2 px-1">
+                  <span>Material</span>
+                  <span className="text-center">Qty</span>
+                  <span className="text-right">Unit</span>
+                </div>
+                <div className="space-y-2">
+                  {previewItems.map((item, i) => (
+                    <div
+                      key={i}
+                      className="grid grid-cols-3 gap-2 items-center border rounded p-2 bg-muted/30 text-xs"
+                    >
+                      <div className="font-medium truncate flex items-center gap-1">
+                        {item.material?.name ? (
+                          <>
+                            {item.material.name.charAt(0).toUpperCase() + item.material.name.slice(1)}
+                            {item.custom_name && (
+                              <Badge variant="outline" className="ml-1 text-[10px]">Custom</Badge>
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <span className="italic text-muted-foreground">
+                              {item.custom_name ? item.custom_name : "Custom Item"}
+                            </span>
+                            <Badge variant="outline" className="ml-1 text-[10px]">Custom</Badge>
+                          </>
+                        )}
+                      </div>
+                      <div className="text-center text-muted-foreground">
+                        {Math.round(item.quantity)}
+                      </div>
+                      <div className="text-right text-muted-foreground lowercase">
+                        {item.unit}
+                      </div>
+                    </div>
+                  ))}
+                  {items.length > 5 && (
+                    <div className="text-xs text-muted-foreground mt-2">
+                      ...and {items.length - 5} more
+                    </div>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  className="w-full mt-3"
+                  onClick={() => router.push(`/pages/operations-maintenance/material-requests/${reqId}/items`)}
+                >
+                  Full Details
+                </Button>
+              </div>
+            ) : (
+              <div className="text-muted-foreground text-xs italic py-4 text-center">No items</div>
+            )}
+          </PopoverContent>
+        </Popover>
+      );
+    },
   },
   {
     header: "Actions",

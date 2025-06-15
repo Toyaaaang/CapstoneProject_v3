@@ -4,24 +4,11 @@ export const warehouseStaffMenu = [
       items: [{ title: "Overview", url: "/pages/warehouse_staff" }],
     },
     {
-      title: "Inventory Management",
-      items: [
-        { title: "Stocks Management", url: "/pages/warehouse_staff/stock" },
-      ],
-    },
-    {
       title: "Requests Management",
       items: [
         { title: "Pending Requests", url: "/pages/warehouse_staff/material-requests" },
         { title: "Requests History", url: "/pages/warehouse_staff/evaluation-history" },
 
-      ],
-    },
-    {
-      title: "Delivery",
-      items: [
-        { title: "Delivery Checking", url: "/pages/warehouse_staff/check-delivery" },
-        { title: "Delivery History", url: "/pages/warehouse_staff/delivery-history" },
       ],
     },
     {
@@ -31,6 +18,14 @@ export const warehouseStaffMenu = [
         { title: "Requests History", url: "/pages/warehouse_staff/charge-history" },
       ],
     },
+    {
+      title: "Delivery",
+      items: [
+        { title: "Delivery Checking", url: "/pages/warehouse_staff/check-delivery" },
+        { title: "Delivery History", url: "/pages/warehouse_staff/delivery-history" },
+      ],
+    },
+
     {
       title: "Material Returns",
       items: [
@@ -43,6 +38,12 @@ export const warehouseStaffMenu = [
       title: "Accountability Management",
       items: [
         { title: "Accountabilities", url: "/pages/warehouse_staff/accountability-management" },
+      ],
+    },
+    {
+      title: "Inventory Management",
+      items: [
+        { title: "Stocks Management", url: "/pages/warehouse_staff/stock" },
       ],
     },
     {

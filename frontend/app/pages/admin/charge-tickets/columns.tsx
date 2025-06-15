@@ -131,12 +131,13 @@ export const columns = ({
                 </div>
               )}
               <div className="mt-3 text-center">
-                <Link
-                  href={`/pages/admin/charge-tickets/${row.original.id}/items`}
-                  className="text-xs text-blue-600 hover:underline cursor-pointer"
+                <Button
+                  variant="ghost"
+                  className="w-full mt-3 text-xs"
+                  onClick={() => window.location.href = `/pages/admin/charge-tickets/${row.original.id}/items`}
                 >
                   Show Full Info
-                </Link>
+                </Button>
               </div>
             </div>
           ) : (

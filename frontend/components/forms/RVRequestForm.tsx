@@ -15,9 +15,12 @@ import {
   SelectItem,
 } from "@/components/ui/select"
 import { ConfirmActionDialog } from "@/components/alert-dialog/AlertDialog"
+import axios from "@/lib/axios"
+import FormLoader from "@/components/Loaders/FormLoader"
 
 export default function RVRestockingForm() {
   const [department, setDepartment] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const purposeOptions = [
     "Stock Depletion",
     "New Project",
@@ -28,8 +31,10 @@ export default function RVRestockingForm() {
   ]
 
   useEffect(() => {
-    const role = localStorage.getItem("role")
-    setDepartment(role)
+    axios.get("/authentication/me").then((res) => {
+      setDepartment(res.data.department || res.data.role)
+      setLoading(false)
+    })
   }, [])
 
   const {
@@ -44,10 +49,16 @@ export default function RVRestockingForm() {
     isSubmitting,
   } = useRVRestockingForm(department || "")
 
-  if (!department) return null
+  if (loading) return <FormLoader />
 
   return (
-    <Card className="w-full p-6 space-y-6">
+    <Card className="w-full p-6 space-y-6" style={{
+              // border: "1px solid transparent",
+              background: "rgba(0, 17, 252, 0.04)",
+              boxShadow: "0 8px 38px 0 rgba(23,23,23,0.17)",
+              backdropFilter: "blur(18.5px)",
+              WebkitBackdropFilter: "blur(4.5px)",  
+            }}>
       <h1 className="text-xl font-bold">Restocking Request</h1>
 
       <div>
@@ -91,7 +102,7 @@ export default function RVRestockingForm() {
             ) : (
               <>
                 <Select
-                  value={item.material_id?.toString() || ""}
+                  value={item.material_id !== undefined && item.material_id !== null ? item.material_id.toString() : ""}
                   onValueChange={(val) => {
                     if (val === "custom") {
                       updateItem(i, "is_custom", true)
@@ -105,7 +116,7 @@ export default function RVRestockingForm() {
                     <SelectValue placeholder="Select material" />
                   </SelectTrigger>
                   <SelectContent>
-                    {materials.map((m) => (
+                    {(materials || []).filter((m): m is { id: number; name: string } => !!m && m.id && m.name).map((m) => (
                       <SelectItem key={m.id} value={m.id.toString()}>
                         {m.name}
                       </SelectItem>

@@ -40,6 +40,7 @@ export default function AssignWorkOrderPage() {
         page={page}
         setPage={setPage}
         totalCount={totalCount}
+        pageSize={8}
       />
     </div>
   );

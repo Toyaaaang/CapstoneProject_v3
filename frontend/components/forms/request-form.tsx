@@ -37,7 +37,11 @@ type Item = {
   unit: string;
 };
 
-export default function RequestForm() {
+type RequestFormProps = {
+  children?: React.ReactNode;
+};
+
+export default function RequestForm({ children }: RequestFormProps) {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [department, setDepartment] = useState("");
   const [items, setItems] = useState<Item[]>([]);
@@ -67,7 +71,10 @@ export default function RequestForm() {
 
   // Fetch user info on mount
   useEffect(() => {
-    axios.get("/authentication/me/").then((res) => setUserInfo(res.data));
+    axios.get("/authentication/me/").then((res) => {
+      setUserInfo(res.data);
+      setDepartment(res.data.department)
+    });
   }, []);
 
   // Determine if user should see the dropdown
@@ -90,7 +97,7 @@ export default function RequestForm() {
       ? subofficeEDOMD
       : showDeptDropdown
       ? requestDept
-      : "finance";
+      : userInfo?.department || "finance";
 
   // Auto-populate materials based on department
   useEffect(() => {
@@ -211,7 +218,10 @@ export default function RequestForm() {
         bg-white/40 dark:bg-zinc-900/60
         shadow-lg backdrop-blur-[4.5px]"
     >
-      <h1 className="text-xl font-bold">New Material Request</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-xl font-bold">New Material Request</h1>
+        {children}
+      </div>
       <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
         {/* Department Dropdown (only for ED/OMD employee or sub_office) */}
         {showDeptDropdown && (
@@ -222,30 +232,25 @@ export default function RequestForm() {
                 <SelectValue placeholder="Select department" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="engineering">Engineering / O&M</SelectItem>
-                <SelectItem value="finance">Finance</SelectItem>
+                {userInfo && userInfo.role === "sub_office" ? (
+                  <>
+                    <SelectItem value="engineering">Engineering</SelectItem>
+                    <SelectItem value="operations_maintenance">Operations & Maintenance</SelectItem>
+                    <SelectItem value="finance">Finance</SelectItem>
+                  </>
+                ) : userInfo && userInfo.department ? (
+                  <>
+                    <SelectItem value={userInfo.department}>
+                      {userInfo.department.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                    </SelectItem>
+                    <SelectItem value="finance">Finance</SelectItem>
+                  </>
+                ) : null}
               </SelectContent>
             </Select>
           </div>
         )}
 
-        {/* Suboffice: If ED/OMD is chosen, pick which one */}
-        {showSubofficeEDOMDSelect && (
-          <div>
-            <Label className="p-2">Choose ED or O&M</Label>
-            <Select onValueChange={setSubofficeEDOMD} value={subofficeEDOMD}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select department" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="engineering">Engineering</SelectItem>
-                <SelectItem value="operations_maintenance">
-                  Operations & Maintenance
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
 
         {/* Purpose and Location side by side */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -332,9 +337,9 @@ export default function RequestForm() {
                       options={[
                         ...materials.map((mat) => ({
                           value: mat.id.toString(),
-                          label: mat.name,
+                          label: `${mat.name} (${mat.unit})`,
                         })),
-                        { value: "custom", label: "➕ Custom / Not in List" },
+                        { value: "custom", label: "➕ Add Custom Material" },
                       ]}
                       value={
                         item.is_custom
@@ -348,22 +353,28 @@ export default function RequestForm() {
                           updateItem(i, "is_custom", true);
                           updateItem(i, "material_id", undefined);
                           updateItem(i, "unit", "");
+                          updateItem(i, "custom_name", "");
+                          updateItem(i, "custom_unit", "");
                         } else {
                           const mat = materials.find((m) => m.id === Number(val));
-                          updateItem(i, "is_custom", false);
-                          updateItem(i, "material_id", Number(val));
-                          updateItem(i, "unit", mat?.unit ?? "");
+                          if (mat) {
+                            updateItem(i, "is_custom", false);
+                            updateItem(i, "material_id", Number(val));
+                            updateItem(i, "unit", mat.unit);
+                            updateItem(i, "custom_name", undefined);
+                            updateItem(i, "custom_unit", undefined);
+                          }
                         }
                       }}
                       placeholder="Select material"
                       searchPlaceholder="Search material..."
-                      className="w-[280px]" // wider combobox
+                      className="w-[280px]"
                     />
                     <Input
                       placeholder="Unit"
-                      value={materials.find((m) => m.id === item.material_id)?.unit ?? ""}
-                      disabled
-                      className="w-32 ml-6" // add margin-left to move unit further right
+                      value={item.is_custom ? item.custom_unit || "" : materials.find((m) => m.id === item.material_id)?.unit || ""}
+                      disabled={!item.is_custom}
+                      className="w-32 ml-6"
                     />
                   </>
                 )}

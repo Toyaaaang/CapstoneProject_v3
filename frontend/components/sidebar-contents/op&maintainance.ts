@@ -4,6 +4,13 @@ export const Menu = [
     items: [{ title: "Overview", url: "/pages/operations-maintenance" }],
   },
   {
+    title: "Work Order Management",
+    items: [
+      { title: "Work Order Assignment", url: "/pages/operations-maintenance/material-requests" },
+      { title: "Requests History", url: "/pages/operations-maintenance/evaluation-history" },
+    ],
+  },
+  {
     title: "Material Quality Management",
     items: [
       { title: "Quality Compliance", url: "/pages/operations-maintenance/quality-check" },
@@ -16,13 +23,7 @@ export const Menu = [
       { title: "Certifications", url: "/pages/operations-maintenance/certificates" },
     ],
   },
-  {
-    title: "Material Requests",
-    items: [
-      { title: "Pending Requests", url: "/pages/operations-maintenance/material-requests" },
-      { title: "Requests History", url: "/pages/operations-maintenance/evaluation-history" },
-    ],
-  },
+
   {
     title: "Restocking Management",
     items: [

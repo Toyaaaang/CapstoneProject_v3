@@ -91,7 +91,7 @@ export const columns: ColumnDef<MaterialRequest>[] = [
       // Prepare data for the drawer table
       const drawerData = items.map((item) => ({
         material_name: item.material?.name || item.custom_name || "Custom Item",
-        quantity: item.quantity,
+        quantity: parseInt(item.quantity as any, 10),
         unit: item.custom_unit || item.unit,
       }));
 
@@ -129,9 +129,9 @@ export const columns: ColumnDef<MaterialRequest>[] = [
                         )}
                       </div>
                       <div className="text-center text-muted-foreground">
-                        {item.quantity}
+                        {parseInt(item.quantity as any, 10)}
                       </div>
-                      <div className="text-right text-muted-foreground uppercase">
+                      <div className="text-right text-muted-foreground">
                         {item.custom_unit || item.unit}
                       </div>
                     </div>

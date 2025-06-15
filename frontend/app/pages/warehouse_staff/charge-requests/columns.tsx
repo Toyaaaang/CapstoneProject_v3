@@ -137,13 +137,14 @@ export const columns = ({
                   +{row.original.items.length - 5} more...
                 </div>
               )}
-              <div className="mt-3 text-center">
-                <Link
-                  href={`/pages/warehouse_staff/charge-requests/${row.original.id}/items`}
-                  className="text-xs text-blue-600 hover:underline cursor-pointer"
+              <div className="text-center">
+                <Button
+                  variant="ghost"
+                  className="w-full mt-3 text-xs"
+                  onClick={() => window.location.href = `/pages/warehouse_staff/charge-requests/${row.original.id}/items`}
                 >
                   Show Full Info
-                </Link>
+                </Button>
               </div>
             </div>
           ) : (

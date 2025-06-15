@@ -46,7 +46,7 @@ export default function DataTable<TData>({
   pageSize = 10,
   filters, // <-- accept custom filters as a prop
 }: DataTableProps<TData>) {
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   const table = useReactTable<TData>({
     data,
@@ -78,10 +78,11 @@ export default function DataTable<TData>({
   return (
     <div className="p-4 border rounded-md shadow-sm select-none"
             style={{
+              // border: "1px solid transparent",
               background: "rgba(0, 17, 252, 0.04)",
               boxShadow: "0 8px 38px 0 rgba(23,23,23,0.17)",
               backdropFilter: "blur(18.5px)",
-              WebkitBackdropFilter: "blur(4.5px)",
+              WebkitBackdropFilter: "blur(4.5px)",  
             }}>
       <h2 className="text-xl font-bold mb-4 p-4">{title}</h2>
 
