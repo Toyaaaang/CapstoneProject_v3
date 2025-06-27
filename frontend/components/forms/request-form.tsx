@@ -216,7 +216,7 @@ export default function RequestForm({ children }: RequestFormProps) {
     <Card
       className="p-6 w-full mx-auto space-y-4
         bg-white/40 dark:bg-zinc-900/60
-        shadow-lg backdrop-blur-[4.5px]"
+        shadow-lg backdrop-blur-[4.5px] select-none"
     >
       <div className="flex justify-between items-center">
         <h1 className="text-xl font-bold">New Material Request</h1>

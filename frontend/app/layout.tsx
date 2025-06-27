@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "WOMS",
+  title: "Quezelco I - Warehouse MS",
   description: "Warehouse Operations Management System",
   icons: {
     icon: "/logo.ico",
