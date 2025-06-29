@@ -27,7 +27,13 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
     if (pathname === "/pages/employee") {
       setPageName("Overview");
     } else {
-      setPageName(pathname.split("/").pop()?.replace("-", " ") || "Overview");
+      // Capitalize each word for better display
+      const last = pathname.split("/").pop() || "Overview";
+      setPageName(
+        last
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (l) => l.toUpperCase())
+      );
     }
   }, [pathname]);
 
@@ -49,7 +55,8 @@ export default function EmployeeLayout({ children }: { children: React.ReactNode
                 <div className="flex items-center gap-2">
                   <SidebarTrigger className="-ml-1" />
                   <Separator orientation="vertical" className="mr-2 h-4" />
-                  <Breadcrumb>
+                  {/* Make breadcrumb unselectable */}
+                  <Breadcrumb className="select-none">
                     <BreadcrumbList>
                       <BreadcrumbItem className="hidden md:block">
                         <BreadcrumbLink href="/pages/employee">

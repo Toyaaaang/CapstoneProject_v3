@@ -24,69 +24,73 @@ export default function WarehouseAdminLayout({ children }: { children: React.Rea
   const [pageName, setPageName] = useState("Overview");
 
   useEffect(() => {
-    // If at root, explicitly set "Overview"
     if (pathname === "/dashboard/warehouse-admin") {
       setPageName("Overview");
     } else {
-      setPageName(pathname.split("/").pop()?.replace("-", " ") || "Overview");
+      // Capitalize each word for better display
+      const last = pathname.split("/").pop() || "Overview";
+      setPageName(
+        last
+          .replace(/-/g, " ")
+          .replace(/\b\w/g, (l) => l.toUpperCase())
+      );
     }
   }, [pathname]);
 
   return (
     <RoleLayout allowedRole="warehouse_admin">
-    <SidebarProvider>
-      <AppSidebar menuData={warehouseAdminMenu} />
-      <SidebarInset>
-        <div
-          className={`
-            flex flex-col flex-1 min-h-screen
-            bg-cover bg-center
-            bg-[url('/bg-admin-light.svg')]
-            dark:bg-[url('/bg-admin-dark.svg')]
-          `}
-        >
-          <div className="flex flex-col flex-1">
-          <header
-            className="flex h-16 items-center gap-2 border-b px-4 justify-between"
-            style={{
-              background: "rgba(0, 17, 252, 0.04)",
-              boxShadow: "0 8px 32px 0 rgba(23,23,23,0.17)",
-              backdropFilter: "blur(4.5px)",
-              WebkitBackdropFilter: "blur(4.5px)",
-            }}
+      <SidebarProvider>
+        <AppSidebar menuData={warehouseAdminMenu} />
+        <SidebarInset>
+          <div
+            className={`
+              flex flex-col flex-1 min-h-screen
+              bg-cover bg-center
+              bg-[url('/bg-admin-light.svg')]
+              dark:bg-[url('/bg-admin-dark.svg')]
+            `}
           >
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/pages/admin">
-                    Warehouse Admin
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="capitalize">
-                    {pageName}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          
-            {/* NotificationDropdown moved to the left of AccountPopover */}
-            <div className="flex items-center gap-4">
-              <ModeToggle />
-              <NotificationDropdown />
-              <AccountPopover />
+            <div className="flex flex-col flex-1">
+              <header
+                className="flex h-16 items-center gap-2 border-b px-4 justify-between"
+                style={{
+                  background: "rgba(0, 17, 252, 0.04)",
+                  boxShadow: "0 8px 32px 0 rgba(23,23,23,0.17)",
+                  backdropFilter: "blur(4.5px)",
+                  WebkitBackdropFilter: "blur(4.5px)",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <SidebarTrigger className="-ml-1" />
+                  <Separator orientation="vertical" className="mr-2 h-4" />
+                  {/* Add select-none here */}
+                  <Breadcrumb className="select-none">
+                    <BreadcrumbList>
+                      <BreadcrumbItem className="hidden md:block">
+                        <BreadcrumbLink href="/pages/admin">
+                          Warehouse Admin
+                        </BreadcrumbLink>
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator className="hidden md:block" />
+                      <BreadcrumbItem>
+                        <BreadcrumbPage className="capitalize">
+                          {pageName}
+                        </BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </BreadcrumbList>
+                  </Breadcrumb>
+                </div>
+                <div className="flex items-center gap-4">
+                  <ModeToggle />
+                  <NotificationDropdown />
+                  <AccountPopover />
+                </div>
+              </header>
+              <main className="p-4">{children}</main>
             </div>
-          </header>
-          <main className="p-4">{children}</main>
-        </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
     </RoleLayout>
   );
 }
