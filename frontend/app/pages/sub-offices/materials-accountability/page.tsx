@@ -1,31 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import axios from "@/lib/axios";
-import { columns } from "./columns";
-import { AccountabilityRecord } from "./columns";
-import DataTable from "@/components/Tables/DataTable"; // Adjust to your table path
-import TableLoader from "@/components/Loaders/TableLoader"; // Assuming you have a loader component
+import usePersonalAccountability from "@/hooks/staff/useMyAccountability";
+import { columns, FlattenedAccountabilityItem } from "./columns";
+import DataTable from "@/components/Tables/DataTable";
+import { useState } from "react";
 
-export default function AccountabilityPage() {
-  const [data, setData] = useState<AccountabilityRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function PersonalAccountabilityPage() {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  useEffect(() => {
-    axios
-      .get("/accountability/employee/") // Replace with your actual endpoint
-      .then((res) => setData(res.data))
-      .catch((err) => console.error("Failed to load accountability data", err))
-      .finally(() => setLoading(false));
-  }, []);
+  const { data, isLoading, totalCount, refetch } = usePersonalAccountability({ page, pageSize });
+
+  // Flatten data: 1 row per material item
+  const flattenedData: FlattenedAccountabilityItem[] = data.flatMap((acc) =>
+    acc.items.map((item) => ({
+      id: acc.id,
+      created_at: acc.created_at,
+      material_name: item.material.name,
+      category: item.material.category,
+      quantity: Number(item.quantity),
+      unit: item.unit,
+      // Use ic_no if present, otherwise mc_no
+      charge_ticket_number: item.charge_ticket?.ic_no || item.charge_ticket?.mc_no || "-",
+      department: acc.department,
+    }))
+  );
 
   return (
     <div className="p-6 space-y-4">
-      {loading ? (
-        <TableLoader />
-      ) : (
-        <DataTable title="My Accountabilities" columns={columns} data={data} />
-      )}
+      <DataTable
+        title="My Accountabilities"
+        columns={columns}
+        data={flattenedData}
+        isLoading={isLoading}
+        page={page}
+        setPage={setPage}
+        totalCount={totalCount}
+        refreshData={refetch}
+      />
     </div>
   );
 }

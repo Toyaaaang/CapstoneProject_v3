@@ -17,8 +17,12 @@ export default function PersonalAccountabilityPage() {
       id: acc.id,
       created_at: acc.created_at,
       material_name: item.material.name,
-      quantity: item.quantity,
+      category: item.material.category,
+      quantity: Number(item.quantity),
       unit: item.unit,
+      // Use ic_no if present, otherwise mc_no
+      charge_ticket_number: item.charge_ticket?.ic_no || item.charge_ticket?.mc_no || "-",
+      department: acc.department,
     }))
   );
 
