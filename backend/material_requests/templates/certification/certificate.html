@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @page {
+      size: A4;
+      margin: 1in;
+    }
+
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 12px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid black;
+      padding: 6px;
+      text-align: center;
+    }
+
+    h2, h3 {
+      text-align: center;
+      margin: 0;
+    }
+
+    .meta {
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+
+    .signature {
+      margin-top: 60px;
+      width: 100%;
+      text-align: center;
+      font-size: 11px;
+    }
+
+    .signature-table {
+      width: 100%;
+      margin-top: 40px;
+      text-align: center;
+    }
+
+    .signature-cell {
+      width: 33%;
+    }
+
+    .line {
+      border-top: 1px solid black;
+      margin-top: 40px;
+      width: 80%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  </style>
+</head>
+<body>
+  <h2>QUEZON I ELECTRIC COOPERATIVE, INC.</h2>
+  <h3>CERTIFICATION OF INSPECTION</h3>
+
+  <div class="meta">
+    <p><strong>PO Number:</strong> {{ cert.purchase_order.po_number }}</p>
+    <p><strong>Delivery Date:</strong> {{ cert.delivery_record.delivery_date }}</p>
+    <p><strong>Date Issued:</strong> {{ cert.created_at|date:"F d, Y" }}</p>
+  </div>
+
+  <table>
+    <tr>
+      <th>#</th>
+      <th>Material</th>
+      <th>Qty</th>
+      <th>Unit</th>
+      <th>Inspection Type</th>
+      <th>Remarks</th>
+    </tr>
+    {% for item in cert.items.all %}
+    <tr>
+      <td>{{ forloop.counter }}</td>
+      <td>{{ item.po_item.material.name }}</td>
+      <td>{{ item.po_item.quantity }}</td>
+      <td>{{ item.po_item.unit }}</td>
+      <td>{{ item.inspection_type }}</td>
+      <td>{{ item.remarks }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  <table class="signature-table">
+    <tr>
+      <td class="signature-cell">
+        <div class="line"></div>
+        <p>Certified by: {{ cert.inspected_by.get_full_name }}</p>
+      </td>
+      <td class="signature-cell">
+        <div class="line"></div>
+        <p>Audit Representative</p>
+      </td>
+      <td class="signature-cell">
+        <div class="line"></div>
+        <p>Warehouse Head</p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

@@ -1,0 +1,33 @@
+"use client";
+
+import { useState } from "react";
+import useBudgetRequisitionVouchers from "@/hooks/budget/useBudgetRequisitionVouchers";
+import DataTable from "@/components/Tables/DataTable";
+import { columns } from "./columns";
+import TableLoader from "@/components/Loaders/TableLoader";
+
+export default function RVRecommendationPage() {
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  const { data, isLoading, totalCount, refetch } = useBudgetRequisitionVouchers(page, pageSize);
+
+  return (
+    <div className="p-6 space-y-4">
+      {isLoading ? (
+        <TableLoader />
+      ) : (
+        <DataTable
+          title="Pending Requisition Vouchers"
+          columns={columns}
+          data={data}
+          refreshData={refetch}
+          page={page}
+          setPage={setPage}
+          totalCount={totalCount}
+          pageSize={pageSize}
+        />
+      )}
+    </div>
+  );
+}

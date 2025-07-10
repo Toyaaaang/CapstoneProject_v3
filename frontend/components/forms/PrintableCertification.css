@@ -1,0 +1,12 @@
+@media print {
+  .landscape {
+    width: 100vw;
+    min-height: 100vh;
+    transform: rotate(0deg);
+    /* Optionally force landscape print */
+    page-break-after: always;
+  }
+  @page {
+    size: landscape;
+  }
+}
